@@ -1,0 +1,32 @@
+logging:
+  level:
+    root: TRACE
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+spring:
+  grpc:
+    server:
+      port: 9090
+grpc:
+  server:
+    port: 8080
+#    channelz:
+#      enabled: true
+    health:
+      enabled: false #conflict with spring.grpc.server.health.enabled
+
+#    reflection:
+#      enabled: true
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  use-fqn: true  # Use fully qualified names for better clarity

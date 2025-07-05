@@ -1,0 +1,44 @@
+syntax = "proto3";
+package stock.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service StockService {
+  rpc newReserve(NewReserveRequest) returns (NewReserveResponse);
+  rpc cancelReserve(CancelReserveRequest) returns (CancelReserveResponse);
+  rpc updateReserve(UpdateReserveRequest) returns (UpdateReserveResponse);
+  rpc findReserve(FindReserveRequest) returns (FindReserveResponse);
+}
+
+message NewReserveRequest {
+
+}
+
+message NewReserveResponse {
+
+}
+
+message CancelReserveRequest {
+
+}
+
+message CancelReserveResponse {
+
+}
+
+message UpdateReserveRequest {
+
+}
+
+message UpdateReserveResponse {
+
+}
+
+message FindReserveRequest {
+
+}
+
+message FindReserveResponse {
+
+}
