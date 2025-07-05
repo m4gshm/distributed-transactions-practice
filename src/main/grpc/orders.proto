@@ -1,0 +1,18 @@
+syntax = "proto3";
+package order.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service OrderService {
+  rpc create(OrderCreateRequest) returns (OrderCreateRequest);
+
+}
+
+message OrderCreateRequest {
+
+}
+
+message OrderCreateResponse {
+
+}
