@@ -1,0 +1,62 @@
+syntax = "proto3";
+
+package order.v1;
+
+import "google/api/annotations.proto";
+
+service OrderService {
+    rpc create (OrderCreateRequest) returns (OrderCreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order",
+            body: "*"
+        };
+    }
+    rpc get (OrderGetRequest) returns (OrderGetResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/order/{id}"
+        };
+    }
+    rpc cancel (OrderCancelRequest) returns (OrderCancelResponse) {
+        option (google.api.http) = {
+            delete: "/api/v1/order/{id}"
+        };
+    }
+    rpc find (OrderFindRequest) returns (OrderFindResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order/find",
+            body: "*"
+        };
+    }
+}
+
+message OrderCreateRequest {
+
+}
+
+message OrderCreateResponse {
+    string id = 1;
+}
+
+message OrderGetRequest {
+    string id = 1;
+}
+
+message OrderGetResponse {
+    string id = 1;
+}
+
+message OrderCancelRequest {
+    string id = 1;
+}
+
+message OrderCancelResponse {
+    string id = 1;
+}
+
+message OrderFindRequest {
+
+}
+
+message OrderFindResponse {
+    string id = 1;
+}
