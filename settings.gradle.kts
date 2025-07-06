@@ -1,3 +1,5 @@
 
 include(":orders")
-include(":stock")
+include(":payments")
+include(":warehouse")
+include(":delivery")

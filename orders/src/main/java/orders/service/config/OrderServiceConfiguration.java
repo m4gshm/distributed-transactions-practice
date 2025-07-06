@@ -1,7 +1,8 @@
 package orders.service.config;
 
-import order.v1.OrderServiceGrpc.OrderServiceImplBase;
 import orders.service.OrderServiceImpl;
+import orders.v1.OrderServiceGrpc;
+import orders.v1.OrderServiceGrpc.OrderServiceImplBase;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 

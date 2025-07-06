@@ -1,8 +1,8 @@
 package orders.service;
 
 import io.grpc.stub.StreamObserver;
-import order.v1.OrderServiceGrpc;
-import order.v1.Orders.*;
+import orders.v1.OrderServiceGrpc;
+import orders.v1.Orders.*;
 
 public class OrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase {
     @Override

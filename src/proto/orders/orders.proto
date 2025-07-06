@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-package order.v1;
+package orders.v1;
 
 import "google/api/annotations.proto";
 

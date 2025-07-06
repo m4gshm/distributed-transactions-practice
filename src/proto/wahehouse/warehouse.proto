@@ -1,10 +1,10 @@
 syntax = "proto3";
-package stock.v1;
+package warehouse.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-service StockService {
+service WarehouseService {
   rpc newReserve(NewReserveRequest) returns (NewReserveResponse);
   rpc cancelReserve(CancelReserveRequest) returns (CancelReserveResponse);
   rpc updateReserve(UpdateReserveRequest) returns (UpdateReserveResponse);
