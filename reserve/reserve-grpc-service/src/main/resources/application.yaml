@@ -13,10 +13,10 @@ logging:
 #    server:
 #      port: 9090
 server:
-  port: 8080
+  port: 8081
 grpc:
   server:
-    port: 9090
+    port: 9081
     channelz:
       enabled: false
     health:

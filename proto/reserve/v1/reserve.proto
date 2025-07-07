@@ -1,0 +1,59 @@
+syntax = "proto3";
+package reserve.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service ReserveService {
+  rpc create(NewReserveRequest) returns (NewReserveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve"
+      body: "*"
+    };
+  }
+  rpc cancel(CancelReserveRequest) returns (CancelReserveResponse) {
+    option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
+  }
+  rpc update(UpdateReserveRequest) returns (UpdateReserveResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/reserve"
+      body: "*"
+    };
+  }
+  rpc search(FindReserveRequest) returns (FindReserveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve/search"
+      body: "*"
+    };
+  }
+}
+
+message NewReserveRequest {}
+
+message NewReserveResponse {
+  string id = 1;
+}
+
+message CancelReserveRequest {
+  string id = 1;
+}
+
+message CancelReserveResponse {
+  string id = 1;
+}
+
+message UpdateReserveRequest {
+  string id = 1;
+}
+
+message UpdateReserveResponse {
+  string id = 1;
+}
+
+message FindReserveRequest {
+  string id = 1;
+}
+
+message FindReserveResponse {
+  string id = 1;
+}

@@ -1,0 +1,39 @@
+logging:
+  level:
+    root: DEBUG
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+#spring:
+#  grpc:
+#    server:
+#      port: 9090
+server:
+  port: 8080
+grpc:
+  server:
+    port: 9080
+
+    channelz:
+      enabled: false
+    health:
+      enabled: false #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: false
+
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+
+service:
+  reserve:
+    address: localhost:9081
