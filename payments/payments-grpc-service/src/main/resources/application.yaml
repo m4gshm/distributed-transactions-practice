@@ -13,11 +13,10 @@ logging:
 #    server:
 #      port: 9090
 server:
-  port: 8080
+  port: 8082
 grpc:
   server:
-    port: 9080
-
+    port: 9082
     channelz:
       enabled: false
     health:
@@ -32,10 +31,3 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
   use-fqn: true  # Use fully qualified names for better clarity
-
-
-service:
-  reserve:
-    address: localhost:9081
-  payments:
-    address: localhost:9082

@@ -1,0 +1,45 @@
+syntax = "proto3";
+package payments.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service PaymentsService {
+  rpc create(NewPaymentRequest) returns (NewPaymentResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment"
+      body: "*"
+    };
+  }
+  rpc cancel(CancelPaymentRequest) returns (CancelPaymentResponse) {
+    option (google.api.http) = {delete: "/api/v1/payment/{id}"};
+  }
+  rpc process(ProcessPaymentRequest) returns (ProcessPaymentResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/payment/{id}"
+      body: "*"
+    };
+  }
+}
+
+message NewPaymentRequest {}
+
+message NewPaymentResponse {
+  string id = 1;
+}
+
+message CancelPaymentRequest {
+  string id = 1;
+}
+
+message CancelPaymentResponse {
+  string id = 1;
+}
+
+message ProcessPaymentRequest {
+  string id = 1;
+}
+
+message ProcessPaymentResponse {
+  string id = 1;
+}

@@ -27,8 +27,8 @@ public class ReactiveUtils {
         };
     }
 
-    public static <T, R> Mono<R> toMono(T reserveRequest, BiConsumer<T, StreamObserver<R>> call) {
-        return Mono.create(sink -> call.accept(reserveRequest, toStreamObserver(sink)));
+    public static <T, R> Mono<R> toMono(T request, BiConsumer<T, StreamObserver<R>> call) {
+        return Mono.create(sink -> call.accept(request, toStreamObserver(sink)));
     }
 
 }

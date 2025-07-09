@@ -4,7 +4,7 @@ package orders.v1;
 
 import "google/api/annotations.proto";
 
-service OrderService {
+service OrdersService {
   rpc create(OrderCreateRequest) returns (OrderCreateResponse) {
     option (google.api.http) = {
       post: "/api/v1/order"

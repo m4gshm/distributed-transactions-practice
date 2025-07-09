@@ -9,9 +9,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
 
-    api(project(":orders:orders-grpc-api"))
     api(project(":payments:payments-grpc-api"))
-    api(project(":reserve:reserve-grpc-api"))
 
     implementation("io.grpc:grpc-netty-shaded:1.72.0")
 

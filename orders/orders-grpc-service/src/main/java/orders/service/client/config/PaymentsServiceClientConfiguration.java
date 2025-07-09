@@ -4,23 +4,23 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import reserve.v1.ReserveServiceGrpc;
+import payments.v1.PaymentsServiceGrpc;
 
 import static orders.service.client.config.ClientProperties.newManagedChannelBuilder;
 
 @Configuration
 @RequiredArgsConstructor
-public class ReserveServiceClientConfiguration {
+public class PaymentsServiceClientConfiguration {
 
     @Bean
-    @ConfigurationProperties("service.reserve")
-    public ClientProperties reserveClientProperties() {
+    @ConfigurationProperties("service.payments")
+    public ClientProperties paymentsClientProperties() {
         return new ClientProperties();
     }
 
     @Bean
-    public ReserveServiceGrpc.ReserveServiceStub reserveClient(ClientProperties reserveClientProperties) {
-        return ReserveServiceGrpc.newStub(newManagedChannelBuilder(reserveClientProperties).build());
+    public PaymentsServiceGrpc.PaymentsServiceStub paymentsClient(ClientProperties paymentsClientProperties) {
+        return PaymentsServiceGrpc.newStub(newManagedChannelBuilder(paymentsClientProperties).build());
     }
 
 }
