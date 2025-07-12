@@ -5,16 +5,16 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service PaymentsService {
-  rpc create(NewPaymentRequest) returns (NewPaymentResponse) {
+  rpc Create(NewPaymentRequest) returns (NewPaymentResponse) {
     option (google.api.http) = {
       post: "/api/v1/payment"
       body: "*"
     };
   }
-  rpc cancel(CancelPaymentRequest) returns (CancelPaymentResponse) {
+  rpc Cancel(CancelPaymentRequest) returns (CancelPaymentResponse) {
     option (google.api.http) = {delete: "/api/v1/payment/{id}"};
   }
-  rpc process(ProcessPaymentRequest) returns (ProcessPaymentResponse) {
+  rpc Process(ProcessPaymentRequest) returns (ProcessPaymentResponse) {
     option (google.api.http) = {
       put: "/api/v1/payment/{id}"
       body: "*"

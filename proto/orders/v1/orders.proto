@@ -3,52 +3,105 @@ syntax = "proto3";
 package orders.v1;
 
 import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
 
 service OrdersService {
-  rpc create(OrderCreateRequest) returns (OrderCreateResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/order"
-      body: "*"
-    };
-  }
-  rpc get(OrderGetRequest) returns (OrderGetResponse) {
-    option (google.api.http) = {get: "/api/v1/order/{id}"};
-  }
-  rpc cancel(OrderCancelRequest) returns (OrderCancelResponse) {
-    option (google.api.http) = {delete: "/api/v1/order/{id}"};
-  }
-  rpc search(OrderFindRequest) returns (OrderFindResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/order/search"
-      body: "*"
-    };
-  }
+    rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order"
+            body: "*"
+        };
+    }
+    rpc Get (OrderGetRequest) returns (OrderGetResponse) {
+        option (google.api.http) = {get: "/api/v1/order/{id}"};
+    }
+    rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
+        option (google.api.http) = {delete: "/api/v1/order/{id}"};
+    }
+    rpc Search (OrderFindRequest) returns (OrderFindResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order/search"
+            body: "*"
+        };
+    }
 }
 
-message OrderCreateRequest {}
+message OrderCreateRequest {
+    repeated Item items = 1;
+    string customer_id = 2;
+    Delivery delivery = 3;
+
+    message Item {
+        string id = 1;
+        string name = 2;
+        double cost = 3;
+    }
+}
 
 message OrderCreateResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message OrderGetRequest {
-  string id = 1;
+    string id = 1;
 }
 
 message OrderGetResponse {
-  string id = 1;
+    string id = 1;
+    OrderState state = 2;
+    repeated Item items = 3;
+    string customer_id = 4;
+    string payment_id = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+    message Item {
+        string id = 1;
+        string name = 2;
+        double cost = 3;
+        State state = 4;
+        message State {
+            Status status = 1;
+            enum Status {
+                STATUS_UNSPECIFIED = 0;
+                STATUS_BOUGHT = 1;
+                STATUS_RETURNED = 2;
+            }
+        }
+    }
 }
 
 message OrderCancelRequest {
-  string id = 1;
+    string id = 1;
+    string reason = 2;
 }
 
 message OrderCancelResponse {
-  string id = 1;
+    string id = 1;
+    OrderState state = 2;
 }
 
 message OrderFindRequest {}
 
 message OrderFindResponse {
-  string id = 1;
+    string id = 1;
+}
+
+message OrderState {
+    Status status = 1;
+    string info = 2;
+
+    enum Status {
+        STATUS_UNSPECIFIED = 0;
+        STATUS_CREATED = 1;
+        STATUS_CANCELLED = 2;
+        STATUS_PAID = 3;
+        STATUS_IN_DELIVERY = 4;
+        STATUS_DELIVERED = 5;
+        STATUS_RETURNED = 6;
+    }
+}
+
+message Delivery {
+    google.protobuf.Timestamp date_time = 1;
+    string address = 2;
 }

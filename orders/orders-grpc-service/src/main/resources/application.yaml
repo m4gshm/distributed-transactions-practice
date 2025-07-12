@@ -33,6 +33,10 @@ springdoc:
     path: /swagger-ui.html
   use-fqn: true  # Use fully qualified names for better clarity
 
+spring:
+  liquibase:
+    enabled: true
+
 
 service:
   reserve:

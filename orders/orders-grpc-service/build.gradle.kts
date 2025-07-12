@@ -1,10 +1,20 @@
 plugins {
     `java-library`
     id("org.springframework.boot")
+    id("org.liquibase.gradle") version "3.0.2"
 }
 apply(plugin = "io.spring.dependency-management")
 
+buildscript {
+    val liquibaseVer = "4.33.0"
+    dependencies {
+        classpath("org.liquibase:liquibase-core:$liquibaseVer")
+    }
+}
+
 dependencies {
+    val liquibaseVer = "4.33.0"
+
     implementation("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
@@ -14,6 +24,16 @@ dependencies {
     api(project(":reserve:reserve-grpc-api"))
 
     implementation("io.grpc:grpc-netty-shaded:1.72.0")
+
+    implementation("org.liquibase:liquibase-core:$liquibaseVer")
+    implementation("org.postgresql:postgresql:42.7.7")
+
+    liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
+    liquibaseRuntime("info.picocli:picocli:4.7.7")
+    liquibaseRuntime("org.postgresql:postgresql:42.7.7")
+
+    implementation("org.hibernate.reactive:hibernate-reactive-core:3.0.3.Final")
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
 //    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
@@ -36,3 +56,26 @@ dependencies {
         }
     }
 }
+
+val dbSchema = "public"
+val dbUsername = "postgres"
+val dbPassword = "postgres"
+val dbUrl = "jdbc:postgresql://localhost:5432/orders"
+
+liquibase.activities.register("main") {
+    arguments = mapOf<String, Any?>(
+        "searchPath" to "${project.projectDir}/src/main/resources/",
+        "changelogFile" to requiredProperty("changeLogFile", "db/changelog/master.xml"),
+        "url" to requiredProperty("dbUrl", dbUrl),
+        "username" to requiredProperty("dbUsername", dbUsername),
+        "password" to requiredProperty("dbPassword", dbPassword),
+        "liquibaseSchemaName" to requiredProperty("dbSchema", dbSchema),
+        "defaultSchemaName" to requiredProperty("dbSchema", dbSchema),
+        "logLevel" to "DEBUG",
+    ) + listOf(
+        "count"
+    ).map { it to project.findProperty(it) }.filter { it.second != null }
+}
+
+fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)
+    ?: defaultValue ?: throw GradleException("undefined $propertyName")

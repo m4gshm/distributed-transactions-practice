@@ -22,7 +22,7 @@ service ReserveService {
   }
   rpc search(FindReserveRequest) returns (FindReserveResponse) {
     option (google.api.http) = {
-      post: "/api/v1/reserve/search"
+      post: "/api/v1/reserve/Search"
       body: "*"
     };
   }
