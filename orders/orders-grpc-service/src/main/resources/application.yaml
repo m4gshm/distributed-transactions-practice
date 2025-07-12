@@ -34,9 +34,12 @@ springdoc:
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5432/orders
+    username: postgres
+    password: postgres
   liquibase:
     enabled: true
-
 
 service:
   reserve:

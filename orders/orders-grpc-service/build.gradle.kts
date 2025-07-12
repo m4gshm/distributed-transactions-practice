@@ -27,6 +27,7 @@ dependencies {
 
     implementation("org.liquibase:liquibase-core:$liquibaseVer")
     implementation("org.postgresql:postgresql:42.7.7")
+    implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
 
     liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
     liquibaseRuntime("info.picocli:picocli:4.7.7")
