@@ -12,16 +12,17 @@ service OrdersService {
             body: "*"
         };
     }
-    rpc Get (OrderGetRequest) returns (OrderGetResponse) {
+    rpc Get (OrderGetRequest) returns (OrderResponse) {
         option (google.api.http) = {get: "/api/v1/order/{id}"};
     }
     rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
         option (google.api.http) = {delete: "/api/v1/order/{id}"};
     }
-    rpc Search (OrderFindRequest) returns (OrderFindResponse) {
+    rpc Search (OrderFindRequest) returns (OrdersResponse) {
         option (google.api.http) = {
             post: "/api/v1/order/search"
-            body: "*"
+            body: "*",
+            response_body: "orders"
         };
     }
 }
@@ -46,30 +47,6 @@ message OrderGetRequest {
     string id = 1;
 }
 
-message OrderGetResponse {
-    string id = 1;
-    OrderState state = 2;
-    repeated Item items = 3;
-    string customer_id = 4;
-    string payment_id = 5;
-    google.protobuf.Timestamp created_at = 6;
-    google.protobuf.Timestamp updated_at = 7;
-    message Item {
-        string id = 1;
-        string name = 2;
-        double cost = 3;
-        State state = 4;
-        message State {
-            Status status = 1;
-            enum Status {
-                STATUS_UNSPECIFIED = 0;
-                STATUS_BOUGHT = 1;
-                STATUS_RETURNED = 2;
-            }
-        }
-    }
-}
-
 message OrderCancelRequest {
     string id = 1;
     string reason = 2;
@@ -82,8 +59,33 @@ message OrderCancelResponse {
 
 message OrderFindRequest {}
 
-message OrderFindResponse {
+message OrdersResponse {
+    repeated OrderResponse orders = 1;
+}
+
+message OrderResponse {
     string id = 1;
+    OrderState state = 2;
+    repeated OrderItem items = 3;
+    string customer_id = 4;
+    string payment_id = 5;
+    google.protobuf.Timestamp created_at = 6;
+    google.protobuf.Timestamp updated_at = 7;
+}
+
+message OrderItem {
+    string id = 1;
+    string name = 2;
+    double cost = 3;
+    State state = 4;
+    message State {
+        Status status = 1;
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            STATUS_BOUGHT = 1;
+            STATUS_RETURNED = 2;
+        }
+    }
 }
 
 message OrderState {

@@ -2,6 +2,7 @@ plugins {
     `java-library`
     id("org.springframework.boot")
     id("org.liquibase.gradle") version "3.0.2"
+    id("org.jooq.jooq-codegen-gradle") version "3.19.24"
 }
 apply(plugin = "io.spring.dependency-management")
 
@@ -9,6 +10,14 @@ buildscript {
     val liquibaseVer = "4.33.0"
     dependencies {
         classpath("org.liquibase:liquibase-core:$liquibaseVer")
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            srcDirs("$projectDir/build/generated-sources/jooq")
+        }
     }
 }
 
@@ -33,8 +42,12 @@ dependencies {
     liquibaseRuntime("info.picocli:picocli:4.7.7")
     liquibaseRuntime("org.postgresql:postgresql:42.7.7")
 
-    implementation("org.hibernate.reactive:hibernate-reactive-core:3.0.3.Final")
+    jooqCodegen("org.postgresql:postgresql:42.7.7")
+
+//    implementation("org.hibernate.reactive:hibernate-reactive-core:3.0.3.Final")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-jooq")
+//    implementation("org.jooq:jooq-meta:3.19.24")
 
     implementation("org.springframework.boot:spring-boot-starter-web")
 //    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
@@ -78,5 +91,43 @@ liquibase.activities.register("main") {
     ).map { it to project.findProperty(it) }.filter { it.second != null }
 }
 
+jooq {
+    configuration {
+        logging = org.jooq.meta.jaxb.Logging.DEBUG
+        jdbc {
+            driver = "org.postgresql.Driver"
+            url = dbUrl
+            user = dbUsername
+            password = dbPassword
+        }
+        generator {
+            name = "org.jooq.codegen.DefaultGenerator"
+            database {
+                inputSchema = "public"
+                name = "org.jooq.meta.postgres.PostgresDatabase"
+                includes = ".*"
+                excludes = ""
+            }
+            target {
+                packageName = "orders.data.access.jooq"
+            }
+        }
+    }
+//    configurations {
+//        create("main") {
+//        }
+//    }
+}
+
 fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)
     ?: defaultValue ?: throw GradleException("undefined $propertyName")
+
+tasks.named("jooqCodegen") {
+    dependsOn("update")
+}
+
+tasks.withType<JavaCompile> {
+    if (!project.hasProperty("no-codegen")) {
+        dependsOn(tasks.named("jooqCodegen"))
+    }
+}

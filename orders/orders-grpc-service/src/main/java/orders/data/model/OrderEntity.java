@@ -1,4 +1,9 @@
 package orders.data.model;
 
-public class OrderEntity {
+import lombok.Builder;
+
+import java.util.UUID;
+
+@Builder
+public record OrderEntity(UUID id) {
 }
