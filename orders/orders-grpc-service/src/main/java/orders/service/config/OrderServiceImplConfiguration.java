@@ -2,7 +2,7 @@ package orders.service.config;
 
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import orders.data.repository.OrderRepository;
+import orders.data.storage.OrderStorage;
 import orders.service.OrdersServiceImpl;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.springframework.context.annotation.Bean;
@@ -17,7 +17,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderServiceImplConfiguration {
 
-    OrderRepository orderRepository;
+    OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     PaymentsServiceStub paymentsClient;
 

@@ -22,7 +22,9 @@ service PaymentsService {
   }
 }
 
-message NewPaymentRequest {}
+message NewPaymentRequest {
+  double amount = 1;
+}
 
 message NewPaymentResponse {
   string id = 1;

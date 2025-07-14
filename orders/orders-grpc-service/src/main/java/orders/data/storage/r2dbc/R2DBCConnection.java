@@ -1,4 +1,4 @@
-package orders.data.repository.r2dbc;
+package orders.data.storage.r2dbc;
 
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;

@@ -6,40 +6,63 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="createTable-orders" author="alex">
         <createTable tableName="orders">
-            <column name="id" type="uuid">
-                <constraints primaryKey="true"/>
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
             </column>
-            <column name="customer_id" type="uuid"/>
-            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP"/>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP"/>
+            <column name="customer_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reserve_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
     <changeSet id="createTable-items" author="alex">
         <createTable tableName="items">
-            <column name="id" type="uuid">
-                <constraints primaryKey="true"/>
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
             </column>
-            <column name="order_id" type="uuid">
-                <constraints primaryKey="true"
+            <column name="order_id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
                              referencedColumnNames="id"
                              referencedTableName="orders"
                              foreignKeyName="items_orders_id_fk"
                 />
             </column>
-            <column name="name" type="text"/>
-            <column name="cost" type="double"/>
+            <column name="name" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="cost" type="double">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
     <changeSet id="createTable" author="alex">
         <createTable tableName="delivery">
-            <column name="order_id" type="uuid">
-                <constraints primaryKey="true"
+            <column name="order_id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
                              referencedColumnNames="id"
                              referencedTableName="orders"
                              foreignKeyName="delivery_orders_id_fk"
                 />
             </column>
-            <column name="address" type="text"/>
+            <column name="address" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="text">
+                <constraints nullable="false"/>
+            </column>
         </createTable>
     </changeSet>
 </databaseChangeLog>

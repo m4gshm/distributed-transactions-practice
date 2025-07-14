@@ -28,7 +28,12 @@ service ReserveService {
   }
 }
 
-message NewReserveRequest {}
+message NewReserveRequest {
+  repeated Item items = 1;
+  message Item {
+    string id = 1;
+  }
+}
 
 message NewReserveResponse {
   string id = 1;

@@ -5,9 +5,16 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.data.model.OrderEntity;
-import orders.data.repository.OrderRepository;
-import orders.v1.Orders.*;
+import orders.data.model.Order;
+import orders.data.storage.OrderStorage;
+import orders.v1.Orders.OrderCancelRequest;
+import orders.v1.Orders.OrderCancelResponse;
+import orders.v1.Orders.OrderCreateRequest;
+import orders.v1.Orders.OrderCreateResponse;
+import orders.v1.Orders.OrderFindRequest;
+import orders.v1.Orders.OrderGetRequest;
+import orders.v1.Orders.OrderResponse;
+import orders.v1.Orders.OrdersResponse;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import payments.v1.Payments.NewPaymentRequest;
 import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
@@ -15,75 +22,72 @@ import reactor.core.publisher.Mono;
 import reserve.v1.Reserve.NewReserveRequest;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 
-import java.util.List;
 import java.util.UUID;
 
-import static io.grpc.Status.NOT_FOUND;
-import static java.util.Optional.ofNullable;
+import static orders.service.OrdersServiceUtils.notFoundById;
+import static orders.service.OrdersServiceUtils.string;
+import static orders.service.OrdersServiceUtils.toDelivery;
+import static orders.service.OrdersServiceUtils.uuid;
 import static orders.service.ReactiveUtils.toMono;
-import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class OrdersServiceImpl extends OrdersServiceImplBase {
-    OrderRepository orderRepository;
+    OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     PaymentsServiceStub paymentsClient;
 
-    private static OrdersResponse toOrdersResponse(List<OrderEntity> orders) {
-        return OrdersResponse.newBuilder()
-                .addAllOrders(orders.stream().map(OrdersServiceImpl::toOrderResponse).toList())
-                .build();
+    private static OrderCreateResponse toOrderCreateResponse(Order order) {
+        return OrderCreateResponse.newBuilder().setId(string(order.id())).build();
     }
 
-    private static OrderResponse toOrderResponse(OrderEntity orderEntity) {
-        return OrderResponse.newBuilder()
-                .setId(ofNullable(orderEntity.id()).map(UUID::toString).orElse(null))
-                .build();
-    }
-
-    private static <T, ID> Mono<T> notFoundById(ID id) {
-        return error(() -> NOT_FOUND.withDescription(String.valueOf(id)).asRuntimeException());
+    private static <T> void subscribe(StreamObserver<T> responseObserver, Mono<T> mono) {
+        mono.subscribe(responseObserver::onNext, t -> {
+            log.error("Error on subscribing to mono", t);
+            responseObserver.onError(t);
+        }, responseObserver::onCompleted);
     }
 
     @Override
-    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
-        var paymentRequest = NewPaymentRequest.newBuilder().build();
-        var reserveRequest = NewReserveRequest.newBuilder().build();
+    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> response) {
+        subscribe(response, Mono.fromSupplier(UUID::randomUUID).flatMap(orderId -> {
+            var itemsList = request.getItemsList();
+            var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
 
-        var reserveResponseMono = toMono(reserveRequest, reserveClient::create);
-        var paymentResponseMono = toMono(paymentRequest, paymentsClient::create);
+            var amount = items.stream().mapToDouble(Order.Item::cost).sum();
 
-//        reserveResponseMono.map(reserveResponse -> {
-//            return paymentResponseMono.map(paymentResponse -> {
-//
-//            });
-//        })
+            var paymentRequest = NewPaymentRequest.newBuilder().setAmount(amount).build();
+            var reserveRequest = NewReserveRequest.newBuilder().addAllItems(items.stream()
+                            .map(OrdersServiceUtils::toReserveItem).toList())
+                    .build();
 
-        paymentResponseMono.zipWith(reserveResponseMono).subscribe(responses -> {
-            var paymentResponse = responses.getT1();
-            var reserveResponse = responses.getT2();
+            var reserveRoutine = toMono(reserveRequest, reserveClient::create);
+            var paymentRoutine = toMono(paymentRequest, paymentsClient::create);
 
-            var response = OrderCreateResponse.newBuilder().build();
+            return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
+                var paymentResponse = responses.getT1();
+                var reserveResponse = responses.getT2();
 
-            responseObserver.onNext(response);
-            responseObserver.onCompleted();
-        }, error -> {
-            responseObserver.onError(error);
-            responseObserver.onCompleted();
-        });
+                return orderRepository.save(Order.builder()
+                        .id(string(orderId))
+                        .paymentId(uuid(paymentResponse.getId()))
+                        .reserveId(uuid(reserveResponse.getId()))
+                        .customerId(uuid(request.getCustomerId()))
+                        .delivery(toDelivery(request.getDelivery()))
+                        .items(items)
+                        .build());
+            });
+        }).map(OrdersServiceImpl::toOrderCreateResponse));
     }
 
     @Override
-    public void get(OrderGetRequest request, StreamObserver<OrderResponse> responseObserver) {
-        just(request).map(OrderGetRequest::getId).map(UUID::fromString).flatMap(id -> {
-            return orderRepository.findById(id).switchIfEmpty(notFoundById(id));
-        }).subscribe(
-                orderEntity -> responseObserver.onNext(toOrderResponse(orderEntity)),
-                responseObserver::onError, responseObserver::onCompleted
-        );
+    public void get(OrderGetRequest request, StreamObserver<OrderResponse> response) {
+        subscribe(response, just(request)
+                .map(OrderGetRequest::getId)
+                .flatMap(id -> orderRepository.findById(id).switchIfEmpty(notFoundById(id)))
+                .map(OrdersServiceUtils::toOrderResponse));
     }
 
     @Override
@@ -92,10 +96,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     }
 
     @Override
-    public void search(OrderFindRequest request, StreamObserver<OrdersResponse> responseObserver) {
-        orderRepository.findAll().subscribe(
-                orderEntity -> responseObserver.onNext(toOrdersResponse(orderEntity)),
-                responseObserver::onError,
-                responseObserver::onCompleted);
+    public void search(OrderFindRequest request, StreamObserver<OrdersResponse> response) {
+        subscribe(response, orderRepository.findAll().map(OrdersServiceUtils::toOrdersResponse));
     }
 }
