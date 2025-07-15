@@ -31,7 +31,7 @@ public class OrdersServiceUtils {
                 .setUpdatedAt(toTimestamp(order.updatedAt()))
                 .setPaymentId(toString(order.paymentId()))
                 .setReserveId(toString(order.reserveId()))
-                .setDelivery(toDelivery(order.delivery()))
+                .mergeDelivery(toDelivery(order.delivery()))
                 .addAllItems(order.items().stream().map(OrdersServiceUtils::toOrderItem).toList())
                 .build();
     }
@@ -47,7 +47,7 @@ public class OrdersServiceUtils {
     private static Orders.Delivery toDelivery(Order.Delivery delivery) {
         return delivery == null ? null : Orders.Delivery.newBuilder()
                 .setAddress(delivery.address())
-                .setDateTime(toTimestamp(delivery.dateTime()))
+                .mergeDateTime(toTimestamp(delivery.dateTime()))
                 .setType(toType(delivery.type()))
                 .build();
     }

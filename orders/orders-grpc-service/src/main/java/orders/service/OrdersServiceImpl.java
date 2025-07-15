@@ -16,14 +16,18 @@ import orders.v1.Orders.OrderGetRequest;
 import orders.v1.Orders.OrderResponse;
 import orders.v1.Orders.OrdersResponse;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
+import org.reactivestreams.Subscription;
 import payments.v1.Payments.NewPaymentRequest;
 import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
+import reactor.core.CoreSubscriber;
+import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reserve.v1.Reserve.NewReserveRequest;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 
 import java.util.UUID;
 
+import static orders.service.GrpcUtils.subscribe;
 import static orders.service.OrdersServiceUtils.notFoundById;
 import static orders.service.OrdersServiceUtils.string;
 import static orders.service.OrdersServiceUtils.toDelivery;
@@ -41,13 +45,6 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     private static OrderCreateResponse toOrderCreateResponse(Order order) {
         return OrderCreateResponse.newBuilder().setId(string(order.id())).build();
-    }
-
-    private static <T> void subscribe(StreamObserver<T> responseObserver, Mono<T> mono) {
-        mono.subscribe(responseObserver::onNext, t -> {
-            log.error("Error on subscribing to mono", t);
-            responseObserver.onError(t);
-        }, responseObserver::onCompleted);
     }
 
     @Override
