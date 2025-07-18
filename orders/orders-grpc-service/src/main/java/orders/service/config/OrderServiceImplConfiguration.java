@@ -5,6 +5,7 @@ import lombok.experimental.FieldDefaults;
 import orders.data.storage.OrderStorage;
 import orders.service.OrdersServiceImpl;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
+import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
@@ -17,13 +18,14 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderServiceImplConfiguration {
 
+    DSLContext dsl;
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     PaymentsServiceStub paymentsClient;
 
     @Bean
     public OrdersServiceImplBase orderService() {
-        return new OrdersServiceImpl(orderRepository, reserveClient, paymentsClient);
+        return new OrdersServiceImpl(dsl, orderRepository, reserveClient, paymentsClient);
     }
 
 }

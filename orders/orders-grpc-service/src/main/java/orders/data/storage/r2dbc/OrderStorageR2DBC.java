@@ -29,13 +29,14 @@ import static orders.data.access.jooq.Tables.ORDERS;
 import static orders.data.model.Order.Delivery.Type;
 import static orders.data.model.Order.Delivery.builder;
 import static org.jooq.JoinType.LEFT_OUTER_JOIN;
+import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderStorageR2DBC implements OrderStorage {
-    DSLContext dslContext;
+    DSLContext dsl;
 
     private static Order toOrder(Record order, Record delivery, List<Record> items) {
         return Order.builder()
@@ -71,12 +72,12 @@ public class OrderStorageR2DBC implements OrderStorage {
     }
 
     private <R extends Record> SelectJoinStep<Record> selectAllFrom(TableLike<R> table) {
-        return dslContext.select(table.fields()).from(table);
+        return dsl.select(table.fields()).from(table);
     }
 
     private SelectSelectStep<Record> selectAll(TableLike<? extends Record> table, TableLike<? extends Record>... tables) {
         var fields = Stream.concat(Stream.of(table), Arrays.stream(tables)).map(Fields::fields).flatMap(Arrays::stream).toList();
-        return dslContext.select(fields);
+        return dsl.select(fields);
     }
 
     @Override
@@ -91,7 +92,7 @@ public class OrderStorageR2DBC implements OrderStorage {
         var selectOrder = selectOrdersJoinDelivery().where(ORDERS.ID.eq(id));
         var selectItems = selectAllFrom(ITEMS).where(ITEMS.ORDER_ID.eq(id));
 
-        return Mono.from(selectOrder).zipWith(Flux.from(selectItems).collectList(), (order, items) -> {
+        return from(selectOrder).zipWith(Flux.from(selectItems).collectList(), (order, items) -> {
             return toOrder(order, order, items);
         });
     }
@@ -103,8 +104,16 @@ public class OrderStorageR2DBC implements OrderStorage {
     }
 
     @Override
-    public Mono<Order> save(Order order) {
-        var mergeOrder = Mono.from(dslContext.insertInto(ORDERS)
+    public Mono<Order> save(Order order, boolean twoPhasedTransaction) {
+        return from(dsl.transactionPublisher(trx -> {
+            var dsl = trx.dsl();
+            var routine = storeOrderFullRoutine(dsl, order);
+            return !twoPhasedTransaction ? routine : TwoPhaseTransaction.prepare(routine, dsl, order.id());
+        }));
+    }
+
+    private Mono<Order> storeOrderFullRoutine(DSLContext dsl, Order order) {
+        var mergeOrder = from(dsl.insertInto(ORDERS)
                 .set(ORDERS.ID, order.id())
                 .set(ORDERS.CREATED_AT, orNow(order.createdAt()))
                 .set(ORDERS.CUSTOMER_ID, order.customerId())
@@ -116,11 +125,14 @@ public class OrderStorageR2DBC implements OrderStorage {
                 .set(ORDERS.RESERVE_ID, order.reserveId())
                 .set(ORDERS.PAYMENT_ID, order.paymentId()));
 
-        final Mono<Integer> mergeDelivery;
         var delivery = order.delivery();
-        if (delivery != null) {
+
+        final Mono<Integer> mergeDelivery;
+        if (delivery == null) {
+            mergeDelivery = Mono.empty();
+        } else {
             var code = delivery.type().getCode();
-            mergeDelivery = Mono.from(dslContext.insertInto(DELIVERY)
+            mergeDelivery = from(dsl.insertInto(DELIVERY)
                     .set(DELIVERY.ORDER_ID, order.id())
                     .set(DELIVERY.ADDRESS, delivery.address())
                     .set(DELIVERY.TYPE, code)
@@ -128,21 +140,17 @@ public class OrderStorageR2DBC implements OrderStorage {
                     .set(DELIVERY.ADDRESS, delivery.address())
                     .set(DELIVERY.TYPE, code)
             );
-        } else {
-            mergeDelivery = Mono.empty();
         }
-
-        var mergeItems = ofNullable(order.items()).orElse(List.of()).stream().map(item -> dslContext.insertInto(ITEMS)
-                .set(ITEMS.ORDER_ID, order.id())
-                .set(ITEMS.ID, item.id())
-                .set(ITEMS.NAME, item.name())
-                .set(ITEMS.COST, item.cost())
-                .onDuplicateKeyUpdate()
-                .set(ITEMS.NAME, item.name())
-                .set(ITEMS.COST, item.cost())
-        ).map(Mono::from).toList();
-
-        var mergeAllItems = Flux.fromIterable(mergeItems).flatMap(i -> i).reduce(Integer::sum);
+        var mergeAllItems = Flux.fromIterable(ofNullable(order.items())
+                .orElse(List.of()).stream().map(item -> dsl.insertInto(ITEMS)
+                        .set(ITEMS.ORDER_ID, order.id())
+                        .set(ITEMS.ID, item.id())
+                        .set(ITEMS.NAME, item.name())
+                        .set(ITEMS.COST, item.cost())
+                        .onDuplicateKeyUpdate()
+                        .set(ITEMS.NAME, item.name())
+                        .set(ITEMS.COST, item.cost())
+                ).map(Mono::from).toList()).flatMap(i1 -> i1).reduce(Integer::sum);
 
         return mergeOrder.flatMap(count -> {
             log.debug("stored order rows {}", count);

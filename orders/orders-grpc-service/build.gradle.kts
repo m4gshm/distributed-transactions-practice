@@ -74,7 +74,7 @@ dependencies {
 val dbSchema = "public"
 val dbUsername = "postgres"
 val dbPassword = "postgres"
-val dbUrl = "jdbc:postgresql://localhost:5432/orders"
+val dbUrl = "jdbc:postgresql://localhost:5000/orders"
 
 liquibase.activities.register("main") {
     arguments = mapOf<String, Any?>(

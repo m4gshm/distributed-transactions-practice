@@ -39,11 +39,11 @@ springdoc:
 spring:
 #  jooq:
 #  datasource:
-#    url: r2dbc:postgresql://localhost:5432/orders
+#    url: r2dbc:postgresql://localhost:5000/orders
 #    username: postgres
 #    password: postgres
   r2dbc:
-    url: r2dbc:postgresql://localhost:5432/orders
+    url: r2dbc:postgresql://localhost:5000/orders
     username: postgres
     password: postgres
   liquibase:

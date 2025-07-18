@@ -9,6 +9,5 @@ import java.util.UUID;
 public interface OrderStorage {
     Mono<List<Order>> findAll();
     Mono<Order> findById(String id);
-
-    Mono<Order> save(Order order);
+    Mono<Order> save(Order order, boolean twoPhasedTransaction);
 }
