@@ -51,7 +51,7 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-jooq")
 //    implementation("org.jooq:jooq-meta:3.19.24")
 
-    implementation("org.springframework.boot:spring-boot-starter-web")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
 
     implementation(platform("io.github.danielliu1123:grpc-starter-dependencies:3.5.3.1"))

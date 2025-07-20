@@ -48,14 +48,11 @@ dependencies {
 
     jooqCodegen("org.postgresql:postgresql:42.7.7")
 
-//    implementation("org.hibernate.reactive:hibernate-reactive-core:3.0.3.Final")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
-//    implementation("org.jooq:jooq-meta:3.19.24")
 
-    implementation("org.springframework.boot:spring-boot-starter-web")
-//    implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+    implementation("org.springframework.boot:spring-boot-starter-webflux")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
 
     implementation(platform("io.github.danielliu1123:grpc-starter-dependencies:3.5.3.1"))
     implementation("io.github.danielliu1123:grpc-server-boot-starter")
