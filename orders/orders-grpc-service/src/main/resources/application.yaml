@@ -2,6 +2,7 @@ debug: true
 logging:
   level:
     root: INFO
+    orders: TRACE
     io:
       r2dbc:
         postgresql:

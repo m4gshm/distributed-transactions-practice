@@ -1,6 +1,12 @@
+debug: true
 logging:
   level:
-    root: DEBUG
+    root: INFO
+    payments: TRACE
+    io:
+      r2dbc:
+        postgresql:
+          QUERY: DEBUG
     java:
       io:
         serialization: INFO
@@ -23,7 +29,6 @@ grpc:
       enabled: false #conflict with spring.grpc.server.health.enabled
     reflection:
       enabled: false
-
 springdoc:
   api-docs:
     enabled: true
@@ -31,3 +36,11 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
   use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/payments
+    username: postgres
+    password: postgres
+  liquibase:
+    enabled: true

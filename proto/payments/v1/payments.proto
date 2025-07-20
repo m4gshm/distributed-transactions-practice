@@ -23,7 +23,12 @@ service PaymentsService {
 }
 
 message NewPaymentRequest {
-  double amount = 1;
+  bool twoPhaseCommit = 1;
+  PaymentBody body = 2;
+  message PaymentBody {
+    string externalRef = 1;
+    double amount = 2;
+  }
 }
 
 message NewPaymentResponse {

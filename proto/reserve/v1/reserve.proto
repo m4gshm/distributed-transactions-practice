@@ -22,16 +22,22 @@ service ReserveService {
   }
   rpc search(FindReserveRequest) returns (FindReserveResponse) {
     option (google.api.http) = {
-      post: "/api/v1/reserve/Search"
+      post: "/api/v1/reserve/search"
       body: "*"
     };
   }
 }
 
 message NewReserveRequest {
-  repeated Item items = 1;
-  message Item {
-    string id = 1;
+  bool twoPhaseCommit = 1;
+  ReserveBody body = 2;
+  message ReserveBody {
+    string externalRef = 1;
+    repeated Item items = 2;
+    message Item {
+      string id = 1;
+      int32 count = 2;
+    }
   }
 }
 
@@ -56,7 +62,7 @@ message UpdateReserveResponse {
 }
 
 message FindReserveRequest {
-  string id = 1;
+  optional string id = 1;
 }
 
 message FindReserveResponse {

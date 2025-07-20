@@ -1,4 +1,9 @@
 
+include(":grpc-reactor")
+include(":jooq-utils")
+include(":jooq-r2dbc")
+include(":tpc:tpc-grpc-api")
+include(":tpc:tpc-grpc-service")
 include(":orders:orders-grpc-api")
 include(":orders:orders-grpc-service")
 include(":reserve:reserve-grpc-api")

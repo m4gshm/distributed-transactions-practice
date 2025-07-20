@@ -28,14 +28,19 @@ service OrdersService {
 }
 
 message OrderCreateRequest {
-  repeated Item items = 1;
-  string customer_id = 2;
-  Delivery delivery = 3;
+  bool twoPhaseCommit = 1;
+  OrderBody body = 2;
+  message OrderBody {
+    repeated Item items = 1;
+    string customer_id = 2;
+    Delivery delivery = 3;
 
-  message Item {
-    string id = 1;
-    string name = 2;
-    double cost = 3;
+    message Item {
+      string id = 1;
+      string name = 2;
+      double count = 3;
+      double cost = 4;
+    }
   }
 }
 

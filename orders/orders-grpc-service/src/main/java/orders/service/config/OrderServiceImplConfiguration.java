@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
+import tpc.v1.TwoPhaseCommitServiceGrpc;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -17,15 +18,17 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderServiceImplConfiguration {
-
     DSLContext dsl;
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
+    TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentsServiceStub paymentsClient;
+    TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub paymentsClientTcp;
 
     @Bean
     public OrdersServiceImplBase orderService() {
-        return new OrdersServiceImpl(dsl, orderRepository, reserveClient, paymentsClient);
+        return new OrdersServiceImpl(dsl, orderRepository, reserveClient, reserveClientTcp,
+                paymentsClient, paymentsClientTcp);
     }
 
 }

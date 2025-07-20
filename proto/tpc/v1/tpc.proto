@@ -1,0 +1,40 @@
+syntax = "proto3";
+package tpc.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service TwoPhaseCommitService {
+  rpc commit(TwoPhaseCommitRequest) returns (TwoPhaseCommitResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/transaction"
+      body: "*"
+    };
+  }
+
+  rpc rollback(TwoPhaseRollbackRequest) returns (TwoPhaseRollbackResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/transaction"
+      body: "*"
+    };
+  }
+}
+
+message TwoPhaseCommitRequest {
+  string id = 1;
+}
+
+message TwoPhaseCommitResponse {
+  string message = 1;
+  string id = 2;
+}
+
+
+message TwoPhaseRollbackRequest {
+  string id = 1;
+}
+
+message TwoPhaseRollbackResponse {
+  string message = 1;
+  string id = 2;
+}

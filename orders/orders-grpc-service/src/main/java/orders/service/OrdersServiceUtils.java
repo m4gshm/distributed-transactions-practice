@@ -105,7 +105,7 @@ public class OrdersServiceUtils {
         };
     }
 
-    static Order.Item toItem(Orders.OrderCreateRequest.Item item) {
+    static Order.Item toItem(Orders.OrderCreateRequest.OrderBody.Item item) {
         return Order.Item.builder()
                 .id(uuid(item.getId()))
                 .name(item.getName())
@@ -113,8 +113,8 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    static Reserve.NewReserveRequest.Item toReserveItem(Order.Item item) {
-        return Reserve.NewReserveRequest.Item.newBuilder()
+     static Reserve.NewReserveRequest.ReserveBody.Item toReserveItem(Order.Item item) {
+        return Reserve.NewReserveRequest.ReserveBody.Item.newBuilder()
                 .setId(item.id())
                 .build();
     }

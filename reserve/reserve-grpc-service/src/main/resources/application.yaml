@@ -1,6 +1,28 @@
+debug: true
 logging:
   level:
-    root: DEBUG
+    root: INFO
+    reserve: TRACE
+    org:
+      apache:
+        tomcat:
+          util:
+            net:
+              NioEndpoint: INFO
+    io:
+      grpc:
+        netty:
+          shaded:
+            io:
+              grpc:
+                netty:
+                  NettyClientHandler: INFO
+                  NettyServerHandler: INFO
+      r2dbc:
+        postgresql:
+          client:
+            ReactorNettyClient: INFO
+          QUERY: DEBUG
     java:
       io:
         serialization: INFO
@@ -23,7 +45,6 @@ grpc:
       enabled: false #conflict with spring.grpc.server.health.enabled
     reflection:
       enabled: false
-
 springdoc:
   api-docs:
     enabled: true
@@ -31,3 +52,11 @@ springdoc:
     enabled: true
     path: /swagger-ui.html
   use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/reserve
+    username: postgres
+    password: postgres
+  liquibase:
+    enabled: true
