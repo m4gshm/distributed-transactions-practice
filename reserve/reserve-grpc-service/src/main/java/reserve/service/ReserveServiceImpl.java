@@ -7,19 +7,19 @@ import reactor.core.publisher.Mono;
 import reserve.data.ReserveStorage;
 import reserve.data.model.Reserve;
 import reserve.data.model.Reserve.Status;
-import reserve.v1.Reserve.CancelReserveRequest;
-import reserve.v1.Reserve.CancelReserveResponse;
+import reserve.v1.Reserve.ReserveCancelRequest;
+import reserve.v1.Reserve.ReserveCancelResponse;
 import reserve.v1.Reserve.FindReserveRequest;
 import reserve.v1.Reserve.FindReserveResponse;
-import reserve.v1.Reserve.NewReserveRequest;
-import reserve.v1.Reserve.NewReserveResponse;
-import reserve.v1.Reserve.UpdateReserveRequest;
-import reserve.v1.Reserve.UpdateReserveResponse;
+import reserve.v1.Reserve.ReserveCreateRequest;
+import reserve.v1.Reserve.ReserveCreateResponse;
+import reserve.v1.Reserve.ReserveUpdateRequest;
+import reserve.v1.Reserve.ReserveUpdateResponse;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.UUID;
 
-import static reactive.GrpcUtils.subscribe;
+import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 import static reserve.data.model.Reserve.Item;
 
 @Slf4j
@@ -28,7 +28,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     private final ReserveStorage reserveStorage;
 
     @Override
-    public void create(NewReserveRequest request, StreamObserver<NewReserveResponse> response) {
+    public void create(ReserveCreateRequest request, StreamObserver<ReserveCreateResponse> response) {
         subscribe(response, Mono.defer(() -> {
             var paymentId = UUID.randomUUID().toString();
             var body = request.getBody();
@@ -44,17 +44,17 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     .items(items)
                     .build();
             return reserveStorage.save(reserve, request.getTwoPhaseCommit())
-                    .thenReturn(NewReserveResponse.newBuilder().setId(paymentId).build());
+                    .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
         }));
     }
 
     @Override
-    public void cancel(CancelReserveRequest request, StreamObserver<CancelReserveResponse> responseObserver) {
+    public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         super.cancel(request, responseObserver);
     }
 
     @Override
-    public void update(UpdateReserveRequest request, StreamObserver<UpdateReserveResponse> responseObserver) {
+    public void update(ReserveUpdateRequest request, StreamObserver<ReserveUpdateResponse> responseObserver) {
         super.update(request, responseObserver);
     }
 

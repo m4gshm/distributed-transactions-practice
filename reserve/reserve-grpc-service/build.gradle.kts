@@ -28,6 +28,7 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
 
+    api(project(":storage-api"))
     api(project(":grpc-reactor"))
     api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
@@ -52,7 +53,7 @@ dependencies {
 //    implementation("org.jooq:jooq-meta:3.19.24")
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
 
     implementation(platform("io.github.danielliu1123:grpc-starter-dependencies:3.5.3.1"))
     implementation("io.github.danielliu1123:grpc-server-boot-starter")
@@ -78,7 +79,7 @@ val dbUrl = "jdbc:postgresql://localhost:5000/reserve"
 liquibase.activities.register("main") {
     arguments = mapOf<String, Any?>(
         "searchPath" to "${project.projectDir}/src/main/resources/",
-        "changelogFile" to requiredProperty("changeLogFile", "db/changelog/master.xml"),
+        "changelogFile" to requiredProperty("changeLogFile", "db/changelog/db.changelog-master.yaml"),
         "url" to requiredProperty("dbUrl", dbUrl),
         "username" to requiredProperty("dbUsername", dbUsername),
         "password" to requiredProperty("dbPassword", dbPassword),

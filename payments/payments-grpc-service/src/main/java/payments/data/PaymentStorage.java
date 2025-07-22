@@ -1,12 +1,7 @@
 package payments.data;
 
+import io.github.m4gshm.storage.CrudStorage;
 import payments.data.model.Payment;
-import reactor.core.publisher.Mono;
 
-import java.util.List;
-
-public interface PaymentStorage {
-    Mono<List<Payment>> findAll();
-    Mono<Payment> findById(String id);
-    Mono<Payment> save(Payment order, boolean twoPhasedTransaction);
+public interface PaymentStorage extends CrudStorage<Payment, String> {
 }

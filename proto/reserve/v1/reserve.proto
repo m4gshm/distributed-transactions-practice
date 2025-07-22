@@ -5,22 +5,22 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service ReserveService {
-  rpc create(NewReserveRequest) returns (NewReserveResponse) {
+  rpc Create(ReserveCreateRequest) returns (ReserveCreateResponse) {
     option (google.api.http) = {
       post: "/api/v1/reserve"
       body: "*"
     };
   }
-  rpc cancel(CancelReserveRequest) returns (CancelReserveResponse) {
+  rpc cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
     option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
   }
-  rpc update(UpdateReserveRequest) returns (UpdateReserveResponse) {
+  rpc Update(ReserveUpdateRequest) returns (ReserveUpdateResponse) {
     option (google.api.http) = {
       put: "/api/v1/reserve"
       body: "*"
     };
   }
-  rpc search(FindReserveRequest) returns (FindReserveResponse) {
+  rpc Search(FindReserveRequest) returns (FindReserveResponse) {
     option (google.api.http) = {
       post: "/api/v1/reserve/search"
       body: "*"
@@ -28,9 +28,9 @@ service ReserveService {
   }
 }
 
-message NewReserveRequest {
-  bool twoPhaseCommit = 1;
-  ReserveBody body = 2;
+message ReserveCreateRequest {
+  ReserveBody body = 1;
+  bool two_phase_commit = 2;
   message ReserveBody {
     string externalRef = 1;
     repeated Item items = 2;
@@ -41,23 +41,23 @@ message NewReserveRequest {
   }
 }
 
-message NewReserveResponse {
+message ReserveCreateResponse {
   string id = 1;
 }
 
-message CancelReserveRequest {
+message ReserveCancelRequest {
   string id = 1;
 }
 
-message CancelReserveResponse {
+message ReserveCancelResponse {
   string id = 1;
 }
 
-message UpdateReserveRequest {
+message ReserveUpdateRequest {
   string id = 1;
 }
 
-message UpdateReserveResponse {
+message ReserveUpdateResponse {
   string id = 1;
 }
 

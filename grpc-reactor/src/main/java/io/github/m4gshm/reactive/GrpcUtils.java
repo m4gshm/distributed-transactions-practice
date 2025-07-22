@@ -1,4 +1,4 @@
-package reactive;
+package io.github.m4gshm.reactive;
 
 import io.grpc.Metadata;
 import io.grpc.StatusException;

@@ -8,7 +8,7 @@ sourceSets {
     main {
         this.proto {
             srcDirs(
-                "$rootDir/proto/payments",
+                "$rootDir/proto/payment",
                 "$rootDir/proto/tpc"
             )
         }

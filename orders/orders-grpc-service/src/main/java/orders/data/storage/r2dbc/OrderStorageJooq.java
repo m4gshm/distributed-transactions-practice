@@ -1,6 +1,7 @@
 package orders.data.storage.r2dbc;
 
 import jooq.utils.TwoPhaseTransaction;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -28,6 +29,8 @@ import static reactor.core.publisher.Mono.from;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderStorageJooq implements OrderStorage {
     DSLContext dsl;
+    @Getter
+    private final Class<Order> entityClass = Order.class;
 
     @Override
     public Mono<List<Order>> findAll() {
@@ -47,11 +50,11 @@ public class OrderStorageJooq implements OrderStorage {
     }
 
     @Override
-    public Mono<Order> save(Order order, boolean twoPhasedTransaction) {
+    public Mono<Order> save(Order order, boolean twoPhasedCommit) {
         return from(dsl.transactionPublisher(trx -> {
             var dsl = trx.dsl();
             var routine = storeOrder(dsl, order);
-            return !twoPhasedTransaction ? routine : TwoPhaseTransaction.prepare(routine, dsl, order.id());
+            return !twoPhasedCommit ? routine : TwoPhaseTransaction.prepare(routine, dsl, order.id());
         }));
     }
 }

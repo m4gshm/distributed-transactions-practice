@@ -10,7 +10,7 @@ import tpc.v1.Tpc.TwoPhaseRollbackRequest;
 import tpc.v1.Tpc.TwoPhaseRollbackResponse;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 
-import static reactive.GrpcUtils.subscribe;
+import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 
 @RequiredArgsConstructor
 public class TwoPhaseCommitServiceImpl extends TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase {

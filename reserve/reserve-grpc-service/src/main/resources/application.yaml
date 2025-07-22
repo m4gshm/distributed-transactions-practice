@@ -35,7 +35,7 @@ logging:
 #    server:
 #      port: 9090
 server:
-  port: 8081
+  port: 7081
 grpc:
   server:
     port: 9081
@@ -54,6 +54,10 @@ springdoc:
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+  datasource:
+    url: jdbc:postgresql://localhost:5000/reserve
+    username: postgres
+    password: postgres
   r2dbc:
     url: r2dbc:postgresql://localhost:5000/reserve
     username: postgres

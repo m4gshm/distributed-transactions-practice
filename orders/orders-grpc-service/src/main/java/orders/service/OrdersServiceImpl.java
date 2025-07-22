@@ -7,6 +7,8 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.data.model.Order;
 import orders.data.storage.OrderStorage;
+import orders.v1.Orders.OrderApproveRequest;
+import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelRequest;
 import orders.v1.Orders.OrderCancelResponse;
 import orders.v1.Orders.OrderCreateRequest;
@@ -17,14 +19,14 @@ import orders.v1.Orders.OrderResponse;
 import orders.v1.Orders.OrdersResponse;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
-import payments.v1.Payments;
-import payments.v1.Payments.NewPaymentRequest;
-import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
+import payment.v1.PaymentOuterClass.Payment;
+import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Mono;
 import reserve.v1.Reserve;
-import reserve.v1.Reserve.NewReserveRequest;
+import reserve.v1.Reserve.ReserveCreateResponse;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
-import tpc.v1.Tpc;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 import java.util.UUID;
@@ -35,8 +37,8 @@ import static orders.service.OrdersServiceUtils.notFoundById;
 import static orders.service.OrdersServiceUtils.string;
 import static orders.service.OrdersServiceUtils.toDelivery;
 import static orders.service.OrdersServiceUtils.uuid;
-import static reactive.GrpcUtils.subscribe;
-import static reactive.ReactiveUtils.toMono;
+import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
+import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
@@ -49,26 +51,12 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     TwoPhaseCommitServiceStub reserveClientTcp;
-    PaymentsServiceStub paymentsClient;
+    PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
 
-    private static OrderCreateResponse toOrderCreateResponse(Order order) {
-        return OrderCreateResponse.newBuilder().setId(string(order.id())).build();
-    }
-
-    private static Tpc.TwoPhaseCommitRequest newCommitRequest(String id) {
-        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(string(id)).build();
-    }
-
-    private static Tpc.TwoPhaseRollbackRequest newRollbackRequest(String reserveResponse) {
-        return Tpc.TwoPhaseRollbackRequest.newBuilder()
-                .setId(string(reserveResponse))
-                .build();
-    }
-
     @Override
-    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> response) {
-        subscribe(response, fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
+    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
+        subscribe(responseObserver, fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
             var twoPhaseCommit = request.getTwoPhaseCommit();
             var body = request.getBody();
             var itemsList = body.getItemsList();
@@ -76,17 +64,17 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
             var amount = items.stream().mapToDouble(Order.Item::cost).sum();
 
-            var paymentRequest = NewPaymentRequest.newBuilder()
+            var paymentRequest = PaymentCreateRequest.newBuilder()
                     .setTwoPhaseCommit(twoPhaseCommit)
-                    .setBody(NewPaymentRequest.PaymentBody.newBuilder()
+                    .setBody(Payment.newBuilder()
                             .setExternalRef(orderId)
                             .setAmount(amount)
                             .build())
                     .setTwoPhaseCommit(twoPhaseCommit)
                     .build();
-            var reserveRequest = NewReserveRequest.newBuilder()
+            var reserveRequest = Reserve.ReserveCreateRequest.newBuilder()
                     .setTwoPhaseCommit(twoPhaseCommit)
-                    .setBody(NewReserveRequest.ReserveBody.newBuilder()
+                    .setBody(Reserve.ReserveCreateRequest.ReserveBody.newBuilder()
                             .setExternalRef(orderId)
                             .addAllItems(items.stream().map(OrdersServiceUtils::toReserveItem).toList())
                             .build()
@@ -116,14 +104,33 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                             : getDistributedRollback(throwable, orderId, reserveResponse, paymentResponse);
                 });
             });
-        }).map(OrdersServiceImpl::toOrderCreateResponse));
+        }).map(OrdersServiceUtils::toOrderCreateResponse));
+    }
+
+    @Override
+    public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {
+        subscribe(responseObserver, fromSupplier(() -> {
+//            orderRepository.getById(request.getId()).map(order -> {
+//                var paymentId = order.paymentId();
+//                var reserveId = order.reserveId();
+//
+//                toMono(PaymentApproveRequest.newBuilder().setId(reserveId).build(), paymentsClient::approve).map(paymentResponse -> {
+//                    paymentResponse.getStatus();
+//                });
+//
+//            });
+
+
+            var r = OrderApproveResponse.newBuilder().build();
+            return r;
+        }));
     }
 
     private Mono<Order> getDistributedCommit(Order result, String orderId,
-                                             Reserve.NewReserveResponse reserveResponse,
-                                             Payments.NewPaymentResponse paymentResponse) {
-        return toMono(newCommitRequest(reserveResponse.getId()), reserveClientTcp::commit)
-                .zipWith(toMono(newCommitRequest(paymentResponse.getId()), paymentsClientTcp::commit))
+                                             ReserveCreateResponse reserveResponse,
+                                             PaymentCreateResponse paymentResponse) {
+        return toMono(OrdersServiceUtils.newCommitRequest(reserveResponse.getId()), reserveClientTcp::commit)
+                .zipWith(toMono(OrdersServiceUtils.newCommitRequest(paymentResponse.getId()), paymentsClientTcp::commit))
                 .then(commit(dsl, string(orderId)))
                 .thenReturn(result)
                 .doOnSuccess(order -> {
@@ -134,10 +141,10 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     }
 
     private Mono<Order> getDistributedRollback(Throwable throwable, String orderId,
-                                               Reserve.NewReserveResponse reserveResponse,
-                                               Payments.NewPaymentResponse paymentResponse) {
-        return toMono(newRollbackRequest(reserveResponse.getId()), reserveClientTcp::rollback)
-                .zipWith(toMono(newRollbackRequest(paymentResponse.getId()), paymentsClientTcp::rollback))
+                                               ReserveCreateResponse reserveResponse,
+                                               PaymentCreateResponse paymentResponse) {
+        return toMono(OrdersServiceUtils.newRollbackRequest(reserveResponse.getId()), reserveClientTcp::rollback)
+                .zipWith(toMono(OrdersServiceUtils.newRollbackRequest(paymentResponse.getId()), paymentsClientTcp::rollback))
                 .then(rollback(dsl, string(orderId)))
                 .then(defer(() -> {
                     //todo need check actuality

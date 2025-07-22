@@ -6,6 +6,7 @@ import orders.data.model.Order;
 import orders.v1.Orders;
 import reactor.core.publisher.Mono;
 import reserve.v1.Reserve;
+import tpc.v1.Tpc;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -113,9 +114,23 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-     static Reserve.NewReserveRequest.ReserveBody.Item toReserveItem(Order.Item item) {
-        return Reserve.NewReserveRequest.ReserveBody.Item.newBuilder()
+     static Reserve.ReserveCreateRequest.ReserveBody.Item toReserveItem(Order.Item item) {
+        return Reserve.ReserveCreateRequest.ReserveBody.Item.newBuilder()
                 .setId(item.id())
+                .build();
+    }
+
+    static Orders.OrderCreateResponse toOrderCreateResponse(Order order) {
+        return Orders.OrderCreateResponse.newBuilder().setId(string(order.id())).build();
+    }
+
+    static Tpc.TwoPhaseCommitRequest newCommitRequest(String id) {
+        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(string(id)).build();
+    }
+
+    static Tpc.TwoPhaseRollbackRequest newRollbackRequest(String reserveResponse) {
+        return Tpc.TwoPhaseRollbackRequest.newBuilder()
+                .setId(string(reserveResponse))
                 .build();
     }
 }

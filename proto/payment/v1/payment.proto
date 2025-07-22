@@ -1,0 +1,102 @@
+syntax = "proto3";
+package payment.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service PaymentService {
+  rpc Create(PaymentCreateRequest) returns (PaymentCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment"
+      body: "*"
+    };
+  }
+  rpc Approve(PaymentApproveRequest) returns (PaymentApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment/approve"
+      body: "*"
+    };
+  }
+  rpc Cancel(PaymentCancelRequest) returns (PaymentCancelResponse) {
+    option (google.api.http) = {delete: "/api/v1/payment/{id}"};
+  }
+  rpc Process(PaymentProcessRequest) returns (PaymentProcessResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/payment/{id}"
+      body: "*"
+    };
+  }
+  rpc Get(PaymentGetRequest) returns (PaymentGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment/{id}"
+      response_body: "payment"
+    };
+  }
+
+  rpc List(PaymentListRequest) returns (PaymentListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment"
+      response_body: "payments"
+    };
+  }
+}
+
+message Payment {
+  string externalRef = 1;
+  string client_id = 2;
+  double amount = 3;
+}
+
+message PaymentCreateRequest {
+  Payment body = 1;
+  bool two_phase_commit = 2;
+}
+
+message PaymentCreateResponse {
+  string id = 1;
+}
+
+message PaymentApproveRequest {
+  string id = 1;
+  bool two_phase_commit = 2;
+}
+
+message PaymentApproveResponse {
+  string id = 1;
+  Status status = 2;
+  string description = 3;
+  enum Status {
+    APPROVED = 0;
+    UNCEFFICIENT_FUNDS = 1;
+  }
+}
+
+message PaymentCancelRequest {
+  string id = 1;
+}
+
+message PaymentCancelResponse {
+  string id = 1;
+}
+
+message PaymentProcessRequest {
+  string id = 1;
+}
+
+message PaymentProcessResponse {
+  string id = 1;
+}
+
+message PaymentGetRequest {
+  string id = 1;
+}
+
+message PaymentGetResponse {
+  Payment payment = 1;
+}
+
+message PaymentListRequest {}
+
+message PaymentListResponse {
+  repeated Payment payments = 1;
+}

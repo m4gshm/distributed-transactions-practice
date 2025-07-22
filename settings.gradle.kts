@@ -1,4 +1,5 @@
 
+include(":storage-api")
 include(":grpc-reactor")
 include(":jooq-utils")
 include(":jooq-r2dbc")

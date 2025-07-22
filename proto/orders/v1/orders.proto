@@ -12,6 +12,12 @@ service OrdersService {
       body: "*"
     };
   }
+  rpc Approve(OrderApproveRequest) returns (OrderApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order/approve"
+      body: "*"
+    };
+  }
   rpc Get(OrderGetRequest) returns (OrderResponse) {
     option (google.api.http) = {get: "/api/v1/order/{id}"};
   }
@@ -28,8 +34,8 @@ service OrdersService {
 }
 
 message OrderCreateRequest {
-  bool twoPhaseCommit = 1;
-  OrderBody body = 2;
+  OrderBody body = 1;
+  bool two_phase_commit = 2;
   message OrderBody {
     repeated Item items = 1;
     string customer_id = 2;
@@ -46,6 +52,18 @@ message OrderCreateRequest {
 
 message OrderCreateResponse {
   string id = 1;
+}
+
+message OrderApproveRequest {
+  string id = 1;
+  bool two_phase_commit = 2;
+}
+
+message OrderApproveResponse {
+  string id = 1;
+  string status = 2;
+  string payment_status = 3;
+  string reserve_status = 4;
 }
 
 message OrderGetRequest {
@@ -97,7 +115,7 @@ message OrderItem {
 
 message OrderState {
   Status status = 1;
-  string info = 2;
+  string message = 2;
   enum Status {
     STATUS_CREATED = 0;
     STATUS_CANCELLED = 1;

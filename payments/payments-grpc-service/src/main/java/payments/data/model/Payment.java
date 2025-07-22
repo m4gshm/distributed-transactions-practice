@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toMap;
 @Builder
 public record Payment(String id,
                       String externalRef,
+                      String clientId,
                       Status status,
                       Double amount,
                       OffsetDateTime createdAt,
@@ -18,7 +19,8 @@ public record Payment(String id,
 
     public enum Status {
         CREATED,
-        VALIDATED,
+        APPROVED,
+        PAID,
         CANCELLED;
 
         private final static Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));

@@ -1,6 +1,7 @@
 package reserve.data.r2dbc;
 
 import jooq.utils.TwoPhaseTransaction;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +16,6 @@ import java.util.List;
 
 import static jooq.utils.Query.selectAllFrom;
 import static lombok.AccessLevel.PRIVATE;
-import static org.jooq.impl.DSL.field;
-import static org.jooq.impl.DSL.name;
 import static reactor.core.publisher.Mono.from;
 import static reserve.data.access.jooq.Tables.ITEMS;
 import static reserve.data.access.jooq.Tables.RESERVE;
@@ -29,6 +28,8 @@ import static reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class ReserveStorageR2DBC implements ReserveStorage {
+    @Getter
+    Class<Reserve> entityClass = Reserve.class;
     DSLContext dsl;
 
     @Override
@@ -46,12 +47,12 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     }
 
     @Override
-    public Mono<Reserve> save(Reserve reserve, boolean twoPhasedTransaction) {
+    public Mono<Reserve> save(Reserve reserve, boolean twoPhasedCommit) {
         return from(dsl.transactionPublisher(trx -> {
             var dsl = trx.dsl();
             var routine = storeReserve(dsl, reserve);
             var id = reserve.id();
-            return !twoPhasedTransaction ? routine : TwoPhaseTransaction.prepare(routine, dsl, id);
+            return !twoPhasedCommit ? routine : TwoPhaseTransaction.prepare(routine, dsl, id);
         }));
     }
 }

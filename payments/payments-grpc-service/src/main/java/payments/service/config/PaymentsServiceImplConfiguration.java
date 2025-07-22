@@ -2,16 +2,18 @@ package payments.service.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import payment.v1.PaymentServiceGrpc;
+import payments.data.AccountStorage;
 import payments.data.PaymentStorage;
-import payments.service.PaymentsServiceImpl;
-import payments.v1.PaymentsServiceGrpc.PaymentsServiceImplBase;
+import payments.service.PaymentServiceImpl;
 
 @Configuration
 public class PaymentsServiceImplConfiguration {
 
     @Bean
-    public PaymentsServiceImplBase orderService(PaymentStorage paymentStorage) {
-        return new PaymentsServiceImpl(paymentStorage);
+    public PaymentServiceGrpc.PaymentServiceImplBase orderService(PaymentStorage paymentStorage,
+                                                                  AccountStorage accountStorage) {
+        return new PaymentServiceImpl(paymentStorage, accountStorage);
     }
 
 }

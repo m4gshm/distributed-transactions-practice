@@ -8,7 +8,7 @@ import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import payments.v1.PaymentsServiceGrpc.PaymentsServiceStub;
+import payment.v1.PaymentServiceGrpc;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 
@@ -22,7 +22,7 @@ public class OrderServiceImplConfiguration {
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub reserveClientTcp;
-    PaymentsServiceStub paymentsClient;
+    PaymentServiceGrpc.PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub paymentsClientTcp;
 
     @Bean
