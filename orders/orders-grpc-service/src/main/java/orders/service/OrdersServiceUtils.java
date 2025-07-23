@@ -1,6 +1,6 @@
 package orders.service;
 
-import com.google.protobuf.Timestamp;
+import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
 import orders.data.model.Order;
 import orders.v1.Orders;
@@ -8,7 +8,6 @@ import reactor.core.publisher.Mono;
 import reserve.v1.Reserve;
 import tpc.v1.Tpc;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 
@@ -28,8 +27,8 @@ public class OrdersServiceUtils {
     static Orders.OrderResponse toOrderResponse(Order order) {
         return Orders.OrderResponse.newBuilder()
                 .setId(toString(order.id()))
-                .setCreatedAt(toTimestamp(order.createdAt()))
-                .setUpdatedAt(toTimestamp(order.updatedAt()))
+                .setCreatedAt(TimestampUtils.toTimestamp(order.createdAt()))
+                .setUpdatedAt(TimestampUtils.toTimestamp(order.updatedAt()))
                 .setPaymentId(toString(order.paymentId()))
                 .setReserveId(toString(order.reserveId()))
                 .mergeDelivery(toDelivery(order.delivery()))
@@ -48,7 +47,7 @@ public class OrdersServiceUtils {
     private static Orders.Delivery toDelivery(Order.Delivery delivery) {
         return delivery == null ? null : Orders.Delivery.newBuilder()
                 .setAddress(delivery.address())
-                .mergeDateTime(toTimestamp(delivery.dateTime()))
+                .mergeDateTime(TimestampUtils.toTimestamp(delivery.dateTime()))
                 .setType(toType(delivery.type()))
                 .build();
     }
@@ -77,23 +76,11 @@ public class OrdersServiceUtils {
         return uuidString;
     }
 
-    static Instant toInstant(Timestamp dateTime) {
-        return Instant.ofEpochSecond(dateTime.getSeconds(), dateTime.getNanos());
-    }
-
-    private static Timestamp toTimestamp(OffsetDateTime offsetDateTime) {
-        return ofNullable(offsetDateTime).map(OffsetDateTime::toInstant).map(OrdersServiceUtils::toTimestamp).orElse(null);
-    }
-
-    private static Timestamp toTimestamp(Instant instant) {
-        return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
-    }
-
 
     static Order.Delivery toDelivery(Orders.Delivery delivery) {
         return delivery == null ? null : Order.Delivery.builder()
                 .address(delivery.getAddress())
-                .dateTime(OffsetDateTime.ofInstant(toInstant(delivery.getDateTime()), systemDefault()))
+                .dateTime(OffsetDateTime.ofInstant(TimestampUtils.toInstant(delivery.getDateTime()), systemDefault()))
                 .type(toDeliveryType(delivery.getType()))
                 .build();
     }

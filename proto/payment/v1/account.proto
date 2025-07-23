@@ -1,0 +1,26 @@
+syntax = "proto3";
+package payment.v1;
+
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service AccountService {
+  rpc List(AccountListRequest) returns (AccountListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/account"
+    };
+  }
+}
+
+message AccountListRequest {}
+
+message AccountListResponse {
+  repeated Account accounts = 1;
+}
+
+message Account {
+  string clientId = 1;
+  double amount = 2;
+  double locked = 3;
+  google.protobuf.Timestamp updatedAt = 4;
+}

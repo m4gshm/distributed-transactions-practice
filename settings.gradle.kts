@@ -1,6 +1,7 @@
 
 include(":storage-api")
 include(":grpc-reactor")
+include(":protobuf-utils")
 include(":jooq-utils")
 include(":jooq-r2dbc")
 include(":tpc:tpc-grpc-api")

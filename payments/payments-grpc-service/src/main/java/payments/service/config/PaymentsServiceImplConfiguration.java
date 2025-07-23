@@ -11,8 +11,8 @@ import payments.service.PaymentServiceImpl;
 public class PaymentsServiceImplConfiguration {
 
     @Bean
-    public PaymentServiceGrpc.PaymentServiceImplBase orderService(PaymentStorage paymentStorage,
-                                                                  AccountStorage accountStorage) {
+    public PaymentServiceGrpc.PaymentServiceImplBase paymentService(PaymentStorage paymentStorage,
+                                                                    AccountStorage accountStorage) {
         return new PaymentServiceImpl(paymentStorage, accountStorage);
     }
 
