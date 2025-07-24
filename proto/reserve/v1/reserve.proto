@@ -11,7 +11,13 @@ service ReserveService {
       body: "*"
     };
   }
-  rpc cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
+  rpc Approve(ReserveApproveRequest) returns (ReserveApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve/approve"
+      body: "*"
+    };
+  }
+  rpc Cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
     option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
   }
   rpc Update(ReserveUpdateRequest) returns (ReserveUpdateResponse) {
@@ -43,6 +49,21 @@ message ReserveCreateRequest {
 
 message ReserveCreateResponse {
   string id = 1;
+}
+
+message ReserveApproveRequest {
+  string id = 1;
+  bool two_phase_commit = 2;
+}
+
+message ReserveApproveResponse {
+  string id = 1;
+  Status status = 2;
+  string description = 3;
+  enum Status {
+    APPROVED = 0;
+    INSUFFICIENT_QUANTITY = 1;
+  }
 }
 
 message ReserveCancelRequest {

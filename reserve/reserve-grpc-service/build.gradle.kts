@@ -30,6 +30,7 @@ dependencies {
 
     api(project(":storage-api"))
     api(project(":grpc-reactor"))
+    api(project(":protobuf-utils"))
     api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
     api(project(":reserve:reserve-grpc-api"))

@@ -6,9 +6,7 @@ import "google/protobuf/timestamp.proto";
 
 service AccountService {
   rpc List(AccountListRequest) returns (AccountListResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/account"
-    };
+    option (google.api.http) = {get: "/api/v1/account"};
   }
 }
 

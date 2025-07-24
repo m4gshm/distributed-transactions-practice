@@ -19,6 +19,7 @@ import orders.v1.Orders.OrderResponse;
 import orders.v1.Orders.OrdersResponse;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentOuterClass.PaymentCreateRequest;
 import payment.v1.PaymentOuterClass.PaymentCreateResponse;
@@ -44,6 +45,7 @@ import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
 
 @Slf4j
+@Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class OrdersServiceImpl extends OrdersServiceImplBase {

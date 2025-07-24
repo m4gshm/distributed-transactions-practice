@@ -17,8 +17,8 @@ import java.util.List;
 import static jooq.utils.Query.selectAllFrom;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.from;
-import static reserve.data.access.jooq.Tables.ITEMS;
 import static reserve.data.access.jooq.Tables.RESERVE;
+import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 import static reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;
 import static reserve.data.r2dbc.ReserveStorageR2DBCUtils.storeReserve;
 import static reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
@@ -40,7 +40,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     @Override
     public Mono<Reserve> findById(String id) {
         var selectReserves = from(selectReserves(dsl).where(RESERVE.ID.eq(id)));
-        var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.RESERVE_ID.eq(id));
+        var selectItems = selectAllFrom(dsl, RESERVE_ITEM).where(RESERVE_ITEM.RESERVE_ID.eq(id));
         return from(selectReserves).zipWith(Flux.from(selectItems).collectList(), (reserve, items) -> {
             return toReserve(reserve, items);
         });

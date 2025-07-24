@@ -2,3 +2,6 @@ databaseChangeLog:
   - include:
       file: ./master.xml
       relativeToChangelogFile: true
+  - include:
+      file: ./test-data.xml
+      relativeToChangelogFile: true

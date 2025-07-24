@@ -7,7 +7,7 @@ import org.jooq.InsertOnDuplicateSetMoreStep;
 import org.jooq.Record;
 import org.jooq.SelectJoinStep;
 import reactor.core.publisher.Mono;
-import reserve.data.access.jooq.tables.records.ItemsRecord;
+import reserve.data.access.jooq.tables.records.ReserveItemRecord;
 import reserve.data.model.Reserve;
 import reserve.data.model.Reserve.Status;
 
@@ -20,8 +20,8 @@ import static java.util.Optional.ofNullable;
 import static jooq.utils.Query.getCurrentTxidOrNull;
 import static jooq.utils.Query.selectAllFrom;
 import static reactor.core.publisher.Mono.from;
-import static reserve.data.access.jooq.Tables.ITEMS;
 import static reserve.data.access.jooq.Tables.RESERVE;
+import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 
 @Slf4j
 @UtilityClass
@@ -39,8 +39,8 @@ public class ReserveStorageR2DBCUtils {
                 .updatedAt(record.get(RESERVE.UPDATED_AT))
                 .status(Status.byCode(record.get(RESERVE.STATUS)))
                 .items(items.stream().map(item -> Reserve.Item.builder()
-                        .id(item.get(ITEMS.ID))
-                        .count(item.get(ITEMS.COUNT))
+                        .id(item.get(RESERVE_ITEM.ID))
+                        .count(item.get(RESERVE_ITEM.AMOUNT))
                         .build()).toList())
                 .build();
     }
@@ -79,13 +79,13 @@ public class ReserveStorageR2DBCUtils {
         });
     }
 
-    private static InsertOnDuplicateSetMoreStep<ItemsRecord> mergeItem(DSLContext dsl, Reserve reserve, Reserve.Item item) {
-        return dsl.insertInto(ITEMS)
-                .set(ITEMS.RESERVE_ID, reserve.id())
-                .set(ITEMS.ID, item.id())
-                .set(ITEMS.COUNT, item.count())
+    private static InsertOnDuplicateSetMoreStep<ReserveItemRecord> mergeItem(DSLContext dsl, Reserve reserve, Reserve.Item item) {
+        return dsl.insertInto(RESERVE_ITEM)
+                .set(RESERVE_ITEM.RESERVE_ID, reserve.id())
+                .set(RESERVE_ITEM.ID, item.id())
+                .set(RESERVE_ITEM.AMOUNT, item.count())
                 .onDuplicateKeyUpdate()
-                .set(ITEMS.COUNT, item.count());
+                .set(RESERVE_ITEM.AMOUNT, item.count());
     }
 
     public static SelectJoinStep<Record> selectReserves(DSLContext dsl) {

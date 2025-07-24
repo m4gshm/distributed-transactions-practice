@@ -1,6 +1,8 @@
 package io.github.m4gshm.storage;
 
 import lombok.Getter;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
@@ -22,6 +24,7 @@ public interface ReadStorage<T, ID> {
     }
 
     @Getter
+    @ResponseStatus(HttpStatus.NOT_FOUND)
     class NotFoundException extends RuntimeException {
         private final Object[] keys;
 

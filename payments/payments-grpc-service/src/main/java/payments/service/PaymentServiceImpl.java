@@ -2,6 +2,7 @@ package payments.service;
 
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentOuterClass.PaymentApproveRequest;
 import payment.v1.PaymentOuterClass.PaymentApproveResponse;
@@ -26,6 +27,7 @@ import static java.lang.Boolean.TRUE;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
 
+@Service
 @RequiredArgsConstructor
 public class PaymentServiceImpl extends PaymentServiceImplBase {
     private final PaymentStorage paymentStorage;

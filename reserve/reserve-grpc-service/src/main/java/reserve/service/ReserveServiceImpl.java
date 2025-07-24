@@ -3,14 +3,17 @@ package reserve.service;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
 import reserve.data.ReserveStorage;
 import reserve.data.model.Reserve;
 import reserve.data.model.Reserve.Status;
-import reserve.v1.Reserve.ReserveCancelRequest;
-import reserve.v1.Reserve.ReserveCancelResponse;
 import reserve.v1.Reserve.FindReserveRequest;
 import reserve.v1.Reserve.FindReserveResponse;
+import reserve.v1.Reserve.ReserveApproveRequest;
+import reserve.v1.Reserve.ReserveApproveResponse;
+import reserve.v1.Reserve.ReserveCancelRequest;
+import reserve.v1.Reserve.ReserveCancelResponse;
 import reserve.v1.Reserve.ReserveCreateRequest;
 import reserve.v1.Reserve.ReserveCreateResponse;
 import reserve.v1.Reserve.ReserveUpdateRequest;
@@ -23,6 +26,7 @@ import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 import static reserve.data.model.Reserve.Item;
 
 @Slf4j
+@Service
 @RequiredArgsConstructor
 public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBase {
     private final ReserveStorage reserveStorage;
@@ -46,6 +50,14 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             return reserveStorage.save(reserve, request.getTwoPhaseCommit())
                     .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
         }));
+    }
+
+    @Override
+    public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
+//        subscribe(responseObserver, Mono.defer(()-> {
+//            String id = request.getId();
+//
+//        }));
     }
 
     @Override

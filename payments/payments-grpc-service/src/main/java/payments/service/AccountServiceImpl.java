@@ -2,6 +2,7 @@ package payments.service;
 
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
 import payment.v1.AccountOuterClass;
 import payment.v1.AccountOuterClass.AccountListRequest;
 import payment.v1.AccountOuterClass.AccountListResponse;
@@ -11,6 +12,7 @@ import payments.data.AccountStorage;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 
+@Service
 @RequiredArgsConstructor
 public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBase {
 

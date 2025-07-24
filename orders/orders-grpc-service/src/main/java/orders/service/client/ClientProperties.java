@@ -1,4 +1,4 @@
-package orders.service.client.config;
+package orders.service.client;
 
 import io.grpc.ManagedChannelBuilder;
 import lombok.Data;
