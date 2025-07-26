@@ -20,7 +20,7 @@ public record Order(String id,
                     List<Item> items
 ) {
     @Builder
-    public record Item(String id, String name, double cost) {
+    public record Item(String id, int amount) {
     }
 
     @Builder

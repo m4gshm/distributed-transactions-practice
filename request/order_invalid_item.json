@@ -1,0 +1,21 @@
+{
+  "body": {
+    "items": [
+      {
+        "id": "nonexistent-item",
+        "amount": 1
+      },
+      {
+        "id": "374fabf8-dd31-4912-93b1-57d177b9f6c6",
+        "amount": 3
+      }
+    ],
+    "customerId": "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2",
+    "delivery": {
+      "dateTime": "2025-07-26T17:03:13.475Z",
+      "address": "Lenina st., 1",
+      "type": "TYPE_PICKUP"
+    }
+  },
+  "twoPhaseCommit": true
+}

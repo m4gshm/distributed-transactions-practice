@@ -43,9 +43,7 @@ message OrderCreateRequest {
 
     message Item {
       string id = 1;
-      string name = 2;
-      double count = 3;
-      double cost = 4;
+      int32 amount = 2;
     }
   }
 }

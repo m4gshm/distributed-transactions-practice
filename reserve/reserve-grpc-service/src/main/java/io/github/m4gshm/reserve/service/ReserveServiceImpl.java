@@ -2,12 +2,15 @@ package io.github.m4gshm.reserve.service;
 
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import io.github.m4gshm.reserve.data.model.Reserve.Status;
 import io.grpc.stub.StreamObserver;
+import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import reserve.v1.ReserveOuterClass;
@@ -25,8 +28,6 @@ import reserve.v1.ReserveServiceGrpc;
 
 import java.util.UUID;
 
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.RESERVED;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
 import static io.github.m4gshm.reserve.service.ReserveServiceImplUtils.getItemStatus;
@@ -39,14 +40,16 @@ import static java.util.stream.Collectors.toMap;
 @Slf4j
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBase {
-    private final ReserveStorage reserveStorage;
-    private final WarehouseItemStorage warehouseItemStorage;
-    private final Jooq jooq;
+    ReserveStorage reserveStorage;
+    WarehouseItemStorage warehouseItemStorage;
+    Jooq jooq;
+    GrpcReactive grpc;
 
     @Override
     public void create(ReserveCreateRequest request, StreamObserver<ReserveCreateResponse> response) {
-        subscribe(response, jooq.transactional(dsl -> {
+        grpc.subscribe(response, jooq.transactional(dsl -> {
             var paymentId = UUID.randomUUID().toString();
             var body = request.getBody();
             var items = body.getItemsList().stream().map(item -> Item.builder()
@@ -60,16 +63,15 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     .status(Status.CREATED)
                     .items(items)
                     .build();
-            var twoPhaseCommit = request.getTwoPhaseCommit();
             var routine = reserveStorage.save(reserve)
                     .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
-            return TwoPhaseTransaction.prepare(twoPhaseCommit, dsl, reserve.id(), routine);
+            return TwoPhaseTransaction.prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), routine);
         }));
     }
 
     @Override
     public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
-        subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()).flatMap(reserve -> {
+        grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()).flatMap(reserve -> {
             var twoPhaseCommit = request.getTwoPhaseCommit();
             //todo: must be in one transaction with twoPhaseCommit supporting
 
@@ -107,7 +109,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
 
     @Override
     public void list(ListReserveRequest request, StreamObserver<ListReserveResponse> responseObserver) {
-        subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
+        grpc.subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
             return ListReserveResponse.newBuilder()
                     .addAllReserves(reserves.stream().map(reserve -> ReserveOuterClass.Reserve.newBuilder()
                             .setId(reserve.id())
@@ -121,5 +123,4 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     .build();
         }));
     }
-
 }

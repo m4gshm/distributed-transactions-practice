@@ -7,8 +7,12 @@ import io.github.m4gshm.reserve.data.model.WarehouseItem;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String> {
+
+    Mono<Map<String,Double>> getUnitsCost(Collection<String> ids);
+
     Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> reserves, String txid);
 
     @Builder

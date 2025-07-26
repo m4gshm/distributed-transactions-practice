@@ -1,25 +1,41 @@
 package io.github.m4gshm.reserve.service;
 
-import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Service;
-import payment.v1.ItemServiceGrpc;
-import payment.v1.Warehouse;
-import payment.v1.Warehouse.ItemListRequest;
-import payment.v1.Warehouse.ItemListResponse;
+import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
+import io.github.m4gshm.reserve.data.model.WarehouseItem;
+import io.grpc.stub.StreamObserver;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+import warehouse.v1.Warehouse;
+import warehouse.v1.Warehouse.GetItemCostResponse;
+import warehouse.v1.Warehouse.ItemListRequest;
+import warehouse.v1.Warehouse.ItemListResponse;
+import warehouse.v1.WarehouseItemServiceGrpc;
 
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
-import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
+import static reactor.core.publisher.Flux.fromIterable;
 
 @Service
 @RequiredArgsConstructor
-public class WarehouseItemServiceImpl extends ItemServiceGrpc.ItemServiceImplBase {
-    private final WarehouseItemStorage warehouseItemStorage;
+@FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
+public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.WarehouseItemServiceImplBase {
+    WarehouseItemStorage warehouseItemStorage;
+    GrpcReactive grpc;
+
+    @Override
+    public void getItemCost(Warehouse.GetItemCostRequest request, StreamObserver<GetItemCostResponse> responseObserver) {
+        grpc.subscribe(responseObserver, fromIterable(request.getItemIdsList())
+                .flatMap(warehouseItemStorage::getById).map(WarehouseItem::unitCost)
+                .reduce(Double::sum).map(sumCost -> GetItemCostResponse.newBuilder()
+                        .setSumCost(sumCost).build())
+        );
+    }
 
     @Override
     public void itemList(ItemListRequest request, StreamObserver<ItemListResponse> responseObserver) {
-        subscribe(responseObserver, warehouseItemStorage.findAll().map(items -> {
+        grpc.subscribe(responseObserver, warehouseItemStorage.findAll().map(items -> {
             return ItemListResponse.newBuilder()
                     .addAllAccounts(items.stream().map(item -> Warehouse.Item.newBuilder()
                             .setId(item.id())

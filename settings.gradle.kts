@@ -1,6 +1,6 @@
 
 include(":storage-api")
-include(":grpc-reactor")
+include(":grpc-webflux")
 include(":protobuf-utils")
 include(":jooq-utils")
 include(":jooq-r2dbc")

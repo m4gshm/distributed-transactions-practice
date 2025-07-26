@@ -10,7 +10,7 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok:1.18.38")
 
     api(project(":tpc:tpc-grpc-api"))
-    api(project(":grpc-reactor"))
+    api(project(":grpc-webflux"))
     api(project(":jooq-utils"))
 
     implementation("org.jooq:jooq:3.19.24")

@@ -1,7 +1,15 @@
 package io.github.m4gshm.payments.service;
 
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Payment;
+import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.GrpcReactiveImpl;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentOuterClass.PaymentApproveRequest;
@@ -16,28 +24,29 @@ import payment.v1.PaymentOuterClass.PaymentListRequest;
 import payment.v1.PaymentOuterClass.PaymentListResponse;
 import payment.v1.PaymentOuterClass.PaymentProcessRequest;
 import payment.v1.PaymentOuterClass.PaymentProcessResponse;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.PaymentStorage;
-import io.github.m4gshm.payments.data.model.Payment;
 
 import java.util.UUID;
 
-import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
+import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
 import static java.lang.Boolean.TRUE;
+import static lombok.AccessLevel.PRIVATE;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
 
 @Service
 @RequiredArgsConstructor
+@FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PaymentServiceImpl extends PaymentServiceImplBase {
-    private final PaymentStorage paymentStorage;
-    private final AccountStorage accountStorage;
+    Jooq jooq;
+    GrpcReactive grpc;
+    PaymentStorage paymentStorage;
+    AccountStorage accountStorage;
 
-    private static PaymentOuterClass.Payment toProto(Payment p) {
+    private static PaymentOuterClass.Payment toProto(Payment payment) {
         return PaymentOuterClass.Payment.newBuilder()
-                .setClientId(p.clientId())
-                .setAmount(p.amount())
-                .setExternalRef(p.externalRef())
+                .setClientId(payment.clientId())
+                .setAmount(payment.amount())
+                .setExternalRef(payment.externalRef())
                 .build();
     }
 
@@ -53,17 +62,18 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void create(PaymentCreateRequest request, StreamObserver<PaymentCreateResponse> responseObserver) {
-        subscribe(responseObserver, defer(() -> {
+        grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
             var id = UUID.randomUUID().toString();
-            var payment = request.getBody();
-            var saved = paymentStorage.save(toDataModel(id, payment, Payment.Status.CREATED));
-            return saved.thenReturn(PaymentCreateResponse.newBuilder().setId(id).build());
+            return TwoPhaseTransaction.prepare(request.getTwoPhaseCommit(), dsl, id, defer(() -> {
+                var saved = paymentStorage.save(toDataModel(id, request.getBody(), CREATED));
+                return saved.thenReturn(PaymentCreateResponse.newBuilder().setId(id).build());
+            }));
         }));
     }
 
     @Override
     public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
-        subscribe(responseObserver, paymentStorage.getById(request.getId()).flatMap(payment -> {
+        grpc.subscribe(responseObserver, paymentStorage.getById(request.getId()).flatMap(payment -> {
             return accountStorage.getById(payment.clientId()).flatMap(account -> {
                 return accountStorage.addLock(account, payment.amount(), payment.id(), request.getTwoPhaseCommit())
                         .map(success -> {
@@ -89,14 +99,14 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void get(PaymentGetRequest request, StreamObserver<PaymentGetResponse> responseObserver) {
-        subscribe(responseObserver, paymentStorage.getById(request.getId()).map(payment -> {
+        grpc.subscribe(responseObserver, paymentStorage.getById(request.getId()).map(payment -> {
             return PaymentGetResponse.newBuilder().setPayment(toProto(payment)).build();
         }));
     }
 
     @Override
     public void list(PaymentListRequest request, StreamObserver<PaymentListResponse> responseObserver) {
-        subscribe(responseObserver, paymentStorage.findAll().map(payments -> {
+        grpc.subscribe(responseObserver, paymentStorage.findAll().map(payments -> {
             return PaymentListResponse.newBuilder()
                     .addAllPayments(payments.stream().map(PaymentServiceImpl::toProto).toList())
                     .build();

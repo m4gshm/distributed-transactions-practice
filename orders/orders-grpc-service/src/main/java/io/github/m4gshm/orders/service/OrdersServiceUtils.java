@@ -39,8 +39,7 @@ public class OrdersServiceUtils {
     private static Orders.OrderItem toOrderItem(Order.Item item) {
         return item == null ? null : Orders.OrderItem.newBuilder()
                 .setId(toString(item.id()))
-                .setCost(item.cost())
-                .setName(item.name())
+                .setCost(item.amount())
                 .build();
     }
 
@@ -96,8 +95,7 @@ public class OrdersServiceUtils {
     static Order.Item toItem(Orders.OrderCreateRequest.OrderBody.Item item) {
         return Order.Item.builder()
                 .id(uuid(item.getId()))
-                .name(item.getName())
-                .cost(item.getCost())
+                .amount(item.getAmount())
                 .build();
     }
 
@@ -108,7 +106,9 @@ public class OrdersServiceUtils {
     }
 
     static Orders.OrderCreateResponse toOrderCreateResponse(Order order) {
-        return Orders.OrderCreateResponse.newBuilder().setId(string(order.id())).build();
+        return Orders.OrderCreateResponse.newBuilder()
+                .setId(string(order.id()))
+                .build();
     }
 
     static Tpc.TwoPhaseCommitRequest newCommitRequest(String id) {

@@ -39,10 +39,7 @@
                              foreignKeyName="items_orders_id_fk"
                 />
             </column>
-            <column name="name" type="text">
-                <constraints nullable="false"/>
-            </column>
-            <column name="cost" type="double">
+            <column name="amount" type="int">
                 <constraints nullable="false"/>
             </column>
         </createTable>

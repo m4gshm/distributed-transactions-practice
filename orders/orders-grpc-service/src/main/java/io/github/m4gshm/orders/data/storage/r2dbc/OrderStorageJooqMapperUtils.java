@@ -23,8 +23,7 @@ public class OrderStorageJooqMapperUtils {
                 .delivery(toDelivery(delivery))
                 .items(items.stream().map(item -> Order.Item.builder()
                         .id(item.get(ITEMS.ID))
-                        .name(item.get(ITEMS.NAME))
-                        .cost(item.get(ITEMS.COST))
+                        .amount(item.get(ITEMS.AMOUNT))
                         .build()).toList())
                 .build();
     }

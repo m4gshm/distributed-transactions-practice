@@ -16,6 +16,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import static io.github.m4gshm.jooq.utils.Query.logTxId;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
@@ -23,7 +24,9 @@ import static io.github.m4gshm.reserve.data.r2dbc.WarehouseItemStorageR2DBCUtils
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
 import static java.util.stream.Collectors.summingInt;
+import static java.util.stream.Collectors.toMap;
 import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Flux.fromIterable;
 import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
 
 @Slf4j
@@ -53,6 +56,13 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
         return jooq.transactional(dsl -> {
             var select = selectItems(dsl).where(WAREHOUSE_ITEM.ID.eq(id));
             return Mono.from(select).map(WarehouseItemStorageR2DBCUtils::toWarehouseItem);
+        });
+    }
+
+    @Override
+    public Mono<Map<String, Double>> getUnitsCost(Collection<String> ids) {
+        return fromIterable(ids).flatMap(this::getById).collectList().map(items -> {
+            return items.stream().collect(toMap(WarehouseItem::id, WarehouseItem::unitCost));
         });
     }
 

@@ -27,10 +27,10 @@ import static reactor.core.publisher.Mono.from;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-public class OrderStorageJooq implements OrderStorage {
-    Jooq jooq;
+public class OrderStorageR2DBC implements OrderStorage {
     @Getter
     private final Class<Order> entityClass = Order.class;
+    Jooq jooq;
 
     @Override
     public Mono<List<Order>> findAll() {
@@ -87,11 +87,9 @@ public class OrderStorageJooq implements OrderStorage {
                     .orElse(List.of()).stream().map(item -> dsl.insertInto(ITEMS)
                             .set(ITEMS.ORDER_ID, order.id())
                             .set(ITEMS.ID, item.id())
-                            .set(ITEMS.NAME, item.name())
-                            .set(ITEMS.COST, item.cost())
+                            .set(ITEMS.AMOUNT, item.amount())
                             .onDuplicateKeyUpdate()
-                            .set(ITEMS.NAME, item.name())
-                            .set(ITEMS.COST, item.cost())
+                            .set(ITEMS.AMOUNT, item.amount())
                     ).map(Mono::from).toList()).flatMap(i1 -> i1).reduce(Integer::sum);
 
             return mergeOrder.flatMap(count -> {

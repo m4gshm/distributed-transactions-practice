@@ -21,6 +21,8 @@ logging:
 #      port: 9090
 server:
   port: 7082
+  error:
+    include-message: always
 grpc:
   server:
     port: 9082

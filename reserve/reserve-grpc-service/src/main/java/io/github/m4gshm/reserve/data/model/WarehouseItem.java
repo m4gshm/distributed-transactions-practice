@@ -5,5 +5,5 @@ import lombok.Builder;
 import java.time.OffsetDateTime;
 
 @Builder
-public record WarehouseItem(String id, int amount, int reserved, OffsetDateTime updatedAt) {
+public record WarehouseItem(String id, double unitCost, int amount, int reserved, OffsetDateTime updatedAt) {
 }

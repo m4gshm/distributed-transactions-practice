@@ -4,8 +4,8 @@ import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
-import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -31,6 +31,9 @@ import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
+import warehouse.v1.Warehouse;
+import warehouse.v1.WarehouseItemServiceGrpc;
+import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceStub;
 
 import java.util.UUID;
 
@@ -42,8 +45,8 @@ import static io.github.m4gshm.orders.service.OrdersServiceUtils.notFoundById;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.string;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toDelivery;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.uuid;
-import static io.github.m4gshm.reactive.GrpcUtils.subscribe;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
+import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
@@ -51,33 +54,45 @@ import static reactor.core.publisher.Mono.just;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
+@FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrdersServiceImpl extends OrdersServiceImplBase {
+    GrpcReactive grpc;
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
+    WarehouseItemServiceStub warehouseClient;
     Jooq jooq;
 
     @Override
     public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
-        subscribe(responseObserver, fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
+        grpc.subscribe(responseObserver, fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
             var twoPhaseCommit = request.getTwoPhaseCommit();
             var body = request.getBody();
             var itemsList = body.getItemsList();
             var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
 
-            var amount = items.stream().mapToDouble(Order.Item::cost).sum();
+            var itemIds = itemsList.stream().map(OrderCreateRequest.OrderBody.Item::getId).distinct().toList();
 
-            var paymentRequest = PaymentCreateRequest.newBuilder()
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .setBody(Payment.newBuilder()
-                            .setExternalRef(orderId)
-                            .setAmount(amount)
-                            .build())
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .build();
+            var costRoutine = toMono(Warehouse.GetItemCostRequest.newBuilder()
+                    .addAllItemIds(itemIds)
+                    .build(), warehouseClient::getItemCost).map(Warehouse.GetItemCostResponse::getSumCost);
+
+            var paymentRoutine = costRoutine.map(cost -> {
+                return PaymentCreateRequest.newBuilder()
+                        .setTwoPhaseCommit(twoPhaseCommit)
+                        .setBody(Payment.newBuilder()
+                                .setExternalRef(orderId)
+                                .setClientId(body.getCustomerId())
+                                .setAmount(cost)
+                                .build())
+                        .setTwoPhaseCommit(twoPhaseCommit)
+                        .build();
+            }).flatMap(paymentRequest -> {
+                return toMono(paymentRequest, paymentsClient::create);
+            });
+
             var reserveRequest = ReserveOuterClass.ReserveCreateRequest.newBuilder()
                     .setTwoPhaseCommit(twoPhaseCommit)
                     .setBody(ReserveOuterClass.ReserveCreateRequest.Reserve.newBuilder()
@@ -85,37 +100,44 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                             .addAllItems(items.stream().map(OrdersServiceUtils::toCreateReserveItem).toList())
                             .build()
                     ).build();
-
             var reserveRoutine = toMono(reserveRequest, reserveClient::create);
-            var paymentRoutine = toMono(paymentRequest, paymentsClient::create);
 
             return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
                 var paymentResponse = responses.getT1();
                 var reserveResponse = responses.getT2();
-                return jooq.transactional(dsl -> TwoPhaseTransaction.prepare(dsl, orderId, orderRepository.save(Order.builder()
-                        .id(string(orderId))
-                        .paymentId(uuid(paymentResponse.getId()))
-                        .reserveId(uuid(reserveResponse.getId()))
-                        .customerId(uuid(body.getCustomerId()))
-                        .delivery(toDelivery(body.getDelivery()))
-                        .items(items)
-                        .build()
-                )).flatMap(order -> {
-                    return !twoPhaseCommit
-                            ? just(order)
-                            : getDistributedCommit(dsl, order, orderId, reserveResponse, paymentResponse);
-                }).onErrorResume(throwable -> {
-                    return !twoPhaseCommit
-                            ? Mono.error(throwable)
-                            : getDistributedRollback(dsl, throwable, orderId, reserveResponse, paymentResponse);
-                }));
+                return jooq.transactional(dsl -> {
+                    //run distributed transaction
+                    return TwoPhaseTransaction.prepare(dsl, orderId, orderRepository.save(Order.builder()
+                            .id(string(orderId))
+                            .paymentId(uuid(paymentResponse.getId()))
+                            .reserveId(uuid(reserveResponse.getId()))
+                            .customerId(uuid(body.getCustomerId()))
+                            .delivery(toDelivery(body.getDelivery()))
+                            .items(items)
+                            .build()
+                    )).onErrorResume(throwable -> {
+                        //rollback distributed transaction on error
+                        log.error("error on create order {}", orderId, throwable);
+                        return !twoPhaseCommit
+                                ? Mono.error(throwable)
+                                : getDistributedRollback(dsl, throwable, orderId, reserveResponse, paymentResponse);
+                    }).flatMap(order -> {
+                        //commit distributed transaction if no errors
+                        return !twoPhaseCommit
+                                ? just(order)
+                                : getDistributedCommit(dsl, order, orderId, reserveResponse, paymentResponse)
+                                .doOnError(throwable -> {
+                                    log.error("error on rollback distributed transaction {}", orderId, throwable);
+                                });
+                    });
+                });
             });
         }).map(OrdersServiceUtils::toOrderCreateResponse));
     }
 
     @Override
     public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {
-        subscribe(responseObserver, fromSupplier(() -> {
+        grpc.subscribe(responseObserver, fromSupplier(() -> {
 //            orderRepository.getById(request.getId()).map(order -> {
 //                var paymentId = order.paymentId();
 //                var reserveId = order.reserveId();
@@ -168,7 +190,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     @Override
     public void get(OrderGetRequest request, StreamObserver<OrderResponse> response) {
-        subscribe(response, just(request)
+        grpc.subscribe(response, just(request)
                 .map(OrderGetRequest::getId)
                 .flatMap(id -> orderRepository.findById(id).switchIfEmpty(notFoundById(id)))
                 .map(OrdersServiceUtils::toOrderResponse));
@@ -181,6 +203,6 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     @Override
     public void search(OrderFindRequest request, StreamObserver<OrdersResponse> response) {
-        subscribe(response, orderRepository.findAll().map(OrdersServiceUtils::toOrdersResponse));
+        grpc.subscribe(response, orderRepository.findAll().map(OrdersServiceUtils::toOrdersResponse));
     }
 }

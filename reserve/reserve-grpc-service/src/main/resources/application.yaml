@@ -47,6 +47,8 @@ springdoc-bridge.protobuf.schemaNamingStrategy: PROTOBUF
 #      port: 9090
 server:
   port: 7081
+  error:
+    include-message: always
 grpc:
   server:
     port: 9081
