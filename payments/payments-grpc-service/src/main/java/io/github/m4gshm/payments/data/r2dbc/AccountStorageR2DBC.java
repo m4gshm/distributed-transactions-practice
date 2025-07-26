@@ -1,6 +1,9 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.model.Account;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -9,15 +12,13 @@ import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SelectJoinStep;
 import org.springframework.stereotype.Service;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.model.Account;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-import static java.lang.Boolean.TRUE;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
+import static java.lang.Boolean.TRUE;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
 import static reactor.core.publisher.Mono.from;
@@ -29,7 +30,7 @@ import static reactor.core.publisher.Mono.from;
 public class AccountStorageR2DBC implements AccountStorage {
     @Getter
     Class<Account> entityClass = Account.class;
-    DSLContext dsl;
+    Jooq jooq;
 
     public static Account toAccount(org.jooq.Record record) {
         return Account.builder()
@@ -46,29 +47,34 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     @Override
     public Mono<List<Account>> findAll() {
-        return Flux.from(selectAccounts(dsl)).map(AccountStorageR2DBC::toAccount).collectList();
+        return jooq.transactional(dsl -> {
+            return Flux.from(selectAccounts(dsl)).map(AccountStorageR2DBC::toAccount).collectList();
+        });
     }
 
     @Override
     public Mono<Account> findById(String id) {
-        return from(selectAccounts(dsl).where(ACCOUNT.CLIENT_ID.eq(id))).map(AccountStorageR2DBC::toAccount);
+        return jooq.transactional(dsl -> {
+            return from(selectAccounts(dsl).where(ACCOUNT.CLIENT_ID.eq(id))).map(AccountStorageR2DBC::toAccount);
+        });
     }
 
     @Override
     public Mono<Boolean> addLock(Account account, Double amount, String txid, boolean twoPhaseCommit) {
-        var lockRoutine = from(
-                dsl.update(ACCOUNT)
-                        .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
-                        .where(
-                                ACCOUNT.CLIENT_ID.eq(account.clientId())
-                                        .and(ACCOUNT.AMOUNT.greaterOrEqual(ACCOUNT.LOCKED.plus(amount)))
-                        )
-        ).map(count -> {
-            log.debug("lock account result count, clientId:{}, rows:{}", account.clientId(), count);
-            return count > 0;
-        }).flatMap(success -> {
-            return TRUE.equals(success) ? Mono.just(true) : Mono.empty();
+        return jooq.transactional(dsl -> {
+            return from(
+                    dsl.update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
+                            .where(
+                                    ACCOUNT.CLIENT_ID.eq(account.clientId())
+                                            .and(ACCOUNT.AMOUNT.greaterOrEqual(ACCOUNT.LOCKED.plus(amount)))
+                            )
+            ).map(count -> {
+                log.debug("lock account result count, clientId [{}], rows [{}]", account.clientId(), count);
+                return count > 0;
+            }).flatMap(success -> {
+                return TRUE.equals(success) ? Mono.just(true) : Mono.empty();
+            });
         });
-        return !twoPhaseCommit ? lockRoutine : TwoPhaseTransaction.prepare(dsl, txid, lockRoutine);
     }
 }

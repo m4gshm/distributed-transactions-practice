@@ -13,8 +13,6 @@ import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.autoconfigure.jooq.JooqProperties;
-import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.r2dbc.connection.TransactionAwareConnectionFactoryProxy;
 import org.springframework.transaction.reactive.TransactionalOperator;
@@ -28,7 +26,6 @@ import static org.jooq.tools.jdbc.JDBCUtils.dialect;
 @AutoConfiguration
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-@EnableConfigurationProperties(JooqProperties.class)
 public class R2DBCJooqAutoConfiguration {
 
     @Bean
@@ -48,8 +45,8 @@ public class R2DBCJooqAutoConfiguration {
     }
 
     @Bean
-    public Jooq jooqExecutor(TransactionalOperator operator, ConnectionFactory connectionFactory) {
-        return new JooqImpl(operator, connectionFactory);
+    public Jooq jooq(TransactionalOperator operator, ConnectionFactory connectionFactory, Configuration configuration) {
+        return new JooqImpl(operator, connectionFactory, configuration);
     }
 
 }

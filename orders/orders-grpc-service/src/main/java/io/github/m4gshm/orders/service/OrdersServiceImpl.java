@@ -1,12 +1,14 @@
 package io.github.m4gshm.orders.service;
 
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
 import orders.v1.Orders.OrderApproveRequest;
 import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelRequest;
@@ -34,6 +36,8 @@ import java.util.UUID;
 
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.commit;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.rollback;
+import static io.github.m4gshm.orders.service.OrdersServiceUtils.newCommitRequest;
+import static io.github.m4gshm.orders.service.OrdersServiceUtils.newRollbackRequest;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.notFoundById;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.string;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toDelivery;
@@ -49,12 +53,12 @@ import static reactor.core.publisher.Mono.just;
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
 public class OrdersServiceImpl extends OrdersServiceImplBase {
-    DSLContext dsl;
     OrderStorage orderRepository;
     ReserveServiceStub reserveClient;
     TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
+    Jooq jooq;
 
     @Override
     public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
@@ -88,23 +92,23 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
             return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
                 var paymentResponse = responses.getT1();
                 var reserveResponse = responses.getT2();
-                return orderRepository.save(Order.builder()
+                return jooq.transactional(dsl -> TwoPhaseTransaction.prepare(dsl, orderId, orderRepository.save(Order.builder()
                         .id(string(orderId))
                         .paymentId(uuid(paymentResponse.getId()))
                         .reserveId(uuid(reserveResponse.getId()))
                         .customerId(uuid(body.getCustomerId()))
                         .delivery(toDelivery(body.getDelivery()))
                         .items(items)
-                        .build(), twoPhaseCommit
-                ).flatMap(order -> {
+                        .build()
+                )).flatMap(order -> {
                     return !twoPhaseCommit
                             ? just(order)
-                            : getDistributedCommit(order, orderId, reserveResponse, paymentResponse);
+                            : getDistributedCommit(dsl, order, orderId, reserveResponse, paymentResponse);
                 }).onErrorResume(throwable -> {
                     return !twoPhaseCommit
                             ? Mono.error(throwable)
-                            : getDistributedRollback(throwable, orderId, reserveResponse, paymentResponse);
-                });
+                            : getDistributedRollback(dsl, throwable, orderId, reserveResponse, paymentResponse);
+                }));
             });
         }).map(OrdersServiceUtils::toOrderCreateResponse));
     }
@@ -128,11 +132,11 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
         }));
     }
 
-    private Mono<Order> getDistributedCommit(Order result, String orderId,
+    private Mono<Order> getDistributedCommit(DSLContext dsl, Order result, String orderId,
                                              ReserveCreateResponse reserveResponse,
                                              PaymentCreateResponse paymentResponse) {
-        return toMono(OrdersServiceUtils.newCommitRequest(reserveResponse.getId()), reserveClientTcp::commit)
-                .zipWith(toMono(OrdersServiceUtils.newCommitRequest(paymentResponse.getId()), paymentsClientTcp::commit))
+        return toMono(newCommitRequest(reserveResponse.getId()), reserveClientTcp::commit)
+                .zipWith(toMono(newCommitRequest(paymentResponse.getId()), paymentsClientTcp::commit))
                 .then(commit(dsl, string(orderId)))
                 .thenReturn(result)
                 .doOnSuccess(order -> {
@@ -142,11 +146,11 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 });
     }
 
-    private Mono<Order> getDistributedRollback(Throwable throwable, String orderId,
+    private Mono<Order> getDistributedRollback(DSLContext dsl, Throwable throwable, String orderId,
                                                ReserveCreateResponse reserveResponse,
                                                PaymentCreateResponse paymentResponse) {
-        return toMono(OrdersServiceUtils.newRollbackRequest(reserveResponse.getId()), reserveClientTcp::rollback)
-                .zipWith(toMono(OrdersServiceUtils.newRollbackRequest(paymentResponse.getId()), paymentsClientTcp::rollback))
+        return toMono(newRollbackRequest(reserveResponse.getId()), reserveClientTcp::rollback)
+                .zipWith(toMono(newRollbackRequest(paymentResponse.getId()), paymentsClientTcp::rollback))
                 .then(rollback(dsl, string(orderId)))
                 .then(defer(() -> {
                     //todo need check actuality

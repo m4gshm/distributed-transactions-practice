@@ -1,23 +1,22 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
-import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Payment;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
-import io.github.m4gshm.payments.data.PaymentStorage;
-import io.github.m4gshm.payments.data.model.Payment;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-import static lombok.AccessLevel.PRIVATE;
-import static payments.data.access.jooq.Tables.PAYMENT;
 import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.selectPayments;
 import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.storeRoutine;
+import static lombok.AccessLevel.PRIVATE;
+import static payments.data.access.jooq.Tables.PAYMENT;
 import static reactor.core.publisher.Mono.from;
 
 @Slf4j
@@ -27,26 +26,26 @@ import static reactor.core.publisher.Mono.from;
 public class PaymentStorageR2DBC implements PaymentStorage {
     @Getter
     private final Class<Payment> entityClass = Payment.class;
-
-    DSLContext dsl;
+    Jooq jooq;
 
     @Override
     public Mono<List<Payment>> findAll() {
-        return Flux.from(selectPayments(dsl)).map(PaymentStorageR2DBCUtils::toPayment).collectList();
+        return jooq.transactional(dsl -> {
+            return Flux.from(selectPayments(dsl)).map(PaymentStorageR2DBCUtils::toPayment).collectList();
+        });
     }
 
     @Override
     public Mono<Payment> findById(String id) {
-        return from(selectPayments(dsl).where(PAYMENT.ID.eq(id))).map(PaymentStorageR2DBCUtils::toPayment);
+        return jooq.transactional(dsl -> {
+            return from(selectPayments(dsl).where(PAYMENT.ID.eq(id))).map(PaymentStorageR2DBCUtils::toPayment);
+        });
     }
 
     @Override
-    public Mono<Payment> save(Payment payment, boolean twoPhasedCommit) {
-        return from(dsl.transactionPublisher(trx -> {
-            var dsl = trx.dsl();
-            var routine = storeRoutine(dsl, payment);
-            var id = payment.id();
-            return !twoPhasedCommit ? routine : TwoPhaseTransaction.prepare(dsl, id, routine);
-        }));
+    public Mono<Payment> save(Payment payment) {
+        return jooq.transactional(dsl -> {
+            return storeRoutine(dsl, payment);
+        });
     }
 }

@@ -61,7 +61,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     .items(items)
                     .build();
             var twoPhaseCommit = request.getTwoPhaseCommit();
-            var routine = reserveStorage.save(reserve, false)
+            var routine = reserveStorage.save(reserve)
                     .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
             return TwoPhaseTransaction.prepare(twoPhaseCommit, dsl, reserve.id(), routine);
         }));

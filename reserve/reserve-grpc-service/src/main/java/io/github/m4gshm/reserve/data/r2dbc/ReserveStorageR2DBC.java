@@ -53,7 +53,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     }
 
     @Override
-    public Mono<Reserve> save(Reserve reserve, boolean twoPhasedCommit) {
+    public Mono<Reserve> save(Reserve reserve) {
         return jooq.transactional(dsl -> defer(() -> {
             var mergeReserve = from(dsl.insertInto(RESERVE)
                     .set(RESERVE.ID, reserve.id())

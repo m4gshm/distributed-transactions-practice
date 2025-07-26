@@ -56,7 +56,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         subscribe(responseObserver, defer(() -> {
             var id = UUID.randomUUID().toString();
             var payment = request.getBody();
-            var saved = paymentStorage.save(toDataModel(id, payment, Payment.Status.CREATED), request.getTwoPhaseCommit());
+            var saved = paymentStorage.save(toDataModel(id, payment, Payment.Status.CREATED));
             return saved.thenReturn(PaymentCreateResponse.newBuilder().setId(id).build());
         }));
     }
