@@ -1,1 +1,1 @@
-jooq.config.DSLContextConfiguration
+io.github.m4gshm.jooq.config.R2DBCJooqAutoConfiguration

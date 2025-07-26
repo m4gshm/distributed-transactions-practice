@@ -2,8 +2,9 @@ debug: true
 logging:
   level:
     root: INFO
-    orders: TRACE
     io:
+      github:
+        m4gshm: TRACE
       r2dbc:
         postgresql:
           QUERY: DEBUG

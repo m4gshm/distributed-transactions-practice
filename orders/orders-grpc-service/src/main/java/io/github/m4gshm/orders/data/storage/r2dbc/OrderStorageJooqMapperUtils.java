@@ -1,0 +1,44 @@
+package io.github.m4gshm.orders.data.storage.r2dbc;
+
+import lombok.experimental.UtilityClass;
+import io.github.m4gshm.orders.data.model.Order;
+import org.jooq.Record;
+
+import java.util.List;
+
+import static orders.data.access.jooq.Tables.DELIVERY;
+import static orders.data.access.jooq.Tables.ITEMS;
+import static orders.data.access.jooq.Tables.ORDERS;
+
+@UtilityClass
+public class OrderStorageJooqMapperUtils {
+    public static Order toOrder(Record order, Record delivery, List<Record> items) {
+        return Order.builder()
+                .id(order.get(ORDERS.ID))
+                .createdAt(order.get(ORDERS.CREATED_AT))
+                .updatedAt(order.get(ORDERS.UPDATED_AT))
+                .customerId(order.get(ORDERS.CUSTOMER_ID))
+                .reserveId(order.get(ORDERS.RESERVE_ID))
+                .paymentId(order.get(ORDERS.PAYMENT_ID))
+                .delivery(toDelivery(delivery))
+                .items(items.stream().map(item -> Order.Item.builder()
+                        .id(item.get(ITEMS.ID))
+                        .name(item.get(ITEMS.NAME))
+                        .cost(item.get(ITEMS.COST))
+                        .build()).toList())
+                .build();
+    }
+
+    private static Order.Delivery toDelivery(Record delivery) {
+        if (delivery == null) {
+            return null;
+        } else {
+            var address = delivery.get(DELIVERY.ADDRESS);
+            return address == null ? null : Order.Delivery.builder()
+                    .type(Order.Delivery.Type.byCode(delivery.get(DELIVERY.TYPE)))
+                    .address(address)
+                    .build();
+        }
+    }
+
+}

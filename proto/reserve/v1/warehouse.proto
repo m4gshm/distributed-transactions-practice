@@ -5,8 +5,9 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service ItemService {
-  rpc List(ItemListRequest) returns (ItemListResponse) {
-    option (google.api.http) = {get: "/api/v1/item"};
+  //  should named List but it conflicts with the List from the ReserveService in a generated openapi spec
+  rpc ItemList(ItemListRequest) returns (ItemListResponse) {
+    option (google.api.http) = {get: "/api/v1/warehouse/item"};
   }
 }
 

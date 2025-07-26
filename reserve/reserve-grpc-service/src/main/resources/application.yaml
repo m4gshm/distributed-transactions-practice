@@ -2,14 +2,21 @@ debug: true
 logging:
   level:
     root: INFO
-    reserve: TRACE
     org:
+      springframework:
+        r2dbc:
+          connection: TRACE
+        transaction:
+          reactive: TRACE
       apache:
         tomcat:
           util:
             net:
               NioEndpoint: INFO
+
     io:
+      github:
+        m4gshm: TRACE
       grpc:
         netty:
           shaded:
@@ -19,6 +26,7 @@ logging:
                   NettyClientHandler: INFO
                   NettyServerHandler: INFO
       r2dbc:
+        spi: TRACE
         postgresql:
           client:
             ReactorNettyClient: INFO
@@ -30,6 +38,9 @@ logging:
       rmi: INFO
     javax:
       management: INFO
+
+springdoc-bridge.protobuf.schemaNamingStrategy: PROTOBUF
+
 #spring:
 #  grpc:
 #    server:

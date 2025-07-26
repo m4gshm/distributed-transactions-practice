@@ -7,7 +7,9 @@ apply(plugin = "io.spring.dependency-management")
 sourceSets {
     main {
         this.proto {
-            srcDir("$rootDir/proto/reserve")
+            srcDirs(
+                "$rootDir/proto/reserve"
+            )
         }
     }
 }
@@ -24,7 +26,8 @@ protobuf {
     generateProtoTasks {
         all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask?> {
             this.plugins {
-                this.create("grpc") {}
+                this.create("grpc") {
+                }
             }
             this.builtins {
                 "java".apply {

@@ -26,23 +26,23 @@ service ReserveService {
       body: "*"
     };
   }
-  rpc Search(FindReserveRequest) returns (FindReserveResponse) {
+  rpc List(ListReserveRequest) returns (ListReserveResponse) {
     option (google.api.http) = {
-      post: "/api/v1/reserve/search"
-      body: "*"
+      get: "/api/v1/reserve"
+      response_body: "reserves"
     };
   }
 }
 
 message ReserveCreateRequest {
-  ReserveBody body = 1;
+  Reserve body = 1;
   bool two_phase_commit = 2;
-  message ReserveBody {
+  message Reserve {
     string externalRef = 1;
     repeated Item items = 2;
     message Item {
       string id = 1;
-      int32 count = 2;
+      int32 amount = 2;
     }
   }
 }
@@ -58,11 +58,19 @@ message ReserveApproveRequest {
 
 message ReserveApproveResponse {
   string id = 1;
-  Status status = 2;
-  string description = 3;
+  repeated Item items = 2;
+  Status status = 3;
+  string description = 4;
+  message Item {
+    string id = 1;
+    Reserve.Item.Status status = 2;
+    int32 required_quantity = 3;
+    optional string description = 4;
+  }
   enum Status {
     APPROVED = 0;
-    INSUFFICIENT_QUANTITY = 1;
+    PARTIAL_INSUFFICIENT_QUANTITY = 1;
+    INSUFFICIENT_QUANTITY = 2;
   }
 }
 
@@ -82,10 +90,25 @@ message ReserveUpdateResponse {
   string id = 1;
 }
 
-message FindReserveRequest {
+message Reserve {
+  string id = 1;
+  string externalRef = 2;
+  repeated Item items = 3;
+  message Item {
+    string id = 1;
+    int32 amount = 2;
+    Status status = 3;
+    enum Status {
+      RESERVED = 0;
+      INSUFFICIENT_QUANTITY = 1;
+    }
+  }
+}
+
+message ListReserveRequest {
   optional string id = 1;
 }
 
-message FindReserveResponse {
-  string id = 1;
+message ListReserveResponse {
+  repeated Reserve reserves = 1;
 }
