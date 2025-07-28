@@ -9,6 +9,9 @@
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
+            <column name="status" type="text">
+                <constraints nullable="true"/>
+            </column>
             <column name="customer_id" type="text">
                 <constraints nullable="false"/>
             </column>

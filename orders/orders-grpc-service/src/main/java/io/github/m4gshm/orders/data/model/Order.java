@@ -11,6 +11,7 @@ import static java.util.stream.Collectors.toMap;
 
 @Builder
 public record Order(String id,
+                    Status status,
                     String customerId,
                     String paymentId,
                     String reserveId,
@@ -39,5 +40,11 @@ public record Order(String id,
                 return name();
             }
         }
+    }
+
+    public enum Status {
+        created,
+        approved,
+        ;
     }
 }
