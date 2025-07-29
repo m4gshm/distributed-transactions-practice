@@ -15,6 +15,7 @@ public class OrderStorageJooqMapperUtils {
     public static Order toOrder(Record order, Record delivery, List<Record> items) {
         return Order.builder()
                 .id(order.get(ORDERS.ID))
+                .status(Order.Status.byCode(order.get(ORDERS.STATUS)))
                 .createdAt(order.get(ORDERS.CREATED_AT))
                 .updatedAt(order.get(ORDERS.UPDATED_AT))
                 .customerId(order.get(ORDERS.CUSTOMER_ID))

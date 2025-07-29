@@ -64,10 +64,10 @@ message PaymentApproveRequest {
 message PaymentApproveResponse {
   string id = 1;
   Status status = 2;
-  string description = 3;
+  double insufficient_amount = 3;
   enum Status {
     APPROVED = 0;
-    UNCEFFICIENT_FUNDS = 1;
+    INSUFFICIENT_FUNDS = 1;
   }
 }
 

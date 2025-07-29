@@ -1,50 +1,61 @@
 package io.github.m4gshm.orders.data.model;
 
+import io.github.m4gshm.EnumWithCode;
 import lombok.Builder;
 
 import java.time.OffsetDateTime;
 import java.util.List;
-import java.util.Map;
 
-import static java.util.Arrays.stream;
-import static java.util.stream.Collectors.toMap;
+import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
 
-@Builder
+
+@Builder(toBuilder = true)
 public record Order(String id,
                     Status status,
                     String customerId,
+                    String paymentStatus,
                     String paymentId,
                     String reserveId,
+                    String reserveStatus,
                     OffsetDateTime createdAt,
                     OffsetDateTime updatedAt,
                     Delivery delivery,
                     List<Item> items
 ) {
-    @Builder
-    public record Item(String id, int amount) {
-    }
+    public enum Status implements EnumWithCode<Status> {
+        created,
+        approved,
+        insufficient;
 
-    @Builder
-    public record Delivery(String address, OffsetDateTime dateTime, Type type) {
-        public enum Type {
-            pickup,
-            courier;
-
-            private static final Map<String, Type> byCode = stream(Type.values()).collect(toMap(Type::getCode, e -> e));
-
-            public static Type byCode(String code) {
-                return byCode.get(code);
-            }
-
-            public String getCode() {
-                return name();
-            }
+        public static Status byCode(String code) {
+            return getByCode(Status.class, code);
         }
     }
 
-    public enum Status {
-        created,
-        approved,
-        ;
+    @Builder(toBuilder = true)
+    public record Item(String id, Status status, int amount, int insufficient) {
+        public enum Status implements EnumWithCode<Status> {
+            reserved,
+            insufficient_quantity;
+
+            public static Status byCode(String code) {
+                return getByCode(Status.class, code);
+            }
+        }
+
     }
+
+    @Builder(toBuilder = true)
+    public record Delivery(String address, OffsetDateTime dateTime, Type type) {
+        public enum Type implements EnumWithCode<Type> {
+            pickup,
+            courier;
+
+            public static Type byCode(String code) {
+                return getByCode(Type.class, code);
+            }
+
+        }
+    }
+
 }

@@ -12,6 +12,7 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.List;
+import java.util.Optional;
 
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperUtils.toOrder;
@@ -55,13 +56,16 @@ public class OrderStorageR2DBC implements OrderStorage {
     @Override
     public Mono<Order> save(Order order) {
         return jooq.transactional(dsl -> {
+            var orderStatus = ofNullable(order.status()).map(Order.Status::getCode).orElse(null);
             var mergeOrder = from(dsl.insertInto(ORDERS)
                     .set(ORDERS.ID, order.id())
+                    .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.CREATED_AT, OrderStorageJooqQueryUtils.orNow(order.createdAt()))
                     .set(ORDERS.CUSTOMER_ID, order.customerId())
                     .set(ORDERS.RESERVE_ID, order.reserveId())
                     .set(ORDERS.PAYMENT_ID, order.paymentId())
                     .onDuplicateKeyUpdate()
+                    .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.UPDATED_AT, OrderStorageJooqQueryUtils.orNow(order.updatedAt()))
                     .set(ORDERS.CUSTOMER_ID, order.customerId())
                     .set(ORDERS.RESERVE_ID, order.reserveId())

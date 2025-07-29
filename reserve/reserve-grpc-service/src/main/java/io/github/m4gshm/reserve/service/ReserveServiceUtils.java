@@ -12,10 +12,22 @@ import java.util.Set;
 import static java.util.stream.Collectors.toSet;
 
 @UtilityClass
-public class ReserveServiceImplUtils {
+public class ReserveServiceUtils {
+
+    public static ReserveOuterClass.Reserve toReserve(Reserve reserve) {
+        return ReserveOuterClass.Reserve.newBuilder()
+                .setId(reserve.id())
+                .setExternalRef(reserve.externalRef())
+                .addAllItems(reserve.items().stream().map(item -> ReserveOuterClass.Reserve.Item.newBuilder()
+                        .setId(item.id())
+                        .setAmount(item.amount())
+                        .setStatus(getItemStatus(item))
+                        .build()).toList())
+                .build();
+    }
 
     public static ReserveApproveResponse newApproveResponse(List<ReserveItem.Result> reserveResults, String reserveId) {
-        var reservedItems = reserveResults.stream().map(ReserveServiceImplUtils::toResponseItem).toList();
+        var reservedItems = reserveResults.stream().map(ReserveServiceUtils::toResponseItem).toList();
         var statuses = reservedItems.stream().map(ReserveApproveResponse.Item::getStatus).collect(toSet());
         return ReserveApproveResponse.newBuilder()
                 .setId(reserveId)
@@ -49,10 +61,10 @@ public class ReserveServiceImplUtils {
     public static ReserveApproveResponse.Item toResponseItem(ReserveItem.Result result) {
         return ReserveApproveResponse.Item.newBuilder()
                 .setId(result.id())
-                .setRequiredQuantity(-(int) result.remainder())
+                .setInsufficientQuantity(-(int) result.remainder())
                 .setStatus(switch (result.status()) {
-                    case RESERVED -> ReserveOuterClass.Reserve.Item.Status.RESERVED;
-                    case NOT_ENOUGHT_AMOUNT -> ReserveOuterClass.Reserve.Item.Status.INSUFFICIENT_QUANTITY;
+                    case reserved -> ReserveOuterClass.Reserve.Item.Status.RESERVED;
+                    case insufficient_quantity -> ReserveOuterClass.Reserve.Item.Status.INSUFFICIENT_QUANTITY;
                 })
                 .build();
     }

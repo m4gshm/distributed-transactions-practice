@@ -1,7 +1,6 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
 import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import lombok.Getter;
@@ -18,10 +17,13 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
+import static io.github.m4gshm.jooq.utils.Update.checkUpdate;
 import static java.lang.Boolean.TRUE;
+import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
 import static reactor.core.publisher.Mono.from;
+import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @Service
@@ -60,20 +62,27 @@ public class AccountStorageR2DBC implements AccountStorage {
     }
 
     @Override
-    public Mono<Boolean> addLock(Account account, Double amount, String txid, boolean twoPhaseCommit) {
+    public Mono<LockResult> addLock(Account account, double amount) {
         return jooq.transactional(dsl -> {
-            return from(
-                    dsl.update(ACCOUNT)
-                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
-                            .where(
-                                    ACCOUNT.CLIENT_ID.eq(account.clientId())
-                                            .and(ACCOUNT.AMOUNT.greaterOrEqual(ACCOUNT.LOCKED.plus(amount)))
-                            )
-            ).map(count -> {
-                log.debug("lock account result count, clientId [{}], rows [{}]", account.clientId(), count);
-                return count > 0;
-            }).flatMap(success -> {
-                return TRUE.equals(success) ? Mono.just(true) : Mono.empty();
+            var clientId = account.clientId();
+            return from(dsl
+                    .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
+                    .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                    .forUpdate()
+            ).flatMap(record -> {
+                double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
+                double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
+                double newLocked = locked + amount;
+
+                var result = LockResult.builder();
+                if (totalAmount < newLocked) {
+                    return just(result.success(false).insufficientAmount(newLocked - totalAmount).build());
+                } else {
+                    return from(dsl
+                            .update(ACCOUNT).set(ACCOUNT.LOCKED, newLocked)
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                    ).flatMap(checkUpdate("account", clientId, () -> result.success(true).build()));
+                }
             });
         });
     }

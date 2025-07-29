@@ -5,7 +5,7 @@ import lombok.experimental.UtilityClass;
 import org.jooq.DSLContext;
 import reactor.core.publisher.Mono;
 
-import static io.github.m4gshm.jooq.utils.Query.logTxId;
+import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static reactor.core.publisher.Mono.fromSupplier;
 
 @UtilityClass

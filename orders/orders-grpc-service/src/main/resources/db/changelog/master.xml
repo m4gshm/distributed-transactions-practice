@@ -45,6 +45,9 @@
             <column name="amount" type="int">
                 <constraints nullable="false"/>
             </column>
+            <column name="status" type="text">
+                <constraints nullable="true"/>
+            </column>
         </createTable>
     </changeSet>
     <changeSet id="createTable" author="alex">

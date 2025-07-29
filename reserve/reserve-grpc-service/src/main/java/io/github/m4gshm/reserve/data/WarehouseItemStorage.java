@@ -20,10 +20,9 @@ public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String>
         @Builder
         public record Result(String id, Integer remainder, Status status) {
             public enum Status {
-                RESERVED,
-                NOT_ENOUGHT_AMOUNT
+                reserved,
+                insufficient_quantity
             }
         }
     }
-
 }

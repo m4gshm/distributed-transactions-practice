@@ -6,130 +6,126 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service OrdersService {
-  rpc Create(OrderCreateRequest) returns (OrderCreateResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/order"
-      body: "*"
-    };
-  }
-  rpc Approve(OrderApproveRequest) returns (OrderApproveResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/order/approve"
-      body: "*"
-    };
-  }
-  rpc Get(OrderGetRequest) returns (OrderResponse) {
-    option (google.api.http) = {get: "/api/v1/order/{id}"};
-  }
-  rpc Cancel(OrderCancelRequest) returns (OrderCancelResponse) {
-    option (google.api.http) = {delete: "/api/v1/order/{id}"};
-  }
-  rpc Search(OrderFindRequest) returns (OrdersResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/order/search"
-      body: "*"
-      response_body: "orders"
-    };
-  }
+    rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order"
+            body: "*"
+        };
+    }
+    rpc Approve (OrderApproveRequest) returns (OrderApproveResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order/approve"
+            body: "*"
+        };
+    }
+    rpc Get (OrderGetRequest) returns (OrderGetResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/order/{id}"
+            response_body: "order"
+        };
+    }
+    rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
+        option (google.api.http) = {delete: "/api/v1/order/{id}"};
+    }
+    rpc List (OrderListRequest) returns (OrderListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/order"
+            response_body: "orders"
+        };
+    }
 }
 
 message OrderCreateRequest {
-  OrderBody body = 1;
-  bool two_phase_commit = 2;
-  message OrderBody {
-    repeated Item items = 1;
-    string customer_id = 2;
-    Delivery delivery = 3;
+    OrderBody body = 1;
+    bool two_phase_commit = 2;
+    message OrderBody {
+        repeated Item items = 1;
+        string customer_id = 2;
+        Order.Delivery delivery = 3;
 
-    message Item {
-      string id = 1;
-      int32 amount = 2;
+        message Item {
+            string id = 1;
+            int32 amount = 2;
+        }
     }
-  }
 }
 
 message OrderCreateResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message OrderApproveRequest {
-  string id = 1;
-  bool two_phase_commit = 2;
+    string id = 1;
+    bool two_phase_commit = 2;
 }
 
 message OrderApproveResponse {
-  string id = 1;
-  string status = 2;
-  string payment_status = 3;
-  string reserve_status = 4;
+    string id = 1;
+    string status = 2;
+    string payment_status = 3;
+    string reserve_status = 4;
 }
 
 message OrderGetRequest {
-  string id = 1;
+    string id = 1;
+}
+
+message OrderGetResponse {
+    Order order = 1;
 }
 
 message OrderCancelRequest {
-  string id = 1;
-  string reason = 2;
+    string id = 1;
+    string reason = 2;
 }
 
 message OrderCancelResponse {
-  string id = 1;
-  OrderState state = 2;
+    string id = 1;
 }
 
-message OrderFindRequest {}
+message OrderListRequest {}
 
-message OrdersResponse {
-  repeated OrderResponse orders = 1;
+message OrderListResponse {
+    repeated Order orders = 1;
 }
 
-message OrderResponse {
-  string id = 1;
-  google.protobuf.Timestamp created_at = 2;
-  google.protobuf.Timestamp updated_at = 3;
-  string customer_id = 4;
-  string payment_id = 5;
-  string reserve_id = 6;
-  OrderState state = 7;
-  Delivery delivery = 8;
-  repeated OrderItem items = 9;
-}
+message Order {
+    string id = 1;
+    google.protobuf.Timestamp created_at = 2;
+    google.protobuf.Timestamp updated_at = 3;
+    string customer_id = 4;
+    string payment_id = 5;
+    string reserve_id = 6;
+    optional Status status = 7;
+    Delivery delivery = 8;
+    repeated Item items = 9;
 
-message OrderItem {
-  string id = 1;
-  string name = 2;
-  double cost = 3;
-  State state = 4;
-  message State {
-    Status status = 1;
     enum Status {
-      STATUS_UNSPECIFIED = 0;
-      STATUS_BOUGHT = 1;
-      STATUS_RETURNED = 2;
+        STATUS_CREATED = 0;
+        STATUS_APPROVED = 1;
+        STATUS_INSUFFICIENT = 2;
     }
-  }
-}
 
-message OrderState {
-  Status status = 1;
-  string message = 2;
-  enum Status {
-    STATUS_CREATED = 0;
-    STATUS_CANCELLED = 1;
-    STATUS_PAID = 2;
-    STATUS_IN_DELIVERY = 3;
-    STATUS_DELIVERED = 4;
-    STATUS_RETURNED = 5;
-  }
-}
+    message Item {
+        string id = 1;
+        string name = 2;
+        double cost = 3;
+        optional Status status = 4;
+        enum Status {
+            STATUS_UNSPECIFIED = 0;
+            STATUS_BOUGHT = 1;
+            STATUS_RETURNED = 2;
+        }
+    }
 
-message Delivery {
-  google.protobuf.Timestamp date_time = 1;
-  string address = 2;
-  Type type = 3;
-  enum Type {
-    TYPE_PICKUP = 0;
-    TYPE_COURIER = 1;
-  }
+    message Delivery {
+        google.protobuf.Timestamp date_time = 1;
+        string address = 2;
+        Type type = 3;
+        enum Type {
+            TYPE_PICKUP = 0;
+            TYPE_COURIER = 1;
+        }
+    }
+
 }

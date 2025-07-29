@@ -4,6 +4,7 @@ import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
 import io.github.m4gshm.orders.data.model.Order;
 import orders.v1.Orders;
+import payment.v1.PaymentOuterClass;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
 import tpc.v1.Tpc;
@@ -14,19 +15,19 @@ import java.util.List;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
+import static java.util.function.Function.identity;
+import static java.util.stream.Collectors.toMap;
+import static orders.v1.Orders.Order.Status.STATUS_APPROVED;
+import static orders.v1.Orders.Order.Status.STATUS_CREATED;
 import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class OrdersServiceUtils {
-    static Orders.OrdersResponse toOrdersResponse(List<Order> orders) {
-        return Orders.OrdersResponse.newBuilder()
-                .addAllOrders(orders.stream().map(OrdersServiceUtils::toOrderResponse).toList())
-                .build();
-    }
 
-    static Orders.OrderResponse toOrderResponse(Order order) {
-        return Orders.OrderResponse.newBuilder()
+    static Orders.Order toOrder(Order order) {
+        return Orders.Order.newBuilder()
                 .setId(toString(order.id()))
+                .setStatus(toOrderStatus(order.status()))
                 .setCreatedAt(TimestampUtils.toTimestamp(order.createdAt()))
                 .setUpdatedAt(TimestampUtils.toTimestamp(order.updatedAt()))
                 .setPaymentId(toString(order.paymentId()))
@@ -36,25 +37,33 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    private static Orders.OrderItem toOrderItem(Order.Item item) {
-        return item == null ? null : Orders.OrderItem.newBuilder()
+    private static Orders.Order.Status toOrderStatus(Order.Status status) {
+        return status == null ? null : switch(status) {
+            case created -> STATUS_CREATED;
+            case approved -> STATUS_APPROVED;
+            case insufficient -> null;
+        };
+    }
+
+    private static Orders.Order.Item toOrderItem(Order.Item item) {
+        return item == null ? null : Orders.Order.Item.newBuilder()
                 .setId(toString(item.id()))
                 .setCost(item.amount())
                 .build();
     }
 
-    private static Orders.Delivery toDelivery(Order.Delivery delivery) {
-        return delivery == null ? null : Orders.Delivery.newBuilder()
+    private static Orders.Order.Delivery toDelivery(Order.Delivery delivery) {
+        return delivery == null ? null : Orders.Order.Delivery.newBuilder()
                 .setAddress(delivery.address())
                 .mergeDateTime(TimestampUtils.toTimestamp(delivery.dateTime()))
                 .setType(toType(delivery.type()))
                 .build();
     }
 
-    private static Orders.Delivery.Type toType(Order.Delivery.Type type) {
+    private static Orders.Order.Delivery.Type toType(Order.Delivery.Type type) {
         return type == null ? null : switch (type) {
-            case pickup -> Orders.Delivery.Type.TYPE_PICKUP;
-            case courier -> Orders.Delivery.Type.TYPE_COURIER;
+            case pickup -> Orders.Order.Delivery.Type.TYPE_PICKUP;
+            case courier -> Orders.Order.Delivery.Type.TYPE_COURIER;
         };
     }
 
@@ -76,7 +85,7 @@ public class OrdersServiceUtils {
     }
 
 
-    static Order.Delivery toDelivery(Orders.Delivery delivery) {
+    static Order.Delivery toDelivery(Orders.Order.Delivery delivery) {
         return delivery == null ? null : Order.Delivery.builder()
                 .address(delivery.getAddress())
                 .dateTime(OffsetDateTime.ofInstant(TimestampUtils.toInstant(delivery.getDateTime()), systemDefault()))
@@ -84,7 +93,7 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    static Order.Delivery.Type toDeliveryType(Orders.Delivery.Type type) {
+    static Order.Delivery.Type toDeliveryType(Orders.Order.Delivery.Type type) {
         return switch (type) {
             case TYPE_PICKUP -> Order.Delivery.Type.pickup;
             case TYPE_COURIER -> Order.Delivery.Type.courier;
@@ -118,6 +127,52 @@ public class OrdersServiceUtils {
     static Tpc.TwoPhaseRollbackRequest newRollbackRequest(String reserveResponse) {
         return Tpc.TwoPhaseRollbackRequest.newBuilder()
                 .setId(string(reserveResponse))
+                .build();
+    }
+
+    static List<Order.Item> populateItemStatus(Order order, ReserveOuterClass.ReserveApproveResponse reserve) {
+        var reserveItemPerId = reserve.getItemsList().stream()
+                .collect(toMap(ReserveOuterClass.ReserveApproveResponse.Item::getId, identity()));
+
+        return order.items().stream().map(item -> {
+            var itemReserve = reserveItemPerId.get(item.id());
+            if (itemReserve != null) {
+                return item.toBuilder().insufficient(itemReserve.getInsufficientQuantity())
+                        .status(toItemStatus(itemReserve.getStatus())).build();
+            } else {
+                return item;
+            }
+        }).toList();
+    }
+
+    private static Order.Item.Status toItemStatus(ReserveOuterClass.Reserve.Item.Status status) {
+        return switch (status) {
+            case RESERVED -> Order.Item.Status.reserved;
+            case INSUFFICIENT_QUANTITY -> Order.Item.Status.insufficient_quantity;
+            case UNRECOGNIZED -> null;
+        };
+    }
+
+    static Order.Status getOrderStatus(PaymentOuterClass.PaymentApproveResponse.Status paymentStatus,
+                                       ReserveOuterClass.ReserveApproveResponse.Status reserveStatus) {
+        if (paymentStatus == PaymentOuterClass.PaymentApproveResponse.Status.APPROVED
+                && reserveStatus == ReserveOuterClass.ReserveApproveResponse.Status.APPROVED) {
+            return Order.Status.approved;
+        } else if (paymentStatus == PaymentOuterClass.PaymentApproveResponse.Status.INSUFFICIENT_FUNDS
+                || reserveStatus == ReserveOuterClass.ReserveApproveResponse.Status.INSUFFICIENT_QUANTITY) {
+            return Order.Status.insufficient;
+        } else {
+            throw new IllegalStateException("unexpected payment and reserve statuses: '" + paymentStatus + "','" + reserveStatus + "'");
+        }
+    }
+
+    static ReserveOuterClass.ReserveApproveRequest newReserveApproveRequest(String reserveId) {
+        return ReserveOuterClass.ReserveApproveRequest.newBuilder().setId(reserveId).build();
+    }
+
+    static PaymentOuterClass.PaymentApproveRequest newPaymentApproveRequest(String reserveId) {
+        return PaymentOuterClass.PaymentApproveRequest.newBuilder()
+                .setId(reserveId)
                 .build();
     }
 }

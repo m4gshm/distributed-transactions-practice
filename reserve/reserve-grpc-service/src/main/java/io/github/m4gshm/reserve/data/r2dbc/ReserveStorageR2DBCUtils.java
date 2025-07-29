@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import static java.util.Optional.ofNullable;
-import static io.github.m4gshm.jooq.utils.Query.logTxId;
+import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static reserve.data.access.jooq.Tables.RESERVE;
 import static reserve.data.access.jooq.Tables.RESERVE_ITEM;

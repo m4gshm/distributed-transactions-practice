@@ -14,7 +14,7 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 import java.util.List;
 
-import static io.github.m4gshm.jooq.utils.Query.logTxId;
+import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;

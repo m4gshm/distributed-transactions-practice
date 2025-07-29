@@ -38,7 +38,7 @@ message ReserveCreateRequest {
   Reserve body = 1;
   bool two_phase_commit = 2;
   message Reserve {
-    string externalRef = 1;
+    string external_ref = 1;
     repeated Item items = 2;
     message Item {
       string id = 1;
@@ -60,12 +60,10 @@ message ReserveApproveResponse {
   string id = 1;
   repeated Item items = 2;
   Status status = 3;
-  string description = 4;
   message Item {
     string id = 1;
     Reserve.Item.Status status = 2;
-    int32 required_quantity = 3;
-    optional string description = 4;
+    int32 insufficient_quantity = 3;
   }
   enum Status {
     APPROVED = 0;
@@ -92,7 +90,7 @@ message ReserveUpdateResponse {
 
 message Reserve {
   string id = 1;
-  string externalRef = 2;
+  string external_ref = 2;
   repeated Item items = 3;
   message Item {
     string id = 1;

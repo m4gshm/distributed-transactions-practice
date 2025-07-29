@@ -1,6 +1,7 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
 import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.utils.Update;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
 import lombok.Getter;
@@ -18,15 +19,14 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
-import static io.github.m4gshm.jooq.utils.Query.logTxId;
+import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
-import static io.github.m4gshm.reserve.data.r2dbc.WarehouseItemStorageR2DBCUtils.updateReserveIfEnough;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.summingInt;
-import static java.util.stream.Collectors.toMap;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.insufficient_quantity;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
+import static java.util.stream.Collectors.*;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.core.publisher.Mono.*;
 import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
 
 @Slf4j
@@ -78,7 +78,27 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     .where(WAREHOUSE_ITEM.ID.in(ids))
                     .forUpdate()
             ).flatMap(record -> {
-                return updateReserveIfEnough(dsl, record, reserveAmountPerId);
+                var id = record.get(WAREHOUSE_ITEM.ID);
+                var amountForReserve = id != null ? reserveAmountPerId.get(id) : null;
+                if (amountForReserve == null) {
+                    //log
+                    return error(new NotFoundException(ReserveItem.class, id));
+                } else {
+                    var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
+                    var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
+                    var available = totalAmount - alreadyReserved;
+                    var remainder = available - amountForReserve;
+                    var resultBuilder = ReserveItem.Result.builder().id(id).remainder(remainder);
+                    if (remainder >= 0) {
+                        return from(dsl.update(WAREHOUSE_ITEM)
+                                .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
+                                .where(WAREHOUSE_ITEM.ID.eq(id))
+                        ).flatMap(Update.checkUpdate("reserve item", id, () -> resultBuilder.status(reserved).build()));
+                    } else {
+                        log.info("not enough item amount: item [{}], [need] {}", id, -remainder);
+                        return just(resultBuilder.status(insufficient_quantity).build());
+                    }
+                }
             }).collectList().flatMap(l -> logTxId(dsl, "reserve", l));
         });
     }
