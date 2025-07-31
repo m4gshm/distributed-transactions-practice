@@ -13,8 +13,9 @@ import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
 public record Order(String id,
                     Status status,
                     String customerId,
-                    String paymentStatus,
                     String paymentId,
+                    PaymentStatus paymentStatus,
+                    double paymentInsufficientValue,
                     String reserveId,
                     String reserveStatus,
                     OffsetDateTime createdAt,
@@ -29,6 +30,15 @@ public record Order(String id,
 
         public static Status byCode(String code) {
             return getByCode(Status.class, code);
+        }
+    }
+
+    public enum PaymentStatus implements EnumWithCode<PaymentStatus> {
+        locked_amount,
+        insufficient_amount;
+
+        public static PaymentStatus byCode(String code) {
+            return getByCode(PaymentStatus.class, code);
         }
     }
 

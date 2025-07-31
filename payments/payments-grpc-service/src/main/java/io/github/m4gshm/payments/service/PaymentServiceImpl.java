@@ -3,6 +3,7 @@ package io.github.m4gshm.payments.service;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Payment;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -13,7 +14,7 @@ import payment.v1.PaymentOuterClass.*;
 import java.util.UUID;
 
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
+import static io.github.m4gshm.payments.data.model.Payment.Status.created;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toDataModel;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toProto;
 import static lombok.AccessLevel.PRIVATE;
@@ -35,7 +36,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void create(PaymentCreateRequest request, StreamObserver<PaymentCreateResponse> responseObserver) {
         grpc.subscribe(responseObserver, defer(() -> {
             var paymentId = UUID.randomUUID().toString();
-            var payment = toDataModel(paymentId, request.getBody(), CREATED);
+            var payment = toDataModel(paymentId, request.getBody(), created);
             var response = PaymentCreateResponse.newBuilder()
                     .setId(paymentId)
                     .build();
@@ -50,17 +51,19 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
             var paymentId = request.getId();
             return prepare(request.getTwoPhaseCommit(), dsl, paymentId, paymentStorage.getById(paymentId
-            ).flatMap(payment -> {
-                return accountStorage.getById(payment.clientId()).flatMap(account -> {
-                    return accountStorage.addLock(account, payment.amount()).map(lockResult -> {
-                        return PaymentApproveResponse.newBuilder()
-                                .setId(paymentId)
-                                .setStatus(lockResult.success() ? APPROVED : INSUFFICIENT_FUNDS)
-                                .setInsufficientAmount(lockResult.insufficientAmount())
-                                .build();
-                    });
+            ).flatMap(payment -> accountStorage.getById(payment.clientId()).flatMap(account -> {
+                return accountStorage.addLock(account, payment.amount()).flatMap(lockResult -> {
+                    return paymentStorage.save(payment.toBuilder()
+                            .status(lockResult.success()
+                                    ? Payment.Status.approved
+                                    : Payment.Status.insufficient)
+                            .build()).map(_ -> PaymentApproveResponse.newBuilder()
+                            .setId(paymentId)
+                            .setStatus(lockResult.success() ? APPROVED : INSUFFICIENT_FUNDS)
+                            .setInsufficientAmount(lockResult.insufficientAmount())
+                            .build());
                 });
-            }));
+            })));
         }));
     }
 

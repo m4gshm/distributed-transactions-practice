@@ -8,7 +8,8 @@ sourceSets {
     main {
         this.proto {
             srcDirs(
-                "$rootDir/proto/reserve"
+                "$rootDir/proto/reserve",
+                "$rootDir/proto/buf",
             )
         }
     }

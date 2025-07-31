@@ -13,9 +13,7 @@ import org.springframework.web.server.ServerWebExchange;
 
 import java.util.List;
 
-import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.MESSAGE;
-import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.PATH;
-import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.STATUS;
+import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.*;
 
 @ControllerAdvice
 @RequiredArgsConstructor
@@ -24,12 +22,13 @@ public class RestExceptionHandler {
     private final ErrorAttributes errorAttributes;
     private final List<HttpMessageReader<?>> messageReaders;
 
-//    @ExceptionHandler(TranscodingRuntimeException.class)
-//    public ResponseEntity<?> handle(TranscodingRuntimeException exception, ServerWebExchange exchange) {
-//        errorAttributes.storeErrorInformation(exception, exchange);
-//        var serverRequest = ServerRequest.create(exchange, messageReaders);
-//        var errorAttributes = this.errorAttributes.getErrorAttributes(serverRequest, ErrorAttributeOptions.of(PATH, STATUS, MESSAGE));
-//        return ResponseEntity.status(exception.getStatusCode()).body(errorAttributes);
-//    }
+    @ExceptionHandler(TranscodingRuntimeException.class)
+    public ResponseEntity<?> handle(TranscodingRuntimeException exception, ServerWebExchange exchange) {
+        errorAttributes.storeErrorInformation(exception, exchange);
+        var serverRequest = ServerRequest.create(exchange, messageReaders);
+        var errorAttributes = this.errorAttributes.getErrorAttributes(serverRequest, ErrorAttributeOptions.of(PATH, STATUS, MESSAGE));
+        errorAttributes.put("headers", exception.getHeaders());
+        return ResponseEntity.status(exception.getStatusCode()).body(errorAttributes);
+    }
 
 }

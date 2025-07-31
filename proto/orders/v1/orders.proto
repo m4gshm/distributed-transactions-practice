@@ -61,9 +61,9 @@ message OrderApproveRequest {
 
 message OrderApproveResponse {
     string id = 1;
-    string status = 2;
-    string payment_status = 3;
-    string reserve_status = 4;
+    optional Order.Status status = 2;
+    optional string payment_status = 3;
+    optional string reserve_status = 4;
 }
 
 message OrderGetRequest {
@@ -109,8 +109,9 @@ message Order {
     message Item {
         string id = 1;
         string name = 2;
-        double cost = 3;
-        optional Status status = 4;
+        optional Status status = 3;
+        optional int32 amount = 4;
+        optional int32 insufficient_amount = 5;
         enum Status {
             STATUS_UNSPECIFIED = 0;
             STATUS_BOUGHT = 1;

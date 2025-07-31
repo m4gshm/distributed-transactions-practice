@@ -8,7 +8,7 @@ import java.util.Map;
 
 import static java.util.stream.Collectors.toMap;
 
-@Builder
+@Builder(toBuilder = true)
 public record Payment(String id,
                       String externalRef,
                       String clientId,
@@ -18,10 +18,11 @@ public record Payment(String id,
                       OffsetDateTime updatedAt) {
 
     public enum Status {
-        CREATED,
-        APPROVED,
-        PAID,
-        CANCELLED;
+        created,
+        approved,
+        insufficient,
+        paid,
+        cancelled;
 
         private final static Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));
 

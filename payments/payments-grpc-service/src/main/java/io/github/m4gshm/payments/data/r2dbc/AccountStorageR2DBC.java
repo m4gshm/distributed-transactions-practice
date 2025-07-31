@@ -67,6 +67,7 @@ public class AccountStorageR2DBC implements AccountStorage {
             var clientId = account.clientId();
             return from(dsl
                     .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
+                    .from(ACCOUNT)
                     .where(ACCOUNT.CLIENT_ID.eq(clientId))
                     .forUpdate()
             ).flatMap(record -> {
@@ -79,7 +80,8 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return just(result.success(false).insufficientAmount(newLocked - totalAmount).build());
                 } else {
                     return from(dsl
-                            .update(ACCOUNT).set(ACCOUNT.LOCKED, newLocked)
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, newLocked)
                             .where(ACCOUNT.CLIENT_ID.eq(clientId))
                     ).flatMap(checkUpdate("account", clientId, () -> result.success(true).build()));
                 }

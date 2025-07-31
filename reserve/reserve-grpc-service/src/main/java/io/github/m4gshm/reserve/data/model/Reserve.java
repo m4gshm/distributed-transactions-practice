@@ -17,9 +17,9 @@ public record Reserve(String id,
                       OffsetDateTime updatedAt,
                       List<Item> items) {
     public enum Status {
-        CREATED,
-        VALIDATED,
-        CANCELLED;
+        created,
+        approved,
+        cancelled;
 
         private final static Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));
 

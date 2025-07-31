@@ -12,27 +12,22 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reserve.v1.ReserveOuterClass.ListReserveRequest;
-import reserve.v1.ReserveOuterClass.ListReserveResponse;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
-import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
-import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
-import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
-import reserve.v1.ReserveOuterClass.ReserveUpdateRequest;
-import reserve.v1.ReserveOuterClass.ReserveUpdateResponse;
+import reserve.v1.ReserveOuterClass.*;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.UUID;
 
+import static io.github.m4gshm.ExceptionUtils.newStatusException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.approved;
 import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
+import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
+import static reactor.core.publisher.Mono.error;
 
 @Slf4j
 @Service
@@ -57,7 +52,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var reserve = Reserve.builder()
                     .id(paymentId)
                     .externalRef(body.getExternalRef())
-                    .status(Status.CREATED)
+                    .status(Status.created)
                     .items(items)
                     .build();
             var routine = reserveStorage.save(reserve)
@@ -69,9 +64,17 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     @Override
     public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()).flatMap(reserve -> {
+            if (reserve.status() == approved) {
+                return error(newStatusException(FAILED_PRECONDITION, "already approved"));
+            }
 
             var items = reserve.items();
-            var notReservedItems = items.stream().filter(item -> TRUE.equals(item.reserved())).toList();
+            var notReservedItems = items.stream().filter(item -> !TRUE.equals(item.reserved())).toList();
+
+            if (notReservedItems.isEmpty()) {
+                return error(newStatusException(FAILED_PRECONDITION, "all items reserved already"));
+            }
+
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
 
             var reserveId = reserve.id();

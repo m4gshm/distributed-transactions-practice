@@ -1,8 +1,8 @@
 package io.github.m4gshm.orders.service;
 
+import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
-import io.github.m4gshm.orders.data.model.Order;
 import orders.v1.Orders;
 import payment.v1.PaymentOuterClass;
 import reactor.core.publisher.Mono;
@@ -12,6 +12,7 @@ import tpc.v1.Tpc;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
@@ -28,8 +29,8 @@ public class OrdersServiceUtils {
         return Orders.Order.newBuilder()
                 .setId(toString(order.id()))
                 .setStatus(toOrderStatus(order.status()))
-                .setCreatedAt(TimestampUtils.toTimestamp(order.createdAt()))
-                .setUpdatedAt(TimestampUtils.toTimestamp(order.updatedAt()))
+                .setCreatedAt(toTimestamp(order.createdAt()))
+                .setUpdatedAt(toTimestamp(order.updatedAt()))
                 .setPaymentId(toString(order.paymentId()))
                 .setReserveId(toString(order.reserveId()))
                 .mergeDelivery(toDelivery(order.delivery()))
@@ -37,8 +38,8 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    private static Orders.Order.Status toOrderStatus(Order.Status status) {
-        return status == null ? null : switch(status) {
+    public static Orders.Order.Status toOrderStatus(Order.Status status) {
+        return status == null ? null : switch (status) {
             case created -> STATUS_CREATED;
             case approved -> STATUS_APPROVED;
             case insufficient -> null;
@@ -46,16 +47,24 @@ public class OrdersServiceUtils {
     }
 
     private static Orders.Order.Item toOrderItem(Order.Item item) {
-        return item == null ? null : Orders.Order.Item.newBuilder()
-                .setId(toString(item.id()))
-                .setCost(item.amount())
-                .build();
+        if (item == null) {
+            return null;
+        } else {
+            var builder = Orders.Order.Item.newBuilder()
+                    .setId(toString(item.id()))
+                    .setAmount(item.amount());
+            var insufficient = item.insufficient();
+            if (insufficient > 0) {
+                builder.setInsufficientAmount(insufficient);
+            }
+            return builder.build();
+        }
     }
 
     private static Orders.Order.Delivery toDelivery(Order.Delivery delivery) {
         return delivery == null ? null : Orders.Order.Delivery.newBuilder()
                 .setAddress(delivery.address())
-                .mergeDateTime(TimestampUtils.toTimestamp(delivery.dateTime()))
+                .mergeDateTime(toTimestamp(delivery.dateTime()))
                 .setType(toType(delivery.type()))
                 .build();
     }
@@ -79,11 +88,6 @@ public class OrdersServiceUtils {
         return orderId == null ? null : orderId.toString();
     }
 
-    static String uuid(String uuidString) {
-//        return UUID.fromString(uuidString);
-        return uuidString;
-    }
-
 
     static Order.Delivery toDelivery(Orders.Order.Delivery delivery) {
         return delivery == null ? null : Order.Delivery.builder()
@@ -102,13 +106,14 @@ public class OrdersServiceUtils {
     }
 
     static Order.Item toItem(Orders.OrderCreateRequest.OrderBody.Item item) {
+
         return Order.Item.builder()
-                .id(uuid(item.getId()))
+                .id(item.getId())
                 .amount(item.getAmount())
                 .build();
     }
 
-     static ReserveOuterClass.ReserveCreateRequest.Reserve.Item toCreateReserveItem(Order.Item item) {
+    static ReserveOuterClass.ReserveCreateRequest.Reserve.Item toCreateReserveItem(Order.Item item) {
         return ReserveOuterClass.ReserveCreateRequest.Reserve.Item.newBuilder()
                 .setId(item.id())
                 .build();
@@ -166,13 +171,4 @@ public class OrdersServiceUtils {
         }
     }
 
-    static ReserveOuterClass.ReserveApproveRequest newReserveApproveRequest(String reserveId) {
-        return ReserveOuterClass.ReserveApproveRequest.newBuilder().setId(reserveId).build();
-    }
-
-    static PaymentOuterClass.PaymentApproveRequest newPaymentApproveRequest(String reserveId) {
-        return PaymentOuterClass.PaymentApproveRequest.newBuilder()
-                .setId(reserveId)
-                .build();
-    }
 }
