@@ -13,5 +13,11 @@ allprojects {
             mavenCentral()
         }
     }
+}
 
+
+dependencyManagement {
+    dependencies {
+//        dependency("com.google.protobuf:protobuf-java:3.25.8")
+    }
 }

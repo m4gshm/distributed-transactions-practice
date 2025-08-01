@@ -1,8 +1,8 @@
 syntax = "proto3";
 package payment.v1;
 
-import "google/api/annotations.proto";
 import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
 
 service PaymentService {
   rpc Create(PaymentCreateRequest) returns (PaymentCreateResponse) {
@@ -42,8 +42,8 @@ service PaymentService {
 }
 
 message Payment {
-  string external_ref = 1;
-  string client_id = 2;
+  string external_ref = 1 [(buf.validate.field).string.uuid = true];
+  string client_id = 2 [(buf.validate.field).string.uuid = true];
   double amount = 3 [(buf.validate.field).double.gt = 0];
 }
 

@@ -8,5 +8,5 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok:1.18.38")
 
     implementation("org.slf4j:slf4j-api:2.0.17")
-    implementation("com.google.protobuf:protobuf-java:3.25.5")
+    implementation("com.google.protobuf:protobuf-java:3.25.8")
 }
