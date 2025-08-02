@@ -17,8 +17,8 @@ message AccountListResponse {
 }
 
 message Account {
-  string clientId = 1;
+  string client_id = 1;
   double amount = 2;
   double locked = 3;
-  google.protobuf.Timestamp updatedAt = 4;
+  google.protobuf.Timestamp updated_at = 4;
 }

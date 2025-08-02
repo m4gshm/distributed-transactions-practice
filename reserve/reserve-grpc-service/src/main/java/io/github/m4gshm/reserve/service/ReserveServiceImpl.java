@@ -5,7 +5,6 @@ import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
-import io.github.m4gshm.reserve.data.model.Reserve.Status;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -22,10 +21,12 @@ import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
 import static io.github.m4gshm.reserve.data.model.Reserve.Status.approved;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.created;
 import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.partitioningBy;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Mono.error;
 
@@ -52,7 +53,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var reserve = Reserve.builder()
                     .id(paymentId)
                     .externalRef(body.getExternalRef())
-                    .status(Status.created)
+                    .status(created)
                     .items(items)
                     .build();
             var routine = reserveStorage.save(reserve)
@@ -69,7 +70,11 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             }
 
             var items = reserve.items();
-            var notReservedItems = items.stream().filter(item -> !TRUE.equals(item.reserved())).toList();
+            var groupedByReserveStateItems = items.stream().collect(partitioningBy(item -> {
+                return TRUE.equals(item.reserved());
+            }));
+
+            var notReservedItems = groupedByReserveStateItems.get(false);
 
             if (notReservedItems.isEmpty()) {
                 return error(newStatusException(FAILED_PRECONDITION, "all items reserved already"));
@@ -82,15 +87,31 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     toItemReserves(notReservedItems), reserveId
             ).flatMap(reserveResults -> {
                 var successReserved = reserveResults.stream()
-                        .filter(reserveResult -> reserved.equals(reserveResult.status()))
-                        .map(itemReserveResult -> requireNonNull(
-                                notReservedItemPerId.get(itemReserveResult.id()),
-                                "no preloaded reserve item " + itemReserveResult.id()
-                        )).toList();
+                        .filter(reserveResult -> {
+                            return reserved.equals(reserveResult.status());
+                        })
+                        .map(itemReserveResult -> {
+                            return requireNonNull(
+                                    notReservedItemPerId.get(itemReserveResult.id()),
+                                    "no preloaded reserve item " + itemReserveResult.id()
+                            );
+                        })
+                        .map(i -> {
+                            return i.toBuilder()
+                                    .reserved(true)
+                                    .build();
+                        })
+                        .toList();
 
+                var updatingReserve = reserve.toBuilder();
+                var allReserved = successReserved.size() == notReservedItems.size();
+                if (allReserved) {
+                    updatingReserve.status(approved);
+                }
                 var response = newApproveResponse(reserveResults, reserveId);
-                return reserveStorage.saveReservedItems(reserveId, successReserved)
-                        .map(l -> response).defaultIfEmpty(response);
+                return reserveStorage.save(updatingReserve
+                        .items(successReserved)
+                        .build()).map(_ -> response).defaultIfEmpty(response);
             }));
         })));
     }

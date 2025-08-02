@@ -15,7 +15,7 @@ public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String>
 
     Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> reserves, String txid);
 
-    @Builder
+    @Builder(toBuilder = true)
     record ReserveItem(String id, int amount) {
         @Builder
         public record Result(String id, Integer remainder, Status status) {

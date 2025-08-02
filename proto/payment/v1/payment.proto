@@ -57,7 +57,7 @@ message PaymentCreateResponse {
 }
 
 message PaymentApproveRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.uuid = true];
   bool two_phase_commit = 2;
 }
 
@@ -72,7 +72,7 @@ message PaymentApproveResponse {
 }
 
 message PaymentCancelRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message PaymentCancelResponse {
@@ -80,7 +80,7 @@ message PaymentCancelResponse {
 }
 
 message PaymentProcessRequest {
-  string id = 1;
+  string id = 1 [(buf.validate.field).string.min_len = 0];
 }
 
 message PaymentProcessResponse {

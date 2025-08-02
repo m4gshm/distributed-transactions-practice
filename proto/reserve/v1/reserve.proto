@@ -2,6 +2,7 @@ syntax = "proto3";
 
 package reserve.v1;
 
+import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 
 service ReserveService {
@@ -38,11 +39,11 @@ message ReserveCreateRequest {
     Reserve body = 1;
     bool two_phase_commit = 2;
     message Reserve {
-        string external_ref = 1;
+        string external_ref = 1 [(buf.validate.field).string.uuid = true];
         repeated Item items = 2;
         message Item {
-            string id = 1;
-            int32 amount = 2;
+            string id = 1 [(buf.validate.field).string.uuid = true];
+            int32 amount = 2 [(buf.validate.field).int32.gt = 0];
         }
     }
 }
@@ -52,7 +53,7 @@ message ReserveCreateResponse {
 }
 
 message ReserveApproveRequest {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.uuid = true];
     bool two_phase_commit = 2;
 }
 
@@ -73,7 +74,7 @@ message ReserveApproveResponse {
 }
 
 message ReserveCancelRequest {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ReserveCancelResponse {
@@ -81,7 +82,7 @@ message ReserveCancelResponse {
 }
 
 message ReserveUpdateRequest {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message ReserveUpdateResponse {

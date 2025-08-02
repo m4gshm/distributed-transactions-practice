@@ -1,6 +1,9 @@
 package io.github.m4gshm.orders.data.model;
 
 import io.github.m4gshm.EnumWithCode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 
 import java.time.OffsetDateTime;
@@ -9,6 +12,7 @@ import java.util.List;
 import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
 
 
+@Valid
 @Builder(toBuilder = true)
 public record Order(String id,
                     Status status,
@@ -56,7 +60,7 @@ public record Order(String id,
     }
 
     @Builder(toBuilder = true)
-    public record Delivery(String address, OffsetDateTime dateTime, Type type) {
+    public record Delivery(@NotBlank String address, OffsetDateTime dateTime, Type type) {
         public enum Type implements EnumWithCode<Type> {
             pickup,
             courier;

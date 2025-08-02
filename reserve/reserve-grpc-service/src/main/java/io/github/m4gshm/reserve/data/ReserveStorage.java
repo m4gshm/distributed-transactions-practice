@@ -1,6 +1,7 @@
 package io.github.m4gshm.reserve.data;
 
 import io.github.m4gshm.storage.CrudStorage;
+import jakarta.validation.Valid;
 import reactor.core.publisher.Mono;
 import io.github.m4gshm.reserve.data.model.Reserve;
 
@@ -9,5 +10,5 @@ import java.util.List;
 
 public interface ReserveStorage extends CrudStorage<Reserve, String> {
 
-    Mono<List<Reserve.Item>> saveReservedItems(String reserveId, Collection<Reserve.Item> items);
+    Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items);
 }

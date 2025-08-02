@@ -4,11 +4,13 @@ import io.github.m4gshm.EnumWithCodeUtils;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -27,6 +29,7 @@ import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @Service
+@Validated
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class OrderStorageR2DBC implements OrderStorage {

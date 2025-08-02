@@ -3,11 +3,13 @@ package io.github.m4gshm.payments.data.r2dbc;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Payment;
+import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -21,6 +23,7 @@ import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @Service
+@Validated
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class PaymentStorageR2DBC implements PaymentStorage {
@@ -43,7 +46,7 @@ public class PaymentStorageR2DBC implements PaymentStorage {
     }
 
     @Override
-    public Mono<Payment> save(Payment payment) {
+    public Mono<Payment> save(@Valid Payment payment) {
         return jooq.transactional(dsl -> {
             return storeRoutine(dsl, payment);
         });

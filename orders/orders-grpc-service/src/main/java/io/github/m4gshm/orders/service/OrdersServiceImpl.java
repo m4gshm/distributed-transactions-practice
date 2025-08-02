@@ -50,6 +50,11 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     WarehouseItemServiceStub warehouseClient;
     Jooq jooq;
 
+    public static Mono<PaymentOuterClass.PaymentCreateResponse> log(String name, Throwable e) {
+        log.error("error on {}", name, e);
+        return Mono.error(e);
+    }
+
     @Override
     public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
         grpc.subscribe(responseObserver, fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
@@ -64,9 +69,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 return toMono(Warehouse.GetItemCostRequest.newBuilder()
                         .setId(itemId)
                         .build(), warehouseClient::getItemCost);
-            }).map(getItemCostResponse -> {
-                return getItemCostResponse.getCost();
-            }).reduce(0.0, Double::sum);
+            }).map(Warehouse.GetItemCostResponse::getCost).reduce(0.0, Double::sum);
 
             var paymentRoutine = costRoutine.map(cost -> {
                 return PaymentCreateRequest.newBuilder()
@@ -79,7 +82,9 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                         .setTwoPhaseCommit(twoPhaseCommit)
                         .build();
             }).flatMap(paymentRequest -> {
-                return toMono(paymentRequest, paymentsClient::create);
+                return toMono(paymentRequest, paymentsClient::create).onErrorResume(e -> {
+                    return log("payment::create", e);
+                });
             });
 
             var reserveRequest = ReserveOuterClass.ReserveCreateRequest.newBuilder()

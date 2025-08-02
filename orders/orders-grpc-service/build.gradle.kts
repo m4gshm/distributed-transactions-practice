@@ -57,6 +57,7 @@ dependencies {
     implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
 
     implementation("io.github.danielliu1123:grpc-server-boot-starter")
+    implementation("io.github.danielliu1123:grpc-starter-protovalidate")
     implementation("io.github.danielliu1123:grpc-starter-transcoding")
     implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
 

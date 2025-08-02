@@ -1,6 +1,5 @@
 plugins {
     `java-library`
-    id("io.spring.dependency-management")
     id("com.google.protobuf")
 }
 apply(plugin = "io.spring.dependency-management")
@@ -46,5 +45,4 @@ dependencies {
     api("com.google.protobuf:protobuf-java")
     api("com.google.api.grpc:proto-google-common-protos")
     api("javax.annotation:javax.annotation-api")
-
 }

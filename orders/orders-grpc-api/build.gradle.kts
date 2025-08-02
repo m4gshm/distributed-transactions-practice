@@ -8,8 +8,7 @@ sourceSets {
     main {
         this.proto {
             srcDirs(
-                "$rootDir/proto/orders",
-                "$rootDir/proto/buf",
+                "$rootDir/proto/orders"
             )
         }
     }
@@ -30,19 +29,19 @@ protobuf {
                 this.create("grpc") {}
             }
             this.builtins {
-                "java".apply {
-                }
+                "java".apply {}
             }
         })
     }
 }
 
 dependencies {
-    implementation("io.grpc:grpc-core")
-    implementation("io.grpc:grpc-stub")
-    implementation("io.grpc:grpc-protobuf")
+    api("io.grpc:grpc-core")
+    api("io.grpc:grpc-stub")
+    api("io.grpc:grpc-protobuf")
 
-    implementation("com.google.protobuf:protobuf-java")
-    implementation("com.google.api.grpc:proto-google-common-protos")
-    implementation("javax.annotation:javax.annotation-api:1.3.2")
+    api("build.buf:protovalidate")
+    api("com.google.protobuf:protobuf-java")
+    api("com.google.api.grpc:proto-google-common-protos")
+    api("javax.annotation:javax.annotation-api")
 }

@@ -16,7 +16,7 @@ dependencies {
     implementation("org.jooq:jooq:3.19.24")
     implementation("io.grpc:grpc-stub")
     implementation("com.google.protobuf:protobuf-java")
-    implementation("io.projectreactor:reactor-core:3.7.7")
+    implementation("io.projectreactor:reactor-core")
     implementation("org.springframework:spring-context")
     implementation("org.springframework.boot:spring-boot-autoconfigure:3.5.3")
 

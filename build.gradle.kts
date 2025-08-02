@@ -26,7 +26,11 @@ allprojects {
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 
+            dependency("io.projectreactor:reactor-core:3.7.7")
+
             dependency("org.postgresql:postgresql:42.7.7")
+
+            dependency("jakarta.validation:jakarta.validation-api:3.0.2")
 
             dependency("org.springframework:spring-web:6.2.8")
             dependency("org.springframework:spring-webflux:6.2.8")

@@ -18,8 +18,7 @@ import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
 import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
-import static orders.v1.Orders.Order.Status.STATUS_APPROVED;
-import static orders.v1.Orders.Order.Status.STATUS_CREATED;
+import static orders.v1.Orders.Order.Status.*;
 import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
@@ -42,7 +41,7 @@ public class OrdersServiceUtils {
         return status == null ? null : switch (status) {
             case created -> STATUS_CREATED;
             case approved -> STATUS_APPROVED;
-            case insufficient -> null;
+            case insufficient -> STATUS_INSUFFICIENT;
         };
     }
 
@@ -116,6 +115,7 @@ public class OrdersServiceUtils {
     static ReserveOuterClass.ReserveCreateRequest.Reserve.Item toCreateReserveItem(Order.Item item) {
         return ReserveOuterClass.ReserveCreateRequest.Reserve.Item.newBuilder()
                 .setId(item.id())
+                .setAmount(item.amount())
                 .build();
     }
 

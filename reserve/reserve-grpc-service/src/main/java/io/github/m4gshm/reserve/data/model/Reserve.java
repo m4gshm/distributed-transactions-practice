@@ -1,6 +1,9 @@
 package io.github.m4gshm.reserve.data.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.Builder;
+import org.springframework.validation.annotation.Validated;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
@@ -9,13 +12,15 @@ import java.util.Map;
 
 import static java.util.stream.Collectors.toMap;
 
-@Builder
+@Validated
+@Valid
+@Builder(toBuilder = true)
 public record Reserve(String id,
                       String externalRef,
                       Status status,
                       OffsetDateTime createdAt,
                       OffsetDateTime updatedAt,
-                      List<Item> items) {
+                      @Valid List<Item> items) {
     public enum Status {
         created,
         approved,
@@ -32,7 +37,7 @@ public record Reserve(String id,
         }
     }
 
-    @Builder
-    public record Item(String id, Integer amount, Boolean reserved) {
+    @Builder(toBuilder = true)
+    public record Item(String id, @Positive Integer amount, Boolean reserved) {
     }
 }

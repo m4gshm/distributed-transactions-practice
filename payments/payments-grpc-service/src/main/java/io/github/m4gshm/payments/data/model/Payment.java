@@ -1,5 +1,7 @@
 package io.github.m4gshm.payments.data.model;
 
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 
 import java.time.OffsetDateTime;
@@ -8,12 +10,13 @@ import java.util.Map;
 
 import static java.util.stream.Collectors.toMap;
 
+@Valid
 @Builder(toBuilder = true)
 public record Payment(String id,
                       String externalRef,
                       String clientId,
                       Status status,
-                      Double amount,
+                      @Positive Double amount,
                       OffsetDateTime createdAt,
                       OffsetDateTime updatedAt) {
 
