@@ -33,6 +33,7 @@ import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.util.function.Function.identity;
 import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.*;
 
 @Slf4j
@@ -59,9 +60,13 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
             var itemIds = itemsList.stream().map(OrderCreateRequest.OrderBody.Item::getId).distinct().toList();
 
-            var costRoutine = toMono(Warehouse.GetItemCostRequest.newBuilder()
-                    .addAllItemIds(itemIds)
-                    .build(), warehouseClient::getItemCost).map(Warehouse.GetItemCostResponse::getSumCost);
+            var costRoutine = fromIterable(itemIds).flatMap(itemId -> {
+                return toMono(Warehouse.GetItemCostRequest.newBuilder()
+                        .setId(itemId)
+                        .build(), warehouseClient::getItemCost);
+            }).map(getItemCostResponse -> {
+                return getItemCostResponse.getCost();
+            }).reduce(0.0, Double::sum);
 
             var paymentRoutine = costRoutine.map(cost -> {
                 return PaymentCreateRequest.newBuilder()

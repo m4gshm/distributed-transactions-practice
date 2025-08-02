@@ -28,25 +28,26 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
 
-    api(project(":storage-api"))
-    api(project(":grpc-webflux"))
-    api(project(":protobuf-utils"))
-    api(project(":jooq-utils"))
-    api(project(":jooq-r2dbc"))
-    api(project(":payments:payments-grpc-api"))
-    api(project(":tpc:tpc-grpc-service"))
+    implementation(project(":storage-api"))
+    implementation(project(":grpc-webflux"))
+    implementation(project(":protobuf-utils"))
+    implementation(project(":jooq-utils"))
+    implementation(project(":jooq-r2dbc"))
+    implementation(project(":payments:payments-grpc-api"))
+    implementation(project(":tpc:tpc-grpc-service"))
 
-    implementation("io.grpc:grpc-netty-shaded:1.72.0")
+    implementation("io.grpc:grpc-netty-shaded")
+    implementation("com.google.protobuf:protobuf-java")
 
     implementation("org.liquibase:liquibase-core:$liquibaseVer")
-    implementation("org.postgresql:postgresql:42.7.7")
+    implementation("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
 
     liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
     liquibaseRuntime("info.picocli:picocli:4.7.7")
-    liquibaseRuntime("org.postgresql:postgresql:42.7.7")
+    liquibaseRuntime("org.postgresql:postgresql")
 
-    jooqCodegen("org.postgresql:postgresql:42.7.7")
+    jooqCodegen("org.postgresql:postgresql")
 
 //    implementation("org.hibernate.reactive:hibernate-reactive-core:3.0.3.Final")
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
@@ -54,16 +55,16 @@ dependencies {
 //    implementation("org.jooq:jooq-meta:3.19.24")
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
 
-    implementation(platform("io.github.danielliu1123:grpc-starter-dependencies:3.5.3.1"))
     implementation("io.github.danielliu1123:grpc-server-boot-starter")
+    implementation("io.github.danielliu1123:grpc-starter-protovalidate")
     implementation("io.github.danielliu1123:grpc-starter-transcoding")
     implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
 
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 
-    implementation("org.springframework:spring-webflux:6.2.8")
+    implementation("org.springframework:spring-webflux")
 
 //    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 

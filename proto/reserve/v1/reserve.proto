@@ -1,112 +1,112 @@
 syntax = "proto3";
+
 package reserve.v1;
 
 import "google/api/annotations.proto";
-import "google/protobuf/timestamp.proto";
 
 service ReserveService {
-  rpc Create(ReserveCreateRequest) returns (ReserveCreateResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/reserve"
-      body: "*"
-    };
-  }
-  rpc Approve(ReserveApproveRequest) returns (ReserveApproveResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/reserve/approve"
-      body: "*"
-    };
-  }
-  rpc Cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
-    option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
-  }
-  rpc Update(ReserveUpdateRequest) returns (ReserveUpdateResponse) {
-    option (google.api.http) = {
-      put: "/api/v1/reserve"
-      body: "*"
-    };
-  }
-  rpc List(ListReserveRequest) returns (ListReserveResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/reserve"
-      response_body: "reserves"
-    };
-  }
+    rpc Create (ReserveCreateRequest) returns (ReserveCreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/reserve"
+            body: "*"
+        };
+    }
+    rpc Approve (ReserveApproveRequest) returns (ReserveApproveResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/reserve/approve"
+            body: "*"
+        };
+    }
+    rpc Cancel (ReserveCancelRequest) returns (ReserveCancelResponse) {
+        option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
+    }
+    rpc Update (ReserveUpdateRequest) returns (ReserveUpdateResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/reserve"
+            body: "*"
+        };
+    }
+    rpc List (ListReserveRequest) returns (ListReserveResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/reserve"
+            response_body: "reserves"
+        };
+    }
 }
 
 message ReserveCreateRequest {
-  Reserve body = 1;
-  bool two_phase_commit = 2;
-  message Reserve {
-    string external_ref = 1;
-    repeated Item items = 2;
-    message Item {
-      string id = 1;
-      int32 amount = 2;
+    Reserve body = 1;
+    bool two_phase_commit = 2;
+    message Reserve {
+        string external_ref = 1;
+        repeated Item items = 2;
+        message Item {
+            string id = 1;
+            int32 amount = 2;
+        }
     }
-  }
 }
 
 message ReserveCreateResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message ReserveApproveRequest {
-  string id = 1;
-  bool two_phase_commit = 2;
+    string id = 1;
+    bool two_phase_commit = 2;
 }
 
 message ReserveApproveResponse {
-  string id = 1;
-  repeated Item items = 2;
-  Status status = 3;
-  message Item {
     string id = 1;
-    Reserve.Item.Status status = 2;
-    int32 insufficient_quantity = 3;
-  }
-  enum Status {
-    APPROVED = 0;
-    PARTIAL_INSUFFICIENT_QUANTITY = 1;
-    INSUFFICIENT_QUANTITY = 2;
-  }
+    repeated Item items = 2;
+    Status status = 3;
+    message Item {
+        string id = 1;
+        Reserve.Item.Status status = 2;
+        int32 insufficient_quantity = 3;
+    }
+    enum Status {
+        APPROVED = 0;
+        PARTIAL_INSUFFICIENT_QUANTITY = 1;
+        INSUFFICIENT_QUANTITY = 2;
+    }
 }
 
 message ReserveCancelRequest {
-  string id = 1;
+    string id = 1;
 }
 
 message ReserveCancelResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message ReserveUpdateRequest {
-  string id = 1;
+    string id = 1;
 }
 
 message ReserveUpdateResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message Reserve {
-  string id = 1;
-  string external_ref = 2;
-  repeated Item items = 3;
-  message Item {
     string id = 1;
-    int32 amount = 2;
-    Status status = 3;
-    enum Status {
-      RESERVED = 0;
-      INSUFFICIENT_QUANTITY = 1;
+    string external_ref = 2;
+    repeated Item items = 3;
+    message Item {
+        string id = 1;
+        int32 amount = 2;
+        Status status = 3;
+        enum Status {
+            RESERVED = 0;
+            INSUFFICIENT_QUANTITY = 1;
+        }
     }
-  }
 }
 
 message ListReserveRequest {
-  optional string id = 1;
+    optional string id = 1;
 }
 
 message ListReserveResponse {
-  repeated Reserve reserves = 1;
+    repeated Reserve reserves = 1;
 }

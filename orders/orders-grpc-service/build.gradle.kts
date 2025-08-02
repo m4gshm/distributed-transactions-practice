@@ -38,32 +38,31 @@ dependencies {
     api(project(":reserve:reserve-grpc-api"))
     api(project(":tpc:tpc-grpc-api"))
 
-    implementation("io.grpc:grpc-netty-shaded:1.72.0")
+    implementation("io.grpc:grpc-netty-shaded")
 
     implementation("org.liquibase:liquibase-core:$liquibaseVer")
-    implementation("org.postgresql:postgresql:42.7.7")
+    implementation("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
 
     liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
     liquibaseRuntime("info.picocli:picocli:4.7.7")
-    liquibaseRuntime("org.postgresql:postgresql:42.7.7")
+    liquibaseRuntime("org.postgresql:postgresql")
 
-    jooqCodegen("org.postgresql:postgresql:42.7.7")
+    jooqCodegen("org.postgresql:postgresql")
 
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
 
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
 
-    implementation(platform("io.github.danielliu1123:grpc-starter-dependencies:3.5.3.1"))
     implementation("io.github.danielliu1123:grpc-server-boot-starter")
     implementation("io.github.danielliu1123:grpc-starter-transcoding")
     implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
 
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 
-    implementation("org.springframework:spring-webflux:6.2.8")
+    implementation("org.springframework:spring-webflux")
 
 //    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 

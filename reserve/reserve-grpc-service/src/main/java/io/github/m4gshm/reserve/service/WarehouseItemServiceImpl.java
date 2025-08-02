@@ -2,7 +2,6 @@ package io.github.m4gshm.reserve.service;
 
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
-import io.github.m4gshm.reserve.data.model.WarehouseItem;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -15,7 +14,7 @@ import warehouse.v1.Warehouse.ItemListResponse;
 import warehouse.v1.WarehouseItemServiceGrpc;
 
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
-import static reactor.core.publisher.Flux.fromIterable;
+import static reactor.core.publisher.Mono.defer;
 
 @Service
 @RequiredArgsConstructor
@@ -26,11 +25,14 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
 
     @Override
     public void getItemCost(Warehouse.GetItemCostRequest request, StreamObserver<GetItemCostResponse> responseObserver) {
-        grpc.subscribe(responseObserver, fromIterable(request.getItemIdsList())
-                .flatMap(warehouseItemStorage::getById).map(WarehouseItem::unitCost)
-                .reduce(Double::sum).map(sumCost -> GetItemCostResponse.newBuilder()
-                        .setSumCost(sumCost).build())
-        );
+        grpc.subscribe(responseObserver, defer(() -> {
+            var id = request.getId();
+            return warehouseItemStorage.getById(id);
+        }).map(warehouseItem -> {
+            return GetItemCostResponse.newBuilder()
+                    .setCost(warehouseItem.unitCost())
+                    .build();
+        }));
     }
 
     @Override

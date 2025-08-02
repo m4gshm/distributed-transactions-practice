@@ -15,6 +15,7 @@ public class WarehouseItemStorageR2DBCUtils {
                 .id(record.get(WAREHOUSE_ITEM.ID))
                 .reserved(record.get(WAREHOUSE_ITEM.RESERVED))
                 .amount(record.get(WAREHOUSE_ITEM.AMOUNT))
+                .unitCost(record.get(WAREHOUSE_ITEM.UNIT_COST))
                 .updatedAt(record.get(WAREHOUSE_ITEM.UPDATED_AT))
                 .build();
     }

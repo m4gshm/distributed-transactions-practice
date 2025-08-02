@@ -14,11 +14,11 @@ sourceSets {
 
 protobuf {
     protoc {
-        artifact = "com.google.protobuf:protoc:3.25.5"
+        artifact = "com.google.protobuf:protoc"
     }
     plugins {
         this.create("grpc") {
-            artifact = "io.grpc:protoc-gen-grpc-java:1.72.0"
+            artifact = "io.grpc:protoc-gen-grpc-java"
         }
     }
     generateProtoTasks {
@@ -35,11 +35,11 @@ protobuf {
 }
 
 dependencies {
-    implementation("io.grpc:grpc-core:1.72.0")
-    implementation("io.grpc:grpc-stub:1.72.0")
-    implementation("io.grpc:grpc-protobuf:1.72.0")
+    implementation("io.grpc:grpc-core")
+    implementation("io.grpc:grpc-stub")
+    implementation("io.grpc:grpc-protobuf")
 
-    implementation("com.google.protobuf:protobuf-java:3.25.8")
-    implementation("com.google.api.grpc:proto-google-common-protos:2.59.0")
+    implementation("com.google.protobuf:protobuf-java")
+    implementation("com.google.api.grpc:proto-google-common-protos")
     implementation("javax.annotation:javax.annotation-api:1.3.2")
 }
