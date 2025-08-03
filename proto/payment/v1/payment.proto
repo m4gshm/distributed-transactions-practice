@@ -21,7 +21,7 @@ service PaymentService {
     rpc Cancel (PaymentCancelRequest) returns (PaymentCancelResponse) {
         option (google.api.http) = {delete: "/api/v1/payment/{id}"};
     }
-    rpc Process (PaymentProcessRequest) returns (PaymentProcessResponse) {
+    rpc Pay (PaymentPayRequest) returns (PaymentPayResponse) {
         option (google.api.http) = {
             put: "/api/v1/payment/{id}"
             body: "*"
@@ -33,7 +33,6 @@ service PaymentService {
             response_body: "payment"
         };
     }
-
     rpc List (PaymentListRequest) returns (PaymentListResponse) {
         option (google.api.http) = {
             get: "/api/v1/payment"
@@ -76,19 +75,21 @@ message PaymentCancelRequest {
 }
 
 message PaymentCancelResponse {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
-message PaymentProcessRequest {
-    string id = 1 [(buf.validate.field).string.min_len = 0];
+message PaymentPayRequest {
+    string id = 1 [(buf.validate.field).string.uuid = true];
+    bool two_phase_commit = 2;
 }
 
-message PaymentProcessResponse {
+message PaymentPayResponse {
     string id = 1;
+    double balance = 2;
 }
 
 message PaymentGetRequest {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message Payment {

@@ -22,14 +22,20 @@ service OrdersService {
             body: "*"
         };
     }
+    rpc Release (OrderReleaseRequest) returns (OrderReleaseResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order/release"
+            body: "*"
+        };
+    }
+    rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
+        option (google.api.http) = {delete: "/api/v1/order/{id}"};
+    }
     rpc Get (OrderGetRequest) returns (OrderGetResponse) {
         option (google.api.http) = {
             get: "/api/v1/order/{id}"
             response_body: "order"
         };
-    }
-    rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
-        option (google.api.http) = {delete: "/api/v1/order/{id}"};
     }
     rpc List (OrderListRequest) returns (OrderListResponse) {
         option (google.api.http) = {
@@ -49,7 +55,7 @@ message OrderCreateRequest {
 
         message Item {
             string id = 1 [(buf.validate.field).string.uuid = true];
-            int32 amount = 2;// [(buf.validate.field).int32.gt = 0];
+            int32 amount = 2;
         }
     }
 }
@@ -66,8 +72,17 @@ message OrderApproveRequest {
 message OrderApproveResponse {
     string id = 1;
     optional Order.Status status = 2;
-    optional string payment_status = 3;
-    optional string reserve_status = 4;
+}
+
+message OrderReleaseRequest {
+    string id = 1 [(buf.validate.field).string.uuid = true];
+    bool two_phase_commit = 2;
+}
+
+message OrderReleaseResponse {
+    string id = 1;
+    optional Order.Status status = 2;
+
 }
 
 message OrderGetRequest {
@@ -108,14 +123,15 @@ message Order {
     enum Status {
         CREATED = 0;
         APPROVED = 1;
-        INSUFFICIENT = 2;
+        RELEASED = 2;
+        INSUFFICIENT = 3;
     }
 
     message Item {
         string id = 1;
         string name = 2;
         optional reserve.v1.Reserve.Item.Status status = 3;
-        optional int32 amount = 4;
+        int32 amount = 4;
         optional int32 insufficient_amount = 5;
     }
 

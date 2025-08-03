@@ -2,6 +2,7 @@ package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
@@ -23,10 +24,13 @@ import warehouse.v1.Warehouse;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceStub;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
-import static io.github.m4gshm.ExceptionUtils.newStatusException;
+import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.ExceptionUtils.newStatusRuntimeException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.*;
+import static io.github.m4gshm.orders.data.model.Order.Status.*;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.*;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static io.grpc.Status.FAILED_PRECONDITION;
@@ -102,7 +106,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 var reserveId = reserveResponse.getId();
                 var order = Order.builder()
                         .id(string(orderId))
-                        .status(Order.Status.created)
+                        .status(created)
                         .paymentId(paymentId)
                         .reserveId(reserveId)
                         .customerId(body.getCustomerId())
@@ -120,10 +124,8 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {
         var orderId = request.getId();
         grpc.subscribe(responseObserver, orderRepository.getById(orderId).flatMap(order -> {
-
-            if (order.status() == Order.Status.approved) {
-                return error(newStatusException(FAILED_PRECONDITION, "already approved"));
-            }
+            return checkStatus(order.status(), Set.of(created, insufficient), just(order));
+        }).flatMap(order -> {
             var twoPhaseCommit = request.getTwoPhaseCommit();
             var paymentId = order.paymentId();
             var reserveId = order.reserveId();
@@ -157,6 +159,67 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 .setId(order.id())
                 .setStatus(toOrderStatus(order.status()))
                 .build()));
+    }
+
+    @Override
+    public void release(OrderReleaseRequest request, StreamObserver<OrderReleaseResponse> responseObserver) {
+        var orderId = request.getId();
+        grpc.subscribe(responseObserver, orderRepository.findById(orderId).flatMap(order -> {
+            return checkStatus(order.status(), Set.of(approved), just(order));
+        }).flatMap(order -> {
+
+            var twoPhaseCommit = request.getTwoPhaseCommit();
+            var paymentId = order.paymentId();
+            var reserveId = order.reserveId();
+
+            var paymentProcessRequest = PaymentOuterClass.PaymentPayRequest.newBuilder()
+                    .setId(paymentId)
+                    .setTwoPhaseCommit(twoPhaseCommit)
+                    .build();
+            var reserveReleaseRequest = ReserveOuterClass.ReserveReleaseRequest.newBuilder()
+                    .setId(reserveId)
+                    .setTwoPhaseCommit(twoPhaseCommit)
+                    .build();
+
+            return toMono(paymentProcessRequest, paymentsClient::pay).map(response -> {
+                return response;
+            }).zipWith(toMono(reserveReleaseRequest, reserveClient::release).map(response -> {
+                return response;
+            }), (r1, r2) -> {
+                return OrderReleaseResponse.newBuilder()
+                        .build();
+            });
+        }));
+    }
+
+    @Override
+    public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
+        super.cancel(request, responseObserver);
+    }
+
+    @Override
+    public void get(OrderGetRequest request, StreamObserver<OrderGetResponse> responseObserver) {
+        grpc.subscribe(responseObserver, just(request)
+                .map(OrderGetRequest::getId)
+                .flatMap(id -> orderRepository.findById(id).switchIfEmpty(notFoundById(id)))
+                .map(OrdersServiceUtils::toOrder).map(order -> OrderGetResponse.newBuilder()
+                        .setOrder(order).build())
+        );
+    }
+
+    @Override
+    public void list(OrderListRequest request, StreamObserver<OrderListResponse> responseObserver) {
+        grpc.subscribe(responseObserver, just(request).flatMap(_ -> {
+            return orderRepository.findAll().defaultIfEmpty(List.of());
+        }).map(orders -> {
+            return orders.stream()
+                    .map(OrdersServiceUtils::toOrder)
+                    .toList();
+        }).map(orders -> {
+            return OrderListResponse.newBuilder()
+                    .addAllOrders(orders)
+                    .build();
+        }));
     }
 
     private Mono<Order> saveAndCommit(boolean twoPhaseCommit, Order order,
@@ -227,36 +290,6 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 }).doOnError(e -> {
                     log.error("distributed transaction rollback for order is failed, orderId [{}]", orderId, e);
                 });
-    }
-
-    @Override
-    public void get(OrderGetRequest request, StreamObserver<OrderGetResponse> responseObserver) {
-        grpc.subscribe(responseObserver, just(request)
-                .map(OrderGetRequest::getId)
-                .flatMap(id -> orderRepository.findById(id).switchIfEmpty(notFoundById(id)))
-                .map(OrdersServiceUtils::toOrder).map(order -> OrderGetResponse.newBuilder()
-                        .setOrder(order).build())
-        );
-    }
-
-    @Override
-    public void list(OrderListRequest request, StreamObserver<OrderListResponse> responseObserver) {
-        grpc.subscribe(responseObserver, just(request).flatMap(_ -> {
-            return orderRepository.findAll().defaultIfEmpty(List.of());
-        }).map(orders -> {
-            return orders.stream()
-                    .map(OrdersServiceUtils::toOrder)
-                    .toList();
-        }).map(orders -> {
-            return OrderListResponse.newBuilder()
-                    .addAllOrders(orders)
-                    .build();
-        }));
-    }
-
-    @Override
-    public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
-        super.cancel(request, responseObserver);
     }
 
 }

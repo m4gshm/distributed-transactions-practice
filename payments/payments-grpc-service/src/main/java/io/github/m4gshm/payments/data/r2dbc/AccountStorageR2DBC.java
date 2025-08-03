@@ -9,6 +9,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Record2;
 import org.jooq.SelectJoinStep;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -18,7 +19,6 @@ import java.util.List;
 
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.jooq.utils.Update.checkUpdate;
-import static java.lang.Boolean.TRUE;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
@@ -47,6 +47,15 @@ public class AccountStorageR2DBC implements AccountStorage {
         return selectAllFrom(dsl, ACCOUNT);
     }
 
+    private static Mono<Record2<Double, Double>> selectForUpdate(DSLContext dsl, String clientId) {
+        return from(dsl
+                .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
+                .from(ACCOUNT)
+                .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                .forUpdate()
+        );
+    }
+
     @Override
     public Mono<List<Account>> findAll() {
         return jooq.transactional(dsl -> {
@@ -65,12 +74,7 @@ public class AccountStorageR2DBC implements AccountStorage {
     public Mono<LockResult> addLock(Account account, double amount) {
         return jooq.transactional(dsl -> {
             var clientId = account.clientId();
-            return from(dsl
-                    .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
-                    .from(ACCOUNT)
-                    .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                    .forUpdate()
-            ).flatMap(record -> {
+            return selectForUpdate(dsl, clientId).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
                 double newLocked = locked + amount;
@@ -84,6 +88,33 @@ public class AccountStorageR2DBC implements AccountStorage {
                             .set(ACCOUNT.LOCKED, newLocked)
                             .where(ACCOUNT.CLIENT_ID.eq(clientId))
                     ).flatMap(checkUpdate("account", clientId, () -> result.success(true).build()));
+                }
+            });
+        });
+    }
+
+    @Override
+    public Mono<WriteOffResult> writeOff(Account account, Double amount) {
+        return jooq.transactional(dsl -> {
+            var clientId = account.clientId();
+            return selectForUpdate(dsl, clientId).flatMap(record -> {
+                double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
+                double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
+                double newLocked = locked - amount;
+                double newAmount = totalAmount - amount;
+                var result = WriteOffResult.builder();
+                if (newLocked < 0) {
+                    return just(result.success(false).insufficientHold(-newLocked).build());
+                } else if (newAmount < 0) {
+                    return just(result.success(false).insufficientAmount(-newAmount).build());
+                } else {
+                    return from(dsl
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, newLocked)
+                            .set(ACCOUNT.AMOUNT, newAmount)
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                    ).flatMap(checkUpdate("account", clientId, () -> result.success(true)
+                            .balance(newAmount).build()));
                 }
             });
         });

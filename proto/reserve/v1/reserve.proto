@@ -18,6 +18,12 @@ service ReserveService {
             body: "*"
         };
     }
+    rpc Release (ReserveReleaseRequest) returns (ReserveReleaseResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/reserve/release"
+            body: "*"
+        };
+    }
     rpc Cancel (ReserveCancelRequest) returns (ReserveCancelResponse) {
         option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
     }
@@ -71,6 +77,15 @@ message ReserveApproveResponse {
         PARTIAL_INSUFFICIENT_QUANTITY = 1;
         INSUFFICIENT_QUANTITY = 2;
     }
+}
+
+message ReserveReleaseRequest {
+    string id = 1 [(buf.validate.field).string.uuid = true];
+    bool two_phase_commit = 2;
+}
+
+message ReserveReleaseResponse {
+    string id = 1;
 }
 
 message ReserveCancelRequest {

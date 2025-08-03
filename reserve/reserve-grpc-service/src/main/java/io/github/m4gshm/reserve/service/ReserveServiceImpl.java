@@ -14,9 +14,11 @@ import org.springframework.stereotype.Service;
 import reserve.v1.ReserveOuterClass.*;
 import reserve.v1.ReserveServiceGrpc;
 
+import java.util.Set;
 import java.util.UUID;
 
-import static io.github.m4gshm.ExceptionUtils.newStatusException;
+import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.ExceptionUtils.newStatusRuntimeException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
@@ -26,9 +28,9 @@ import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.partitioningBy;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @Service
@@ -64,27 +66,22 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
 
     @Override
     public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
-        grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()).flatMap(reserve -> {
-            if (reserve.status() == approved) {
-                return error(newStatusException(FAILED_PRECONDITION, "already approved"));
-            }
-
+        grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()
+        ).flatMap(reserve -> {
+            return checkStatus(reserve.status(), Set.of(created), just(reserve));
+        }).flatMap(reserve -> {
             var items = reserve.items();
-            var groupedByReserveStateItems = items.stream().collect(partitioningBy(item -> {
-                return TRUE.equals(item.reserved());
-            }));
-
-            var notReservedItems = groupedByReserveStateItems.get(false);
+            var notReservedItems = items.stream().filter(item -> TRUE.equals(item.reserved())).toList();
 
             if (notReservedItems.isEmpty()) {
-                return error(newStatusException(FAILED_PRECONDITION, "all items reserved already"));
+                return error(newStatusRuntimeException(FAILED_PRECONDITION, "all items reserved already"));
             }
 
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
 
             var reserveId = reserve.id();
             return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), warehouseItemStorage.reserve(
-                    toItemReserves(notReservedItems), reserveId
+                    toItemReserves(notReservedItems)
             ).flatMap(reserveResults -> {
                 var successReserved = reserveResults.stream().filter(reserveResult -> {
                     return reserved.equals(reserveResult.status());
@@ -109,6 +106,18 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                         .items(successReserved)
                         .build()).map(_ -> response).defaultIfEmpty(response);
             }));
+        })));
+    }
+
+    @Override
+    public void release(ReserveReleaseRequest request, StreamObserver<ReserveReleaseResponse> responseObserver) {
+        grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(request.getId()
+        ).flatMap(reserve -> {
+            return checkStatus(reserve.status(), Set.of(approved), just(reserve));
+        }).flatMap(reserve -> {
+            reserve.items().stream().map(item->)
+            warehouseItemStorage.reserve()
+            return just(ReserveReleaseResponse.newBuilder().build());
         })));
     }
 

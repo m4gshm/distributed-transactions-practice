@@ -7,13 +7,12 @@ import io.github.m4gshm.reserve.data.model.WarehouseItem;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 
 public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String> {
 
-    Mono<Map<String,Double>> getUnitsCost(Collection<String> ids);
+    Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> reserves);
 
-    Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> reserves, String txid);
+    Mono<List<ReleaseItem.Result>> release(Collection<ReleaseItem> items);
 
     @Builder(toBuilder = true)
     record ReserveItem(String id, int amount) {
@@ -23,6 +22,13 @@ public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String>
                 reserved,
                 insufficient_quantity
             }
+        }
+    }
+
+    @Builder(toBuilder = true)
+    record ReleaseItem(String id, int amount) {
+        @Builder
+        public record Result(String id, Integer remainder) {
         }
     }
 }
