@@ -14,7 +14,7 @@
     "delivery": {
       "dateTime": "2025-07-26T17:03:13.475Z",
       "address": "Lenina st., 1",
-      "type": "TYPE_PICKUP"
+      "type": "PICKUP"
     }
   },
   "twoPhaseCommit": true

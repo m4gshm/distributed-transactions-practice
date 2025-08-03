@@ -6,6 +6,9 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
+import "payment/v1/payment.proto";
+import "reserve/v1/reserve.proto";
+
 service OrdersService {
     rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {
         option (google.api.http) = {
@@ -37,9 +40,9 @@ service OrdersService {
 }
 
 message OrderCreateRequest {
-    OrderBody body = 1;
+    OrderCreate body = 1;
     bool two_phase_commit = 2;
-    message OrderBody {
+    message OrderCreate {
         repeated Item items = 1;
         string customer_id = 2 [(buf.validate.field).string.uuid = true];
         Order.Delivery delivery = 3;
@@ -98,26 +101,22 @@ message Order {
     string payment_id = 5;
     string reserve_id = 6;
     optional Status status = 7;
-    Delivery delivery = 8;
-    repeated Item items = 9;
+    optional payment.v1.Payment.Status payment_status = 8;
+    Delivery delivery = 9;
+    repeated Item items = 10;
 
     enum Status {
-        STATUS_CREATED = 0;
-        STATUS_APPROVED = 1;
-        STATUS_INSUFFICIENT = 2;
+        CREATED = 0;
+        APPROVED = 1;
+        INSUFFICIENT = 2;
     }
 
     message Item {
         string id = 1;
         string name = 2;
-        optional Status status = 3;
+        optional reserve.v1.Reserve.Item.Status status = 3;
         optional int32 amount = 4;
         optional int32 insufficient_amount = 5;
-        enum Status {
-            STATUS_UNSPECIFIED = 0;
-            STATUS_BOUGHT = 1;
-            STATUS_RETURNED = 2;
-        }
     }
 
     message Delivery {
@@ -125,8 +124,8 @@ message Order {
         string address = 2;
         Type type = 3;
         enum Type {
-            TYPE_PICKUP = 0;
-            TYPE_COURIER = 1;
+            PICKUP = 0;
+            COURIER = 1;
         }
     }
 }

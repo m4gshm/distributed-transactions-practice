@@ -86,22 +86,18 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), warehouseItemStorage.reserve(
                     toItemReserves(notReservedItems), reserveId
             ).flatMap(reserveResults -> {
-                var successReserved = reserveResults.stream()
-                        .filter(reserveResult -> {
-                            return reserved.equals(reserveResult.status());
-                        })
-                        .map(itemReserveResult -> {
-                            return requireNonNull(
-                                    notReservedItemPerId.get(itemReserveResult.id()),
-                                    "no preloaded reserve item " + itemReserveResult.id()
-                            );
-                        })
-                        .map(i -> {
-                            return i.toBuilder()
-                                    .reserved(true)
-                                    .build();
-                        })
-                        .toList();
+                var successReserved = reserveResults.stream().filter(reserveResult -> {
+                    return reserved.equals(reserveResult.status());
+                }).map(itemReserveResult -> {
+                    return requireNonNull(
+                            notReservedItemPerId.get(itemReserveResult.id()),
+                            "no preloaded reserve item " + itemReserveResult.id()
+                    );
+                }).map(i -> {
+                    return i.toBuilder()
+                            .reserved(true)
+                            .build();
+                }).toList();
 
                 var updatingReserve = reserve.toBuilder();
                 var allReserved = successReserved.size() == notReservedItems.size();

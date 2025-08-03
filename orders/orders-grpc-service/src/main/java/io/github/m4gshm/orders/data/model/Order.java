@@ -3,7 +3,6 @@ package io.github.m4gshm.orders.data.model;
 import io.github.m4gshm.EnumWithCode;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Positive;
 import lombok.Builder;
 
 import java.time.OffsetDateTime;
@@ -38,7 +37,7 @@ public record Order(String id,
     }
 
     public enum PaymentStatus implements EnumWithCode<PaymentStatus> {
-        locked_amount,
+        hold,
         insufficient_amount;
 
         public static PaymentStatus byCode(String code) {

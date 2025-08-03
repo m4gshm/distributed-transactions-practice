@@ -1,102 +1,116 @@
 syntax = "proto3";
+
 package payment.v1;
 
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 
 service PaymentService {
-  rpc Create(PaymentCreateRequest) returns (PaymentCreateResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/payment"
-      body: "*"
-    };
-  }
-  rpc Approve(PaymentApproveRequest) returns (PaymentApproveResponse) {
-    option (google.api.http) = {
-      post: "/api/v1/payment/approve"
-      body: "*"
-    };
-  }
-  rpc Cancel(PaymentCancelRequest) returns (PaymentCancelResponse) {
-    option (google.api.http) = {delete: "/api/v1/payment/{id}"};
-  }
-  rpc Process(PaymentProcessRequest) returns (PaymentProcessResponse) {
-    option (google.api.http) = {
-      put: "/api/v1/payment/{id}"
-      body: "*"
-    };
-  }
-  rpc Get(PaymentGetRequest) returns (PaymentGetResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/payment/{id}"
-      response_body: "payment"
-    };
-  }
+    rpc Create (PaymentCreateRequest) returns (PaymentCreateResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/payment"
+            body: "*"
+        };
+    }
+    rpc Approve (PaymentApproveRequest) returns (PaymentApproveResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/payment/approve"
+            body: "*"
+        };
+    }
+    rpc Cancel (PaymentCancelRequest) returns (PaymentCancelResponse) {
+        option (google.api.http) = {delete: "/api/v1/payment/{id}"};
+    }
+    rpc Process (PaymentProcessRequest) returns (PaymentProcessResponse) {
+        option (google.api.http) = {
+            put: "/api/v1/payment/{id}"
+            body: "*"
+        };
+    }
+    rpc Get (PaymentGetRequest) returns (PaymentGetResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/payment/{id}"
+            response_body: "payment"
+        };
+    }
 
-  rpc List(PaymentListRequest) returns (PaymentListResponse) {
-    option (google.api.http) = {
-      get: "/api/v1/payment"
-      response_body: "payments"
-    };
-  }
-}
-
-message Payment {
-  string external_ref = 1 [(buf.validate.field).string.uuid = true];
-  string client_id = 2 [(buf.validate.field).string.uuid = true];
-  double amount = 3 [(buf.validate.field).double.gt = 0];
+    rpc List (PaymentListRequest) returns (PaymentListResponse) {
+        option (google.api.http) = {
+            get: "/api/v1/payment"
+            response_body: "payments"
+        };
+    }
 }
 
 message PaymentCreateRequest {
-  Payment body = 1;
-  bool two_phase_commit = 2;
+    PaymentCreate body = 1;
+    bool two_phase_commit = 2;
+    message PaymentCreate {
+        string external_ref = 1 [(buf.validate.field).string.uuid = true];
+        string client_id = 2 [(buf.validate.field).string.uuid = true];
+        double amount = 3 [(buf.validate.field).double.gt = 0];
+    }
 }
 
 message PaymentCreateResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message PaymentApproveRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
-  bool two_phase_commit = 2;
+    string id = 1 [(buf.validate.field).string.uuid = true];
+    bool two_phase_commit = 2;
 }
 
 message PaymentApproveResponse {
-  string id = 1;
-  Status status = 2;
-  double insufficient_amount = 3;
-  enum Status {
-    APPROVED = 0;
-    INSUFFICIENT_FUNDS = 1;
-  }
+    string id = 1;
+    Status status = 2;
+    double insufficient_amount = 3;
+    enum Status {
+        APPROVED = 0;
+        INSUFFICIENT_AMOUNT = 1;
+    }
 }
 
 message PaymentCancelRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+    string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message PaymentCancelResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message PaymentProcessRequest {
-  string id = 1 [(buf.validate.field).string.min_len = 0];
+    string id = 1 [(buf.validate.field).string.min_len = 0];
 }
 
 message PaymentProcessResponse {
-  string id = 1;
+    string id = 1;
 }
 
 message PaymentGetRequest {
-  string id = 1;
+    string id = 1;
+}
+
+message Payment {
+    string external_ref = 1 [(buf.validate.field).string.uuid = true];
+    string client_id = 2 [(buf.validate.field).string.uuid = true];
+    double amount = 3 [(buf.validate.field).double.gt = 0];
+    Status status = 4;
+    enum Status {
+        CREATED = 0;
+        HOLD = 1;
+        INSUFFICIENT = 2;
+        PAID = 3;
+        CANCELLED = 4;
+    }
 }
 
 message PaymentGetResponse {
-  Payment payment = 1;
+    Payment payment = 1;
 }
 
 message PaymentListRequest {}
 
 message PaymentListResponse {
-  repeated Payment payments = 1;
+    repeated Payment payments = 1;
 }

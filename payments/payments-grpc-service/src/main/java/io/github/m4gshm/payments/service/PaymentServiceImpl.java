@@ -19,7 +19,7 @@ import static io.github.m4gshm.payments.service.PaymentServiceUtils.toDataModel;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toProto;
 import static lombok.AccessLevel.PRIVATE;
 import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.APPROVED;
-import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.INSUFFICIENT_FUNDS;
+import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.INSUFFICIENT_AMOUNT;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
 
@@ -55,11 +55,11 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 return accountStorage.addLock(account, payment.amount()).flatMap(lockResult -> {
                     return paymentStorage.save(payment.toBuilder()
                             .status(lockResult.success()
-                                    ? Payment.Status.approved
+                                    ? Payment.Status.hold
                                     : Payment.Status.insufficient)
                             .build()).map(_ -> PaymentApproveResponse.newBuilder()
                             .setId(paymentId)
-                            .setStatus(lockResult.success() ? APPROVED : INSUFFICIENT_FUNDS)
+                            .setStatus(lockResult.success() ? APPROVED : INSUFFICIENT_AMOUNT)
                             .setInsufficientAmount(lockResult.insufficientAmount())
                             .build());
                 });

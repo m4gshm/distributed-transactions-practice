@@ -7,9 +7,9 @@ apply(plugin = "io.spring.dependency-management")
 sourceSets {
     main {
         this.proto {
-            srcDirs(
-                "$rootDir/proto/reserve",
-            )
+            exclude("buf/**", "google/**")
+            include("reserve/**")
+            srcDirs("$rootDir/proto")
         }
     }
 }

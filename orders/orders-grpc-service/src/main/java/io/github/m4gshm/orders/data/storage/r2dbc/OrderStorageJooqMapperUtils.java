@@ -1,14 +1,12 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
-import lombok.experimental.UtilityClass;
 import io.github.m4gshm.orders.data.model.Order;
+import lombok.experimental.UtilityClass;
 import org.jooq.Record;
 
 import java.util.List;
 
-import static orders.data.access.jooq.Tables.DELIVERY;
-import static orders.data.access.jooq.Tables.ITEMS;
-import static orders.data.access.jooq.Tables.ORDERS;
+import static orders.data.access.jooq.Tables.*;
 
 @UtilityClass
 public class OrderStorageJooqMapperUtils {
@@ -21,11 +19,14 @@ public class OrderStorageJooqMapperUtils {
                 .customerId(order.get(ORDERS.CUSTOMER_ID))
                 .reserveId(order.get(ORDERS.RESERVE_ID))
                 .paymentId(order.get(ORDERS.PAYMENT_ID))
+                .paymentStatus(Order.PaymentStatus.byCode(order.get(ORDERS.PAYMENT_STATUS)))
                 .delivery(toDelivery(delivery))
                 .items(items.stream().map(item -> Order.Item.builder()
                         .id(item.get(ITEMS.ID))
                         .amount(item.get(ITEMS.AMOUNT))
-                        .build()).toList())
+                        .status(Order.Item.Status.byCode(item.get(ITEMS.STATUS)))
+                        .build()
+                ).toList())
                 .build();
     }
 

@@ -13,7 +13,6 @@ import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentOuterClass.PaymentCreateRequest;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Mono;
@@ -52,7 +51,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     public static Mono<PaymentOuterClass.PaymentCreateResponse> log(String name, Throwable e) {
         log.error("error on {}", name, e);
-        return Mono.error(e);
+        return error(e);
     }
 
     @Override
@@ -63,7 +62,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
             var itemsList = body.getItemsList();
             var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
 
-            var itemIds = itemsList.stream().map(OrderCreateRequest.OrderBody.Item::getId).distinct().toList();
+            var itemIds = itemsList.stream().map(OrderCreateRequest.OrderCreate.Item::getId).distinct().toList();
 
             var costRoutine = fromIterable(itemIds).flatMap(itemId -> {
                 return toMono(Warehouse.GetItemCostRequest.newBuilder()
@@ -74,7 +73,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
             var paymentRoutine = costRoutine.map(cost -> {
                 return PaymentCreateRequest.newBuilder()
                         .setTwoPhaseCommit(twoPhaseCommit)
-                        .setBody(Payment.newBuilder()
+                        .setBody(PaymentCreateRequest.PaymentCreate.newBuilder()
                                 .setExternalRef(orderId)
                                 .setClientId(body.getCustomerId())
                                 .setAmount(cost)
@@ -143,12 +142,13 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 log.info("approve statuses: payment [{}], reserve [{}]", paymentStatus, reserveStatus);
 
                 var newOrderStatus = getOrderStatus(paymentStatus, reserveStatus);
-                log.trace("new order status [{}]", newOrderStatus);
+                log.debug("new order status [{}]", newOrderStatus);
 
                 var orderOnSave = order.toBuilder()
                         .items(populateItemStatus(order, reserve))
                         .status(newOrderStatus)
                         .paymentInsufficientValue(payment.getInsufficientAmount())
+                        .paymentStatus(toPaymentStatus(paymentStatus))
                         .build();
 
                 return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
