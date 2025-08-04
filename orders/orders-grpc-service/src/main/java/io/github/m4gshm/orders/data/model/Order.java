@@ -29,6 +29,7 @@ public record Order(String id,
     public enum Status implements EnumWithCode<Status> {
         created,
         approved,
+        released,
         insufficient;
 
         public static Status byCode(String code) {
@@ -49,6 +50,7 @@ public record Order(String id,
     public record Item(String id, Status status, int amount, int insufficient) {
         public enum Status implements EnumWithCode<Status> {
             reserved,
+            released,
             insufficient_quantity;
 
             public static Status byCode(String code) {

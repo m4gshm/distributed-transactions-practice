@@ -74,8 +74,9 @@ message ReserveApproveResponse {
     }
     enum Status {
         APPROVED = 0;
-        PARTIAL_INSUFFICIENT_QUANTITY = 1;
-        INSUFFICIENT_QUANTITY = 2;
+        RELEASED = 1;
+        PARTIAL_INSUFFICIENT_QUANTITY = 2;
+        INSUFFICIENT_QUANTITY = 3;
     }
 }
 
@@ -114,7 +115,8 @@ message Reserve {
         Status status = 3;
         enum Status {
             RESERVED = 0;
-            INSUFFICIENT_QUANTITY = 1;
+            RELEASED = 1;
+            INSUFFICIENT_QUANTITY = 2;
         }
     }
 }

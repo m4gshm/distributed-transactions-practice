@@ -4,6 +4,7 @@ import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
+import io.github.m4gshm.reserve.data.WarehouseItemStorage.ReleaseItem;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
@@ -11,7 +12,18 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reserve.v1.ReserveOuterClass.*;
+import reserve.v1.ReserveOuterClass.ListReserveRequest;
+import reserve.v1.ReserveOuterClass.ListReserveResponse;
+import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
+import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
+import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
+import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
+import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
+import reserve.v1.ReserveOuterClass.ReserveUpdateRequest;
+import reserve.v1.ReserveOuterClass.ReserveUpdateResponse;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.Set;
@@ -24,7 +36,10 @@ import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Res
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
 import static io.github.m4gshm.reserve.data.model.Reserve.Status.approved;
 import static io.github.m4gshm.reserve.data.model.Reserve.Status.created;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.released;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.newApproveResponse;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toItemReserves;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserve;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
@@ -71,7 +86,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             return checkStatus(reserve.status(), Set.of(created), just(reserve));
         }).flatMap(reserve -> {
             var items = reserve.items();
-            var notReservedItems = items.stream().filter(item -> TRUE.equals(item.reserved())).toList();
+            var notReservedItems = items.stream().filter(item -> !TRUE.equals(item.reserved())).toList();
 
             if (notReservedItems.isEmpty()) {
                 return error(newStatusRuntimeException(FAILED_PRECONDITION, "all items reserved already"));
@@ -80,7 +95,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
 
             var reserveId = reserve.id();
-            return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), warehouseItemStorage.reserve(
+            return prepare(request.getTwoPhaseCommit(), dsl, reserveId, warehouseItemStorage.reserve(
                     toItemReserves(notReservedItems)
             ).flatMap(reserveResults -> {
                 var successReserved = reserveResults.stream().filter(reserveResult -> {
@@ -115,9 +130,21 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         ).flatMap(reserve -> {
             return checkStatus(reserve.status(), Set.of(approved), just(reserve));
         }).flatMap(reserve -> {
-            reserve.items().stream().map(item->)
-            warehouseItemStorage.reserve()
-            return just(ReserveReleaseResponse.newBuilder().build());
+            var items = reserve.items().stream().map(item -> {
+                return ReleaseItem.builder()
+                        .id(item.id())
+                        .amount(item.amount())
+                        .build();
+            }).toList();
+            var reserveId = reserve.id();
+            var reserveOnRelease = reserve.toBuilder().status(released).build();
+            return prepare(request.getTwoPhaseCommit(), dsl, reserveId, warehouseItemStorage.release(items)
+                    .zipWith(reserveStorage.save(reserveOnRelease), (i, r) -> {
+                        log.debug("reserve released: id [{}], items: [{}]", r.id(), i.size());
+                        return ReserveReleaseResponse.newBuilder()
+                                .setId(reserveId)
+                                .build();
+                    }));
         })));
     }
 

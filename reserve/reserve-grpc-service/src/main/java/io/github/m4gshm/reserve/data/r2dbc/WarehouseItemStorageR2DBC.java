@@ -26,6 +26,7 @@ import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Res
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
 import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
@@ -104,28 +105,27 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
         var amountPerId = items.stream().collect(groupingBy(ReleaseItem::id,
                 mapping(ReleaseItem::amount, summingInt(i -> i))));
         var reserveIds = amountPerId.keySet();
-
         return jooq.transactional(dsl -> {
-            return selectForUpdate(dsl, reserveIds).<ReleaseItem.Result>flatMap(record -> {
+            return selectForUpdate(dsl, reserveIds).flatMap(record -> {
                 var id = record.get(WAREHOUSE_ITEM.ID);
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
 
                 int amountForRelease = requireNonNull(amountPerId.get(id), "unexpected null amount for item " + id);
-                var reserved1 = alreadyReserved - amountForRelease;
+                var reserved = alreadyReserved - amountForRelease;
                 var newTotalAmount = totalAmount - amountForRelease;
-                if (reserved1 < 0 || newTotalAmount < 0) {
-                    return Mono.<ReleaseItem.Result>error(new ReleaseItemException(id, -reserved1, -newTotalAmount));
+                if (reserved < 0 || newTotalAmount < 0) {
+                    return error(new ReleaseItemException(id, -reserved, -newTotalAmount));
                 } else {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(reserved1))
-                            .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(reserved1))
+                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(reserved))
+                            .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(reserved))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
                     ).flatMap(checkUpdate("reserve item", id, () -> {
                         return ReleaseItem.Result.builder().id(id).remainder(newTotalAmount).build();
                     }));
                 }
-            });
+            }).collectList().flatMap(l -> logTxId(dsl, "release", l));
         });
     }
 

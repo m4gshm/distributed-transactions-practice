@@ -24,6 +24,7 @@ public record Reserve(String id,
     public enum Status {
         created,
         approved,
+        released,
         cancelled;
 
         private final static Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));

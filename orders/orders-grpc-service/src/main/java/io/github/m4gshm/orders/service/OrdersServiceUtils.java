@@ -10,6 +10,7 @@ import payment.v1.PaymentOuterClass.PaymentApproveResponse;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveOuterClass.Reserve;
+import reserve.v1.ReserveOuterClass.Reserve.Item;
 import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
 import tpc.v1.Tpc;
 
@@ -56,6 +57,7 @@ public class OrdersServiceUtils {
         return status == null ? null : switch (status) {
             case created -> CREATED;
             case approved -> APPROVED;
+            case released -> RELEASED;
             case insufficient -> INSUFFICIENT;
         };
     }
@@ -76,10 +78,11 @@ public class OrdersServiceUtils {
         }
     }
 
-    private static Reserve.Item.Status toItemStatus(Order.Item.Status status) {
+    private static Item.Status toItemStatus(Order.Item.Status status) {
         return status == null ? null : switch (status) {
-            case reserved -> Reserve.Item.Status.RESERVED;
-            case insufficient_quantity -> Reserve.Item.Status.INSUFFICIENT_QUANTITY;
+            case reserved -> Item.Status.RESERVED;
+            case released -> Item.Status.RELEASED;
+            case insufficient_quantity -> Item.Status.INSUFFICIENT_QUANTITY;
         };
     }
 
@@ -172,13 +175,13 @@ public class OrdersServiceUtils {
         }).toList();
     }
 
-    private static Order.Item.Status toItemStatus(Reserve.Item.Status status) {
+    private static Order.Item.Status toItemStatus(Item.Status status) {
         return status == null ? null : switch (status) {
             case RESERVED -> Order.Item.Status.reserved;
+            case RELEASED -> Order.Item.Status.released;
             case INSUFFICIENT_QUANTITY -> Order.Item.Status.insufficient_quantity;
             case UNRECOGNIZED -> null;
-        }
-                ;
+        };
     }
 
     static Order.Status getOrderStatus(PaymentApproveResponse.Status paymentStatus,

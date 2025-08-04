@@ -41,6 +41,7 @@ public class ReserveServiceUtils {
         if (statuses.size() == 1) {
             return switch (statuses.iterator().next()) {
                 case RESERVED -> ReserveApproveResponse.Status.APPROVED;
+                case RELEASED -> ReserveApproveResponse.Status.RELEASED;
                 case INSUFFICIENT_QUANTITY -> ReserveApproveResponse.Status.INSUFFICIENT_QUANTITY;
                 case UNRECOGNIZED -> ReserveApproveResponse.Status.UNRECOGNIZED;
             };
@@ -50,7 +51,6 @@ public class ReserveServiceUtils {
                     : ReserveApproveResponse.Status.UNRECOGNIZED;
         }
     }
-
 
     public static ReserveOuterClass.Reserve.Item.Status getItemStatus(Reserve.Item item) {
         return item.reserved() == null
