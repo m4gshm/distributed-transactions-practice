@@ -1,6 +1,6 @@
 package io.github.m4gshm.reserve.service;
 
-import io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem;
+import io.github.m4gshm.reserve.data.WarehouseItemStorage.ItemOp;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import lombok.experimental.UtilityClass;
 import reserve.v1.ReserveOuterClass;
@@ -31,7 +31,7 @@ public class ReserveServiceUtils {
     }
 
     public static ReserveApproveResponse newApproveResponse(
-            List<ReserveItem.Result> reserveResults, String reserveId
+            List<ItemOp.ReserveResult> reserveResults, String reserveId
     ) {
         var reservedItems = reserveResults.stream().map(ReserveServiceUtils::toResponseItem).toList();
         var allReserved = reservedItems.stream().allMatch(ReserveApproveResponse.Item::getReserved);
@@ -44,7 +44,7 @@ public class ReserveServiceUtils {
                 .build();
     }
 
-    public static ReserveApproveResponse.Item toResponseItem(ReserveItem.Result result) {
+    public static ReserveApproveResponse.Item toResponseItem(ItemOp.ReserveResult result) {
         var reserved = result.reserved();
         var builder = ReserveApproveResponse.Item.newBuilder()
                 .setId(result.id())
@@ -57,11 +57,12 @@ public class ReserveServiceUtils {
                 .build();
     }
 
-    static List<ReserveItem> toItemReserves(List<Reserve.Item> items) {
-        return items.stream().map(item -> ReserveItem.builder()
-                .id(item.id())
-                .amount(item.amount())
-                .build()
-        ).toList();
+    static List<ItemOp> toItemOps(List<Reserve.Item> items) {
+        return items.stream().map(item -> {
+            return ItemOp.builder()
+                    .id(item.id())
+                    .amount(item.amount())
+                    .build();
+        }).toList();
     }
 }

@@ -1,4 +1,4 @@
-package io.github.m4gshm.payments.service;
+package io.github.m4gshm.payments.data.r2dbc;
 
 import lombok.Getter;
 

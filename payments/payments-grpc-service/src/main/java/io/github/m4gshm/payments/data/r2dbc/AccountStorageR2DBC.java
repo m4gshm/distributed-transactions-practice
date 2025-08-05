@@ -22,8 +22,7 @@ import static io.github.m4gshm.jooq.utils.Update.checkUpdate;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
-import static reactor.core.publisher.Mono.from;
-import static reactor.core.publisher.Mono.just;
+import static reactor.core.publisher.Mono.*;
 
 @Slf4j
 @Service
@@ -85,9 +84,29 @@ public class AccountStorageR2DBC implements AccountStorage {
                 } else {
                     return from(dsl
                             .update(ACCOUNT)
-                            .set(ACCOUNT.LOCKED, newLocked)
+                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
                             .where(ACCOUNT.CLIENT_ID.eq(clientId))
                     ).flatMap(checkUpdate("account", clientId, () -> result.success(true).build()));
+                }
+            });
+        });
+    }
+
+    @Override
+    public Mono<Void> unlock(Account account, double amount) {
+        return jooq.transactional(dsl -> {
+            var clientId = account.clientId();
+            return selectForUpdate(dsl, clientId).flatMap(record -> {
+                double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
+                double newLocked = locked - amount;
+                if (newLocked < 0) {
+                    return Mono.error(new InvalidUnlockFundValueException(clientId, newLocked));
+                } else {
+                    return from(dsl
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.minus(amount))
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                    ).flatMap(checkUpdate("account", clientId, () -> null));
                 }
             });
         });
@@ -102,19 +121,17 @@ public class AccountStorageR2DBC implements AccountStorage {
                 double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
                 double newLocked = locked - amount;
                 double newAmount = totalAmount - amount;
-                var result = WriteOffResult.builder();
-                if (newLocked < 0) {
-                    return just(result.success(false).insufficientHold(-newLocked).build());
-                } else if (newAmount < 0) {
-                    return just(result.success(false).insufficientAmount(-newAmount).build());
+                if (newLocked < 0 || newAmount < 0) {
+                    return error(new WriteOffException(newLocked < 0 ? -newLocked : 0, newAmount < 0 ? -newAmount : 0));
                 } else {
                     return from(dsl
                             .update(ACCOUNT)
                             .set(ACCOUNT.LOCKED, newLocked)
                             .set(ACCOUNT.AMOUNT, newAmount)
                             .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                    ).flatMap(checkUpdate("account", clientId, () -> result.success(true)
-                            .balance(newAmount).build()));
+                    ).flatMap(checkUpdate("account", clientId, () -> {
+                        return WriteOffResult.builder().balance(newAmount).build();
+                    }));
                 }
             });
         });

@@ -27,12 +27,6 @@ service ReserveService {
   rpc Cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
     option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
   }
-  rpc Update(ReserveUpdateRequest) returns (ReserveUpdateResponse) {
-    option (google.api.http) = {
-      put: "/api/v1/reserve"
-      body: "*"
-    };
-  }
   rpc Get(ReserveGetRequest) returns (ReserveGetResponse) {
     option (google.api.http) = {
       get: "/api/v1/reserve/{id}"
@@ -96,17 +90,10 @@ message ReserveReleaseResponse {
 
 message ReserveCancelRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
+  bool two_phase_commit = 2;
 }
 
 message ReserveCancelResponse {
-  string id = 1;
-}
-
-message ReserveUpdateRequest {
-  string id = 1 [(buf.validate.field).string.uuid = true];
-}
-
-message ReserveUpdateResponse {
   string id = 1;
 }
 

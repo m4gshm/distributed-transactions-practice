@@ -8,6 +8,7 @@ import reactor.core.publisher.Mono;
 
 public interface AccountStorage extends ReadStorage<Account, String> {
     Mono<LockResult> addLock(Account account, double amount);
+    Mono<Void> unlock(Account account, double amount);
 
     Mono<WriteOffResult> writeOff(Account account, @Positive Double amount);
 
@@ -17,8 +18,7 @@ public interface AccountStorage extends ReadStorage<Account, String> {
     }
 
     @Builder
-    public record WriteOffResult(boolean success, double balance,
-                                 double insufficientHold, double insufficientAmount) {
+    public record WriteOffResult(double balance) {
 
     }
 }
