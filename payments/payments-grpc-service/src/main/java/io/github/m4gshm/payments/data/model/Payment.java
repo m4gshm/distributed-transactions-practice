@@ -15,6 +15,7 @@ public record Payment(String id,
                       String clientId,
                       Status status,
                       @Positive Double amount,
+                      @Positive Double insufficient,
                       OffsetDateTime createdAt,
                       OffsetDateTime updatedAt) {
 

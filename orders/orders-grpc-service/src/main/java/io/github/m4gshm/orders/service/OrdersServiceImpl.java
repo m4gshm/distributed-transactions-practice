@@ -2,30 +2,19 @@ package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.model.Order.Item;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders.OrderApproveRequest;
-import orders.v1.Orders.OrderApproveResponse;
-import orders.v1.Orders.OrderCancelRequest;
-import orders.v1.Orders.OrderCancelResponse;
-import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.Orders.OrderCreateResponse;
-import orders.v1.Orders.OrderGetRequest;
-import orders.v1.Orders.OrderGetResponse;
-import orders.v1.Orders.OrderListRequest;
-import orders.v1.Orders.OrderListResponse;
-import orders.v1.Orders.OrderReleaseRequest;
-import orders.v1.Orders.OrderReleaseResponse;
+import orders.v1.Orders.*;
 import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentOuterClass.PaymentGetRequest;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
@@ -39,32 +28,14 @@ import java.util.Set;
 import java.util.UUID;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.PrepareTransactionException;
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.commit;
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.rollback;
-import static io.github.m4gshm.orders.data.model.Order.Status.approved;
-import static io.github.m4gshm.orders.data.model.Order.Status.created;
-import static io.github.m4gshm.orders.data.model.Order.Status.insufficient;
-import static io.github.m4gshm.orders.data.model.Order.Status.released;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.getOrderStatus;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.newCommitRequest;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.newRollbackRequest;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.notFoundById;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.populateItemStatus;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.string;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.toDelivery;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderCreateResponse;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderStatus;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.toPaymentStatus;
+import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.*;
+import static io.github.m4gshm.orders.data.model.Order.Status.*;
+import static io.github.m4gshm.orders.service.OrdersServiceUtils.*;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static java.util.function.Function.identity;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Flux.fromIterable;
-import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.fromSupplier;
-import static reactor.core.publisher.Mono.just;
+import static reactor.core.publisher.Mono.*;
 
 @Slf4j
 @Service
@@ -174,10 +145,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 log.debug("new order status [{}]", newOrderStatus);
 
                 var orderOnSave = order.toBuilder()
-                        .items(populateItemStatus(order, reserve))
                         .status(newOrderStatus)
-                        .paymentInsufficientValue(payment.getInsufficientAmount())
-                        .paymentStatus(toPaymentStatus(paymentStatus))
                         .build();
 
                 return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
@@ -207,24 +175,16 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                     .setTwoPhaseCommit(twoPhaseCommit)
                     .build();
 
-            return toMono(paymentProcessRequest, paymentsClient::pay).map(response -> {
-                return response;
-            }).zipWith(toMono(reserveReleaseRequest, reserveClient::release).map(response -> {
-                return response;
-            }), (_, _) -> {
-                log.info("order released [{}]", orderId);
+            return toMono(paymentProcessRequest, paymentsClient::pay)
+                    .zipWith(toMono(reserveReleaseRequest, reserveClient::release), (_, _) -> {
+                        log.info("order released [{}]", orderId);
 
-                var orderOnSave = order.toBuilder()
-                        .items(order.items().stream().map(item -> {
-                            return item.toBuilder()
-                                    .status(Item.Status.released)
-                                    .build();
-                        }).toList())
-                        .status(released)
-                        .build();
+                        var orderOnSave = order.toBuilder()
+                                .status(released)
+                                .build();
 
-                return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
-            }).flatMap(identity());
+                        return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
+                    }).flatMap(identity());
         }).map(order -> {
             return OrderReleaseResponse.newBuilder()
                     .setId(order.id())
@@ -243,9 +203,29 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
         grpc.subscribe(responseObserver, just(request)
                 .map(OrderGetRequest::getId)
                 .flatMap(id -> orderRepository.findById(id).switchIfEmpty(notFoundById(id)))
-                .map(OrdersServiceUtils::toOrder).map(order -> OrderGetResponse.newBuilder()
-                        .setOrder(order).build())
+                .flatMap(order -> {
+                    return getItems(order.reserveId()).zipWith(getPaymentStatus(order.paymentId()),
+                            (items, paymentStatus) -> {
+                                return toOrder(order, paymentStatus, items);
+                            });
+                }).map(order -> OrderGetResponse.newBuilder().setOrder(order).build())
         );
+    }
+
+    private Mono<List<ReserveOuterClass.Reserve.Item>> getItems(String reserveId) {
+        return toMono(ReserveOuterClass.ReserveGetRequest.newBuilder()
+                .setId(reserveId)
+                .build(), reserveClient::get).map(reserveGetResponse -> {
+            return reserveGetResponse.getReserve().getItemsList();
+        });
+    }
+
+    private Mono<PaymentOuterClass.Payment.Status> getPaymentStatus(String paymentId) {
+        return toMono(PaymentGetRequest.newBuilder()
+                .setId(paymentId)
+                .build(), paymentsClient::get).map(response -> {
+            return response.getPayment().getStatus();
+        });
     }
 
     @Override
@@ -254,7 +234,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
             return orderRepository.findAll().defaultIfEmpty(List.of());
         }).map(orders -> {
             return orders.stream()
-                    .map(OrdersServiceUtils::toOrder)
+                    .map(order -> toOrder(order, null, null))
                     .toList();
         }).map(orders -> {
             return OrderListResponse.newBuilder()

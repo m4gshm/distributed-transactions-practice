@@ -25,8 +25,6 @@
             <column name="payment_id" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="payment_status" type="text"/>
-            <column name="payment_insufficient_value" type="double"/>
         </createTable>
     </changeSet>
     <changeSet id="createTable-items" author="alex">
@@ -42,12 +40,9 @@
                              foreignKeyName="items_orders_id_fk"
                 />
             </column>
-            <column name="status" type="text">
-            </column>
             <column name="amount" type="int">
                 <constraints nullable="false"/>
             </column>
-            <column name="insufficient_amount" type="int"/>
         </createTable>
     </changeSet>
     <changeSet id="createTable" author="alex">

@@ -12,18 +12,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
-import reserve.v1.ReserveOuterClass.ListReserveRequest;
-import reserve.v1.ReserveOuterClass.ListReserveResponse;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
-import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
-import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
-import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
-import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
-import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
-import reserve.v1.ReserveOuterClass.ReserveUpdateRequest;
-import reserve.v1.ReserveOuterClass.ReserveUpdateResponse;
+import reserve.v1.ReserveOuterClass.*;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.Set;
@@ -32,14 +21,9 @@ import java.util.UUID;
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newStatusRuntimeException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.approved;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.created;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.released;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.newApproveResponse;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toItemReserves;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserve;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.*;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.lang.Boolean.TRUE;
 import static java.util.Objects.requireNonNull;
@@ -86,7 +70,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             return checkStatus(reserve.status(), Set.of(created), just(reserve));
         }).flatMap(reserve -> {
             var items = reserve.items();
-            var notReservedItems = items.stream().filter(item -> !TRUE.equals(item.reserved())).toList();
+            var notReservedItems = items.stream().filter(item -> !item.reserved()).toList();
 
             if (notReservedItems.isEmpty()) {
                 return error(newStatusRuntimeException(FAILED_PRECONDITION, "all items reserved already"));
@@ -98,28 +82,26 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             return prepare(request.getTwoPhaseCommit(), dsl, reserveId, warehouseItemStorage.reserve(
                     toItemReserves(notReservedItems)
             ).flatMap(reserveResults -> {
-                var successReserved = reserveResults.stream().filter(reserveResult -> {
-                    return reserved.equals(reserveResult.status());
-                }).map(itemReserveResult -> {
-                    return requireNonNull(
-                            notReservedItemPerId.get(itemReserveResult.id()),
-                            "no preloaded reserve item " + itemReserveResult.id()
-                    );
-                }).map(i -> {
-                    return i.toBuilder()
-                            .reserved(true)
+                var items1 = reserveResults.stream().map(itemReserveResult -> {
+                    var itemId = itemReserveResult.id();
+                    var item = requireNonNull(notReservedItemPerId.get(itemId), "no preloaded reserve item " + itemId);
+                    var reserved = itemReserveResult.reserved();
+                    return item.toBuilder()
+                            .reserved(reserved)
+                            .insufficient(!reserved ? -itemReserveResult.remainder() : null)
                             .build();
                 }).toList();
 
                 var updatingReserve = reserve.toBuilder();
-                var allReserved = successReserved.size() == notReservedItems.size();
+                var allReserved = items1.size() == notReservedItems.size();
                 if (allReserved) {
                     updatingReserve.status(approved);
                 }
                 var response = newApproveResponse(reserveResults, reserveId);
                 return reserveStorage.save(updatingReserve
-                        .items(successReserved)
-                        .build()).map(_ -> response).defaultIfEmpty(response);
+                        .items(items1)
+                        .build()
+                ).map(_ -> response).defaultIfEmpty(response);
             }));
         })));
     }
@@ -149,6 +131,22 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     }
 
     @Override
+    public void get(ReserveGetRequest request, StreamObserver<ReserveGetResponse> responseObserver) {
+        grpc.subscribe(responseObserver, reserveStorage.getById(request.getId()).map(reserve -> {
+            return ReserveGetResponse.newBuilder().setReserve(toReserve(reserve)).build();
+        }));
+    }
+
+    @Override
+    public void list(ReserveListRequest request, StreamObserver<ReserveListResponse> responseObserver) {
+        grpc.subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
+            return ReserveListResponse.newBuilder()
+                    .addAllReserves(reserves.stream().map(reserve -> toReserve(reserve)).toList())
+                    .build();
+        }));
+    }
+
+    @Override
     public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         super.cancel(request, responseObserver);
     }
@@ -158,13 +156,5 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         super.update(request, responseObserver);
     }
 
-    @Override
-    public void list(ListReserveRequest request, StreamObserver<ListReserveResponse> responseObserver) {
-        grpc.subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
-            return ListReserveResponse.newBuilder()
-                    .addAllReserves(reserves.stream().map(reserve -> toReserve(reserve)).toList())
-                    .build();
-        }));
-    }
 
 }

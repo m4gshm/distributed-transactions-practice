@@ -3,13 +3,13 @@ package io.github.m4gshm.payments.service;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Payment.Status;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass.*;
-import reactor.core.publisher.Mono;
 
 import java.util.Set;
 import java.util.UUID;
@@ -57,10 +57,12 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 return checkStatus(payment.status(), Set.of(created, insufficient), just(payment)).then(accountStorage.getById(payment.clientId()
                 ).flatMap(account -> {
                     return accountStorage.addLock(account, payment.amount()).flatMap(lockResult -> {
+                        var status = lockResult.success()
+                                ? hold
+                                : insufficient;
                         return paymentStorage.save(payment.toBuilder()
-                                .status(lockResult.success()
-                                        ? hold
-                                        : insufficient)
+                                .status(status)
+                                .insufficient(status == insufficient ? lockResult.insufficientAmount() : null)
                                 .build()
                         ).map(_ -> {
                             return PaymentApproveResponse.newBuilder()

@@ -68,16 +68,12 @@ public class OrderStorageR2DBC implements OrderStorage {
                     .set(ORDERS.CUSTOMER_ID, order.customerId())
                     .set(ORDERS.RESERVE_ID, order.reserveId())
                     .set(ORDERS.PAYMENT_ID, order.paymentId())
-                    .set(ORDERS.PAYMENT_INSUFFICIENT_VALUE, order.paymentInsufficientValue())
-                    .set(ORDERS.PAYMENT_STATUS, getCode(order.paymentStatus()))
                     .onDuplicateKeyUpdate()
                     .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
                     .set(ORDERS.CUSTOMER_ID, order.customerId())
                     .set(ORDERS.RESERVE_ID, order.reserveId())
                     .set(ORDERS.PAYMENT_ID, order.paymentId())
-                    .set(ORDERS.PAYMENT_INSUFFICIENT_VALUE, order.paymentInsufficientValue())
-                    .set(ORDERS.PAYMENT_STATUS, getCode(order.paymentStatus()))
             );
 
             var delivery = order.delivery();
@@ -101,10 +97,8 @@ public class OrderStorageR2DBC implements OrderStorage {
                                         .set(ITEMS.ORDER_ID, order.id())
                                         .set(ITEMS.ID, item.id())
                                         .set(ITEMS.AMOUNT, item.amount())
-                                        .set(ITEMS.STATUS, getCode(item.status()))
                                         .onDuplicateKeyUpdate()
                                         .set(ITEMS.AMOUNT, item.amount())
-                                        .set(ITEMS.STATUS, getCode(item.status()))
                                         ;
                             }
                     ).map(Mono::from).toList()).flatMap(i1 -> i1).reduce(Integer::sum);

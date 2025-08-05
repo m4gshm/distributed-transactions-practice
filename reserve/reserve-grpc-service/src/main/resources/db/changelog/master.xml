@@ -61,6 +61,7 @@
             <column name="amount" type="int4">
                 <constraints nullable="false"/>
             </column>
+            <column name="unsufficient" type="int4"/>
             <column name="reserved" type="bool"/>
         </createTable>
     </changeSet>

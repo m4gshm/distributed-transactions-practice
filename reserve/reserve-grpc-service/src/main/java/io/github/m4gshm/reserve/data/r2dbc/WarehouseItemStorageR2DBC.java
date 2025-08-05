@@ -21,8 +21,6 @@ import java.util.List;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static io.github.m4gshm.jooq.utils.Update.checkUpdate;
-import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.insufficient_quantity;
-import static io.github.m4gshm.reserve.data.WarehouseItemStorage.ReserveItem.Result.Status.reserved;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 import static lombok.AccessLevel.PRIVATE;
@@ -91,10 +89,12 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdate("reserve item", id, () -> resultBuilder.status(reserved).build()));
+                    ).flatMap(checkUpdate("reserve item", id, () -> {
+                        return resultBuilder.reserved(true).build();
+                    }));
                 } else {
                     log.info("not enough item amount: item [{}], [need] {}", id, -remainder);
-                    return just(resultBuilder.status(insufficient_quantity).build());
+                    return just(resultBuilder.reserved(false).build());
                 }
             }).collectList().flatMap(l -> logTxId(dsl, "reserve", l));
         });
@@ -118,8 +118,8 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return error(new ReleaseItemException(id, -reserved, -newTotalAmount));
                 } else {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(reserved))
-                            .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(reserved))
+                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
+                            .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
                     ).flatMap(checkUpdate("reserve item", id, () -> {
                         return ReleaseItem.Result.builder().id(id).remainder(newTotalAmount).build();

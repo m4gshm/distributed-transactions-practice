@@ -118,21 +118,13 @@ message Order {
     optional Status status = 7;
     optional payment.v1.Payment.Status payment_status = 8;
     Delivery delivery = 9;
-    repeated Item items = 10;
+    repeated reserve.v1.Reserve.Item items = 10;
 
     enum Status {
         CREATED = 0;
         APPROVED = 1;
         RELEASED = 2;
         INSUFFICIENT = 3;
-    }
-
-    message Item {
-        string id = 1;
-        string name = 2;
-        optional reserve.v1.Reserve.Item.Status status = 3;
-        int32 amount = 4;
-        optional int32 insufficient_amount = 5;
     }
 
     message Delivery {

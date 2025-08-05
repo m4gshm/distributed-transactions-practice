@@ -46,6 +46,7 @@
             <column name="amount" type="float8">
                 <constraints nullable="false"/>
             </column>
+            <column name="insufficient" type="float8"/>
             <column name="status" type="text">
                 <constraints nullable="false"/>
             </column>

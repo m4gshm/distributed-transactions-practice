@@ -19,12 +19,10 @@ public class OrderStorageJooqMapperUtils {
                 .customerId(order.get(ORDERS.CUSTOMER_ID))
                 .reserveId(order.get(ORDERS.RESERVE_ID))
                 .paymentId(order.get(ORDERS.PAYMENT_ID))
-                .paymentStatus(Order.PaymentStatus.byCode(order.get(ORDERS.PAYMENT_STATUS)))
                 .delivery(toDelivery(delivery))
                 .items(items.stream().map(item -> Order.Item.builder()
                         .id(item.get(ITEMS.ID))
                         .amount(item.get(ITEMS.AMOUNT))
-                        .status(Order.Item.Status.byCode(item.get(ITEMS.STATUS)))
                         .build()
                 ).toList())
                 .build();

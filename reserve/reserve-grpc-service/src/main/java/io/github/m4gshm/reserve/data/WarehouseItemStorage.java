@@ -10,18 +10,14 @@ import java.util.List;
 
 public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String> {
 
-    Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> reserves);
+    Mono<List<ReserveItem.Result>> reserve(Collection<ReserveItem> items);
 
     Mono<List<ReleaseItem.Result>> release(Collection<ReleaseItem> items);
 
     @Builder(toBuilder = true)
     record ReserveItem(String id, int amount) {
         @Builder
-        public record Result(String id, Integer remainder, Status status) {
-            public enum Status {
-                reserved,
-                insufficient_quantity
-            }
+        public record Result(String id, Integer remainder, boolean reserved) {
         }
     }
 

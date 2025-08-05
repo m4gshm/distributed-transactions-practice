@@ -39,6 +39,6 @@ public record Reserve(String id,
     }
 
     @Builder(toBuilder = true)
-    public record Item(String id, @Positive Integer amount, Boolean reserved) {
+    public record Item(String id, @Positive Integer amount, Integer insufficient, boolean reserved) {
     }
 }

@@ -16,10 +16,8 @@ import reactor.core.publisher.Mono;
 import java.util.List;
 
 import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.selectPayments;
-import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.storeRoutine;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.PAYMENT;
-import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @Service
@@ -41,14 +39,30 @@ public class PaymentStorageR2DBC implements PaymentStorage {
     @Override
     public Mono<Payment> findById(String id) {
         return jooq.transactional(dsl -> {
-            return from(selectPayments(dsl).where(PAYMENT.ID.eq(id))).map(PaymentStorageR2DBCUtils::toPayment);
+            return Mono.from(selectPayments(dsl).where(PAYMENT.ID.eq(id))).map(PaymentStorageR2DBCUtils::toPayment);
         });
     }
 
     @Override
     public Mono<Payment> save(@Valid Payment payment) {
         return jooq.transactional(dsl -> {
-            return storeRoutine(dsl, payment);
+            return Mono.from(dsl.insertInto(PAYMENT)
+                    .set(PAYMENT.ID, payment.id())
+                    .set(PAYMENT.CREATED_AT, PaymentStorageR2DBCUtils.orNow(payment.createdAt()))
+                    .set(PAYMENT.EXTERNAL_REF, payment.externalRef())
+                    .set(PAYMENT.CLIENT_ID, payment.clientId())
+                    .set(PAYMENT.STATUS, payment.status().getCode())
+                    .set(PAYMENT.AMOUNT, payment.amount())
+                    .set(PAYMENT.INSUFFICIENT, payment.insufficient())
+                    .onDuplicateKeyUpdate()
+                    .set(PAYMENT.UPDATED_AT, PaymentStorageR2DBCUtils.orNow(payment.updatedAt()))
+                    .set(PAYMENT.STATUS, payment.status().getCode())
+                    .set(PAYMENT.AMOUNT, payment.amount())
+                    .set(PAYMENT.INSUFFICIENT, payment.insufficient())
+            ).map(count -> {
+                log.debug("stored payment rows {}", count);
+                return payment;
+            });
         });
     }
 }

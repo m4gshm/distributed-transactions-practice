@@ -7,14 +7,12 @@ import org.jooq.Record;
 import org.jooq.SelectJoinStep;
 import io.github.m4gshm.payments.data.model.Payment;
 import io.github.m4gshm.payments.data.model.Payment.Status;
-import reactor.core.publisher.Mono;
 
 import java.time.OffsetDateTime;
 
 import static java.util.Optional.ofNullable;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static payments.data.access.jooq.Tables.PAYMENT;
-import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @UtilityClass
@@ -33,23 +31,6 @@ public class PaymentStorageR2DBCUtils {
                 .createdAt(record.get(PAYMENT.CREATED_AT))
                 .updatedAt(record.get(PAYMENT.UPDATED_AT))
                 .build();
-    }
-
-    public static Mono<Payment> storeRoutine(DSLContext dsl, Payment payment) {
-        return from(dsl.insertInto(PAYMENT)
-                .set(PAYMENT.ID, payment.id())
-                .set(PAYMENT.CREATED_AT, orNow(payment.createdAt()))
-                .set(PAYMENT.EXTERNAL_REF, payment.externalRef())
-                .set(PAYMENT.CLIENT_ID, payment.clientId())
-                .set(PAYMENT.STATUS, payment.status().getCode())
-                .set(PAYMENT.AMOUNT, payment.amount())
-                .onDuplicateKeyUpdate()
-                .set(PAYMENT.UPDATED_AT, orNow(payment.updatedAt()))
-                .set(PAYMENT.STATUS, payment.status().getCode())
-                .set(PAYMENT.AMOUNT, payment.amount())).map(count -> {
-            log.debug("stored payment rows {}", count);
-            return payment;
-        });
     }
 
     public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {

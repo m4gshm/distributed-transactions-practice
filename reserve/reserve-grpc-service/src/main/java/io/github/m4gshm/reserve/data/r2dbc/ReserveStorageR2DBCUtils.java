@@ -69,7 +69,8 @@ public class ReserveStorageR2DBCUtils {
                 .set(RESERVE_ITEM.RESERVED, item.reserved())
                 .onDuplicateKeyUpdate()
                 .set(RESERVE_ITEM.AMOUNT, item.amount())
-                .set(RESERVE_ITEM.RESERVED, item.reserved());
+                .set(RESERVE_ITEM.RESERVED, item.reserved())
+                ;
     }
 
     public static SelectJoinStep<Record> selectReserves(DSLContext dsl) {

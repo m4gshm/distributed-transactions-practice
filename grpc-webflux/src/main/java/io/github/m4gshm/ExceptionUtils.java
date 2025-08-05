@@ -11,7 +11,7 @@ import java.util.Collection;
 
 import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 import static io.grpc.Status.FAILED_PRECONDITION;
-import static reactor.core.publisher.Mono.*;
+import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class ExceptionUtils {
@@ -23,7 +23,8 @@ public class ExceptionUtils {
 
     public static <T, S extends Enum<S>> Mono<T> checkStatus(S actual, Collection<S> expected, Mono<T> next) {
         return !expected.contains(actual)
-                ? error(newStatusRuntimeException(FAILED_PRECONDITION, "inappropriate status: " + expected))
+                ? error(newStatusRuntimeException(FAILED_PRECONDITION, "inappropriate status " + actual +
+                ", expected " + expected))
                 : next;
     }
 

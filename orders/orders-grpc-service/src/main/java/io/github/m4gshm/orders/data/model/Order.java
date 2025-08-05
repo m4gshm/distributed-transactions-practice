@@ -17,10 +17,7 @@ public record Order(String id,
                     Status status,
                     String customerId,
                     String paymentId,
-                    PaymentStatus paymentStatus,
-                    double paymentInsufficientValue,
                     String reserveId,
-                    String reserveStatus,
                     OffsetDateTime createdAt,
                     OffsetDateTime updatedAt,
                     Delivery delivery,
@@ -37,27 +34,8 @@ public record Order(String id,
         }
     }
 
-    public enum PaymentStatus implements EnumWithCode<PaymentStatus> {
-        hold,
-        insufficient_amount;
-
-        public static PaymentStatus byCode(String code) {
-            return getByCode(PaymentStatus.class, code);
-        }
-    }
-
     @Builder(toBuilder = true)
-    public record Item(String id, Status status, int amount, int insufficient) {
-        public enum Status implements EnumWithCode<Status> {
-            reserved,
-            released,
-            insufficient_quantity;
-
-            public static Status byCode(String code) {
-                return getByCode(Status.class, code);
-            }
-        }
-
+    public record Item(String id, int amount) {
     }
 
     @Builder(toBuilder = true)

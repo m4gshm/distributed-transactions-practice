@@ -5,12 +5,10 @@ import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
 import orders.v1.Orders;
 import orders.v1.Orders.OrderCreateRequest.OrderCreate;
-import payment.v1.PaymentOuterClass;
+import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentOuterClass.PaymentApproveResponse;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
-import reserve.v1.ReserveOuterClass.Reserve;
-import reserve.v1.ReserveOuterClass.Reserve.Item;
 import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
 import tpc.v1.Tpc;
 
@@ -20,17 +18,25 @@ import java.util.List;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
-import static java.util.Optional.of;
 import static java.util.Optional.ofNullable;
-import static java.util.function.Function.identity;
-import static java.util.stream.Collectors.toMap;
 import static orders.v1.Orders.Order.Status.*;
 import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class OrdersServiceUtils {
 
-    static Orders.Order toOrder(Order order) {
+//    static Orders.Order toOrder(Order order) {
+//        var paymentStatus = toPaymentStatus(order.paymentStatus());
+//        return toOrder(order, paymentStatus);
+//    }
+//
+//    static Orders.Order toOrder(Order order, Payment.Status paymentStatus) {
+//        var items = order.items().stream().map(OrdersServiceUtils::toOrderItem).toList();
+//        return toOrder(order, paymentStatus, items);
+//    }
+
+    static Orders.Order toOrder(Order order, Payment.Status paymentStatus,
+                                List<ReserveOuterClass.Reserve.Item> items) {
         var builder = Orders.Order.newBuilder()
                 .setId(toString(order.id()))
                 .setCreatedAt(toTimestamp(order.createdAt()))
@@ -38,19 +44,12 @@ public class OrdersServiceUtils {
                 .setPaymentId(toString(order.paymentId()))
                 .setReserveId(toString(order.reserveId()))
                 .mergeDelivery(toDelivery(order.delivery()))
-                .addAllItems(order.items().stream().map(OrdersServiceUtils::toOrderItem).toList());
+                .addAllItems(items != null ? items : List.of());
 
         ofNullable(toOrderStatus(order.status())).ifPresent(builder::setStatus);
-        ofNullable(toPaymentStatus(order.paymentStatus())).ifPresent(builder::setPaymentStatus);
+        ofNullable(paymentStatus).ifPresent(builder::setPaymentStatus);
 
         return builder.build();
-    }
-
-    private static PaymentOuterClass.Payment.Status toPaymentStatus(Order.PaymentStatus paymentStatus) {
-        return paymentStatus == null ? null : switch (paymentStatus) {
-            case hold -> PaymentOuterClass.Payment.Status.HOLD;
-            case insufficient_amount -> PaymentOuterClass.Payment.Status.INSUFFICIENT;
-        };
     }
 
     public static Orders.Order.Status toOrderStatus(Order.Status status) {
@@ -62,28 +61,20 @@ public class OrdersServiceUtils {
         };
     }
 
-    private static Orders.Order.Item toOrderItem(Order.Item item) {
+    private static ReserveOuterClass.Reserve.Item toOrderItem(Order.Item item) {
         if (item == null) {
             return null;
         } else {
-            var builder = Orders.Order.Item.newBuilder()
+            var builder = ReserveOuterClass.Reserve.Item.newBuilder()
                     .setId(toString(item.id()))
                     .setAmount(item.amount());
 
-            ofNullable(toItemStatus(item.status())).ifPresent(builder::setStatus);
+//            ofNullable(toItemStatus(item.status())).ifPresent(builder::setStatus);
 
-            of(item.insufficient()).filter(i -> i > 0).ifPresent(builder::setInsufficientAmount);
+//            of(item.insufficient()).filter(i -> i > 0).ifPresent(builder::setInsufficientAmount);
 
             return builder.build();
         }
-    }
-
-    private static Item.Status toItemStatus(Order.Item.Status status) {
-        return status == null ? null : switch (status) {
-            case reserved -> Item.Status.RESERVED;
-            case released -> Item.Status.RELEASED;
-            case insufficient_quantity -> Item.Status.INSUFFICIENT_QUANTITY;
-        };
     }
 
     private static Orders.Order.Delivery toDelivery(Order.Delivery delivery) {
@@ -160,30 +151,6 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    static List<Order.Item> populateItemStatus(Order order, ReserveApproveResponse reserve) {
-        var reserveItemPerId = reserve.getItemsList().stream()
-                .collect(toMap(ReserveApproveResponse.Item::getId, identity()));
-
-        return order.items().stream().map(item -> {
-            var itemReserve = reserveItemPerId.get(item.id());
-            if (itemReserve != null) {
-                return item.toBuilder().insufficient(itemReserve.getInsufficientQuantity())
-                        .status(toItemStatus(itemReserve.getStatus())).build();
-            } else {
-                return item;
-            }
-        }).toList();
-    }
-
-    private static Order.Item.Status toItemStatus(Item.Status status) {
-        return status == null ? null : switch (status) {
-            case RESERVED -> Order.Item.Status.reserved;
-            case RELEASED -> Order.Item.Status.released;
-            case INSUFFICIENT_QUANTITY -> Order.Item.Status.insufficient_quantity;
-            case UNRECOGNIZED -> null;
-        };
-    }
-
     static Order.Status getOrderStatus(PaymentApproveResponse.Status paymentStatus,
                                        ReserveApproveResponse.Status reserveStatus) {
         if (paymentStatus == PaymentApproveResponse.Status.APPROVED
@@ -195,14 +162,6 @@ public class OrdersServiceUtils {
         } else {
             throw new IllegalStateException("unexpected payment and reserve statuses: '" + paymentStatus + "','" + reserveStatus + "'");
         }
-    }
-
-    static Order.PaymentStatus toPaymentStatus(PaymentApproveResponse.Status paymentStatus) {
-        return paymentStatus == null ? null : switch (paymentStatus) {
-            case APPROVED -> Order.PaymentStatus.hold;
-            case INSUFFICIENT_AMOUNT -> Order.PaymentStatus.insufficient_amount;
-            case UNRECOGNIZED -> null;
-        };
     }
 
 }
