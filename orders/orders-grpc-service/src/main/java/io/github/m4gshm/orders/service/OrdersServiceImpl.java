@@ -13,11 +13,13 @@ import orders.v1.OrdersServiceGrpc.OrdersServiceImplBase;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentOuterClass.PaymentCreateRequest;
-import payment.v1.PaymentOuterClass.PaymentGetRequest;
+import payment.v1.PaymentOuterClass.*;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
+import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 import warehouse.v1.Warehouse;
@@ -26,6 +28,9 @@ import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceStub;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.*;
@@ -54,6 +59,12 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     public static Mono<PaymentOuterClass.PaymentCreateResponse> log(String name, Throwable e) {
         log.error("error on {}", name, e);
         return error(e);
+    }
+
+    private static Order orderWithStatus(Order order, Order.Status status) {
+        return order.toBuilder()
+                .status(status)
+                .build();
     }
 
     @Override
@@ -120,82 +131,90 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     @Override
     public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {
-        var orderId = request.getId();
-        grpc.subscribe(responseObserver, orderRepository.getById(orderId).flatMap(order -> {
-            return checkStatus(order.status(), Set.of(created, insufficient), just(order));
-        }).flatMap(order -> {
-            var twoPhaseCommit = request.getTwoPhaseCommit();
-            var paymentId = order.paymentId();
-            var reserveId = order.reserveId();
-            var paymentApproveRequest = PaymentOuterClass.PaymentApproveRequest.newBuilder()
-                    .setId(paymentId)
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .build();
-            var reserveApproveRequest = ReserveOuterClass.ReserveApproveRequest.newBuilder()
-                    .setId(reserveId)
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .build();
-            return toMono(paymentApproveRequest, paymentsClient::approve
-            ).zipWith(toMono(reserveApproveRequest, reserveClient::approve), (payment, reserve) -> {
-                var paymentStatus = payment.getStatus();
-                var reserveStatus = reserve.getStatus();
-                log.info("approve statuses: payment [{}], reserve [{}]", paymentStatus, reserveStatus);
-
-                var newOrderStatus = getOrderStatus(paymentStatus, reserveStatus);
-                log.debug("new order status [{}]", newOrderStatus);
-
-                var orderOnSave = order.toBuilder()
-                        .status(newOrderStatus)
-                        .build();
-
-                return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
-            }).flatMap(identity());
-        }).map(order -> OrderApproveResponse.newBuilder()
-                .setId(order.id())
-                .setStatus(toOrderStatus(order.status()))
-                .build()));
+        var twoPhaseCommit = request.getTwoPhaseCommit();
+        doDistributedOp("approve", request.getId(), twoPhaseCommit, responseObserver,
+                Set.of(created, insufficient), (payment, reserve) -> {
+                    return getOrderStatus(payment.getStatus(), reserve.getStatus());
+                },
+                paymentId -> PaymentApproveRequest.newBuilder()
+                        .setId(paymentId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                reserveId -> ReserveApproveRequest.newBuilder()
+                        .setId(reserveId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                paymentsClient::approve, reserveClient::approve,
+                order -> {
+                    return OrderApproveResponse.newBuilder()
+                            .setId(order.id())
+                            .build();
+                });
     }
 
     @Override
     public void release(OrderReleaseRequest request, StreamObserver<OrderReleaseResponse> responseObserver) {
-        var orderId = request.getId();
-        grpc.subscribe(responseObserver, orderRepository.findById(orderId).flatMap(order -> {
-            return checkStatus(order.status(), Set.of(approved), just(order));
-        }).flatMap(order -> {
-            var twoPhaseCommit = request.getTwoPhaseCommit();
-            var paymentId = order.paymentId();
-            var reserveId = order.reserveId();
-
-            var paymentProcessRequest = PaymentOuterClass.PaymentPayRequest.newBuilder()
-                    .setId(paymentId)
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .build();
-            var reserveReleaseRequest = ReserveOuterClass.ReserveReleaseRequest.newBuilder()
-                    .setId(reserveId)
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .build();
-
-            return toMono(paymentProcessRequest, paymentsClient::pay)
-                    .zipWith(toMono(reserveReleaseRequest, reserveClient::release), (_, _) -> {
-                        log.info("order released [{}]", orderId);
-
-                        var orderOnSave = order.toBuilder()
-                                .status(released)
-                                .build();
-
-                        return saveAndCommit(twoPhaseCommit, orderOnSave, paymentId, reserveId);
-                    }).flatMap(identity());
-        }).map(order -> {
-            return OrderReleaseResponse.newBuilder()
-                    .setId(order.id())
-                    .setStatus(toOrderStatus(order.status()))
-                    .build();
-        }));
+        var twoPhaseCommit = request.getTwoPhaseCommit();
+        doDistributedOp("release", request.getId(), twoPhaseCommit, responseObserver,
+                Set.of(approved), (_, _) -> released,
+                paymentId -> PaymentPayRequest.newBuilder()
+                        .setId(paymentId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                reserveId -> ReserveReleaseRequest.newBuilder()
+                        .setId(reserveId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                paymentsClient::pay, reserveClient::release,
+                order -> {
+                    return OrderReleaseResponse.newBuilder()
+                            .setId(order.id())
+                            .build();
+                });
     }
 
     @Override
     public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
-        super.cancel(request, responseObserver);
+        var twoPhaseCommit = request.getTwoPhaseCommit();
+        doDistributedOp("cancel", request.getId(), twoPhaseCommit, responseObserver,
+                Set.of(created, insufficient), (_, _) -> cancelled,
+                paymentId -> PaymentCancelRequest.newBuilder()
+                        .setId(paymentId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                reserveId -> ReserveCancelRequest.newBuilder()
+                        .setId(reserveId).setTwoPhaseCommit(twoPhaseCommit)
+                        .build(),
+                paymentsClient::cancel, reserveClient::cancel,
+                order -> {
+                    return OrderCancelResponse.newBuilder()
+                            .setId(order.id())
+                            .build();
+                });
+    }
+
+    private <T, PI, PO, RI, RO> void doDistributedOp(String name, String orderId, boolean twoPhaseCommit,
+                                                     StreamObserver<T> responseObserver,
+                                                     Set<Order.Status> expected,
+                                                     BiFunction<PO, RO, Order.Status> finalStatus,
+                                                     Function<String, PI> paymentRequest,
+                                                     Function<String, RI> reserveRequest,
+                                                     BiConsumer<PI, StreamObserver<PO>> paymentOp,
+                                                     BiConsumer<RI, StreamObserver<RO>> reserveOp,
+                                                     Function<Order, T> responseBuilder) {
+        orderInStatus(responseObserver, orderId, expected, order -> {
+            var paymentProcessRequest = paymentRequest.apply(order.paymentId());
+            var reserveReleaseRequest = reserveRequest.apply(order.reserveId());
+            return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp), (po, ro) -> {
+                log.debug("payment op {} result [{}] ", name, po);
+                log.debug("reserve op {} result [{}] ", name, ro);
+                log.info("order {} [{}]", name, orderId);
+                return saveAndCommit(twoPhaseCommit, orderWithStatus(order, finalStatus.apply(po, ro)),
+                        order.paymentId(), order.reserveId());
+            }).flatMap(identity()).map(responseBuilder);
+        });
+    }
+
+    private <T> void orderInStatus(StreamObserver<T> responseObserver, String orderId,
+                                   Set<Order.Status> expected, Function<Order, Mono<? extends T>> function) {
+        grpc.subscribe(responseObserver, orderRepository.getById(orderId).flatMap(order -> {
+            return checkStatus(order.status(), expected, just(order));
+        }).flatMap(function));
     }
 
     @Override

@@ -127,7 +127,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     @Override
     public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         var reserveId = request.getId();
-        reserveInStatus(responseObserver, reserveId, Set.of(created), (dsl, reserve) -> {
+        reserveInStatus(responseObserver, reserveId, Set.of(created, approved), (dsl, reserve) -> {
             var items = toItemOps(reserve.items());
             return prepare(request.getTwoPhaseCommit(), dsl, reserveId, warehouseItemStorage.cancelReserve(items)
                     .zipWith(reserveStorage.save(witStatus(reserve, cancelled)), (i, r) -> {

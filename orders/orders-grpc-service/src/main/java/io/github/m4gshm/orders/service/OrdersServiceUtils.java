@@ -58,23 +58,8 @@ public class OrdersServiceUtils {
             case approved -> APPROVED;
             case released -> RELEASED;
             case insufficient -> INSUFFICIENT;
+            case cancelled -> CANCELLED;
         };
-    }
-
-    private static ReserveOuterClass.Reserve.Item toOrderItem(Order.Item item) {
-        if (item == null) {
-            return null;
-        } else {
-            var builder = ReserveOuterClass.Reserve.Item.newBuilder()
-                    .setId(toString(item.id()))
-                    .setAmount(item.amount());
-
-//            ofNullable(toItemStatus(item.status())).ifPresent(builder::setStatus);
-
-//            of(item.insufficient()).filter(i -> i > 0).ifPresent(builder::setInsufficientAmount);
-
-            return builder.build();
-        }
     }
 
     private static Orders.Order.Delivery toDelivery(Order.Delivery delivery) {

@@ -27,7 +27,8 @@ public record Order(String id,
         created,
         approved,
         released,
-        insufficient;
+        insufficient,
+        cancelled;
 
         public static Status byCode(String code) {
             return getByCode(Status.class, code);

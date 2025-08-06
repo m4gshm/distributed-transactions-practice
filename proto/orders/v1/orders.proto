@@ -95,7 +95,7 @@ message OrderGetResponse {
 
 message OrderCancelRequest {
     string id = 1 [(buf.validate.field).string.uuid = true];
-    string reason = 2;
+    bool two_phase_commit = 2;
 }
 
 message OrderCancelResponse {
@@ -125,6 +125,7 @@ message Order {
         APPROVED = 1;
         RELEASED = 2;
         INSUFFICIENT = 3;
+        CANCELLED = 4;
     }
 
     message Delivery {
