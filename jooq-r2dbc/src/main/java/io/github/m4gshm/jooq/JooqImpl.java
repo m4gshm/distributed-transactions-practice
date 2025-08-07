@@ -35,7 +35,7 @@ public class JooqImpl implements Jooq {
 
     @Override
     public <T> Mono<T> transactional(Function<DSLContext, Mono<T>> function) {
-        return defer(() -> operator.execute(status -> deferContextual(context -> {
+        return defer(() -> operator.execute(_ -> deferContextual(context -> {
             var dlsContextHolder = context.hasKey(DSLContextHolder.class) ? context.get(DSLContextHolder.class) : null;
             if (dlsContextHolder == null) {
                 //log

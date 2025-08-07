@@ -1,6 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.reactive.GrpcReactive;
@@ -33,11 +34,11 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.*;
+import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.PrepareTransactionException;
+import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.orders.data.model.Order.Status.*;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.*;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
-import static java.util.function.Function.identity;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.*;
@@ -65,6 +66,14 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
         return order.toBuilder()
                 .status(status)
                 .build();
+    }
+
+    private static Mono<Integer> localRollback(DSLContext dsl, String orderId, Throwable result) {
+        return result instanceof PrepareTransactionException
+                ? TwoPhaseTransaction.rollback(dsl, string(orderId))
+                : Mono.<Integer>empty().doOnSubscribe(_ -> {
+            log.debug("no local prepared transaction for rollback");
+        });
     }
 
     @Override
@@ -173,7 +182,7 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
     public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
         var twoPhaseCommit = request.getTwoPhaseCommit();
         doDistributedOp("cancel", request.getId(), twoPhaseCommit, responseObserver,
-                Set.of(created, insufficient), (_, _) -> cancelled,
+                Set.of(created, insufficient, approved), (_, _) -> cancelled,
                 paymentId -> PaymentCancelRequest.newBuilder()
                         .setId(paymentId).setTwoPhaseCommit(twoPhaseCommit)
                         .build(),
@@ -197,21 +206,26 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                                                      BiConsumer<PI, StreamObserver<PO>> paymentOp,
                                                      BiConsumer<RI, StreamObserver<RO>> reserveOp,
                                                      Function<Order, T> responseBuilder) {
-        orderInStatus(responseObserver, orderId, expected, order -> {
+        getOrderInStatus(responseObserver, orderId, expected, order -> {
             var paymentProcessRequest = paymentRequest.apply(order.paymentId());
             var reserveReleaseRequest = reserveRequest.apply(order.reserveId());
+
             return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp), (po, ro) -> {
                 log.debug("payment op {} result [{}] ", name, po);
                 log.debug("reserve op {} result [{}] ", name, ro);
                 log.info("order {} [{}]", name, orderId);
-                return saveAndCommit(twoPhaseCommit, orderWithStatus(order, finalStatus.apply(po, ro)),
+                return finalStatus.apply(po, ro);
+            }).onErrorResume(e -> {
+                return remoteRollback(order.paymentId(), order.reserveId()).then(error(e));
+            }).flatMap(status -> {
+                return saveAndCommit(twoPhaseCommit, orderWithStatus(order, status),
                         order.paymentId(), order.reserveId());
-            }).flatMap(identity()).map(responseBuilder);
+            }).map(responseBuilder);
         });
     }
 
-    private <T> void orderInStatus(StreamObserver<T> responseObserver, String orderId,
-                                   Set<Order.Status> expected, Function<Order, Mono<? extends T>> function) {
+    private <T> void getOrderInStatus(StreamObserver<T> responseObserver, String orderId,
+                                      Set<Order.Status> expected, Function<Order, Mono<? extends T>> function) {
         grpc.subscribe(responseObserver, orderRepository.getById(orderId).flatMap(order -> {
             return checkStatus(order.status(), expected, just(order));
         }).flatMap(function));
@@ -264,42 +278,32 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     private Mono<Order> saveAndCommit(boolean twoPhaseCommit, Order order,
                                       String paymentTransactionId, String reserveTransactionId) {
+        var orderId = order.id();
         return jooq.transactional(dsl -> {
             //run distributed transaction
-            return prepare(twoPhaseCommit, dsl, order.id(), orderRepository.save(order)
-            ).onErrorResume(throwable -> {
-                return handlePreparedError(twoPhaseCommit, dsl, order.id(), paymentTransactionId,
-                        reserveTransactionId, throwable);
+            return prepare(twoPhaseCommit, dsl, order.id(), orderRepository.save(order)).onErrorResume(throwable -> {
+                //rollback distributed transaction on error
+                log.error("error on transactional operation with orderId [{}]", orderId, throwable);
+                return !twoPhaseCommit
+                        ? error(throwable)
+                        : distributedRollback(dsl, orderId, reserveTransactionId, paymentTransactionId, throwable);
             }).flatMap(savedOrder -> {
-                return handlePreparedSuccess(twoPhaseCommit, dsl, order.id(), paymentTransactionId,
-                        reserveTransactionId, savedOrder);
+                //commit distributed transaction if no errors
+                return !twoPhaseCommit
+                        ? just(savedOrder)
+                        : distributedCommit(dsl, orderId, reserveTransactionId, paymentTransactionId, savedOrder)
+                        .doOnError(throwable -> {
+                            log.error("error on commit distributed transaction [{}]", orderId, throwable);
+                        });
             });
         });
-    }
-
-    private <T> Mono<T> handlePreparedSuccess(boolean twoPhaseCommit, DSLContext dsl, String orderId,
-                                              String paymentTransactionId, String reserveTransactionId, T result) {
-        //commit distributed transaction if no errors
-        return !twoPhaseCommit ? just(result) : distributedCommit(dsl, orderId, reserveTransactionId,
-                paymentTransactionId, result
-        ).doOnError(throwable -> {
-            log.error("error on commit distributed transaction [{}]", orderId, throwable);
-        });
-    }
-
-    private <T> Mono<T> handlePreparedError(boolean twoPhaseCommit, DSLContext dsl, String orderId,
-                                            String paymentTransactionId, String reserveTransactionId, Throwable result) {
-        //rollback distributed transaction on error
-        log.error("error on transactional operation with orderId [{}]", orderId, result);
-        return !twoPhaseCommit ? error(result) : distributedRollback(dsl, orderId, reserveTransactionId,
-                paymentTransactionId, result);
     }
 
     private <T> Mono<T> distributedCommit(DSLContext dsl, String orderId, String reserveTransactionId,
                                           String paymentTransactionId, T result) {
         return toMono(newCommitRequest(reserveTransactionId), reserveClientTcp::commit)
                 .zipWith(toMono(newCommitRequest(paymentTransactionId), paymentsClientTcp::commit))
-                .then(commit(dsl, string(orderId)))
+                .then(TwoPhaseTransaction.commit(dsl, string(orderId)))
                 .thenReturn(result)
                 .doOnSuccess(_ -> {
                     log.debug("distributed transaction commit for order is successful, orderId [{}]", orderId);
@@ -310,14 +314,8 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
 
     private <T> Mono<T> distributedRollback(DSLContext dsl, String orderId, String reserveTransactionId,
                                             String paymentTransactionId, Throwable result) {
-        var localRollback = result instanceof PrepareTransactionException
-                ? rollback(dsl, string(orderId))
-                : Mono.<Integer>empty().doOnSubscribe(_ -> {
-            log.debug("no local prepared transaction for rollback");
-        });
-        return toMono(newRollbackRequest(reserveTransactionId), reserveClientTcp::rollback)
-                .zipWith(toMono(newRollbackRequest(paymentTransactionId), paymentsClientTcp::rollback))
-                .then(localRollback)
+        return remoteRollback(paymentTransactionId, reserveTransactionId)
+                .then(localRollback(dsl, orderId, result))
                 .then(defer(() -> {
                     //todo need check actuality
                     return Mono.<T>error(result);
@@ -330,6 +328,17 @@ public class OrdersServiceImpl extends OrdersServiceImplBase {
                 }).doOnError(e -> {
                     log.error("distributed transaction rollback for order is failed, orderId [{}]", orderId, e);
                 });
+    }
+
+    private Mono<Void> remoteRollback(
+            String paymentTransactionId, String reserveTransactionId
+    ) {
+        return toMono(newRollbackRequest(reserveTransactionId), reserveClientTcp::rollback)
+                .zipWith(toMono(newRollbackRequest(paymentTransactionId), paymentsClientTcp::rollback))
+                .onErrorComplete(e -> {
+                    log.warn("remote rollback error", e);
+                    return true;
+                }).then();
     }
 
 }

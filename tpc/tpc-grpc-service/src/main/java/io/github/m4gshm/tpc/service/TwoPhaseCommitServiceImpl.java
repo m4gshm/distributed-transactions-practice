@@ -6,10 +6,8 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.jooq.DSLContext;
-import tpc.v1.Tpc.TwoPhaseCommitRequest;
-import tpc.v1.Tpc.TwoPhaseCommitResponse;
-import tpc.v1.Tpc.TwoPhaseRollbackRequest;
-import tpc.v1.Tpc.TwoPhaseRollbackResponse;
+import tpc.v1.Tpc.*;
+import tpc.v1.Tpc.TwoPhaseListActivesResponse.Transaction;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -19,6 +17,19 @@ import static lombok.AccessLevel.PRIVATE;
 public class TwoPhaseCommitServiceImpl extends TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase {
     DSLContext dsl;
     GrpcReactive grpc;
+
+    @Override
+    public void listActives(TwoPhaseListActivesRequest request, StreamObserver<TwoPhaseListActivesResponse> response) {
+        grpc.subscribe(response, TwoPhaseTransaction.listPrepared(dsl).collectList().map(transactions -> {
+            return TwoPhaseListActivesResponse.newBuilder()
+                            .addAllTransactions(transactions.stream().map(t -> Transaction.newBuilder()
+                                    .setId(t.gid())
+                                    .build()
+                            ).toList())
+                            .build();
+                }
+        ));
+    }
 
     @Override
     public void commit(TwoPhaseCommitRequest request, StreamObserver<TwoPhaseCommitResponse> response) {

@@ -5,6 +5,10 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
 service TwoPhaseCommitService {
+  rpc listActives(TwoPhaseListActivesRequest) returns (TwoPhaseListActivesResponse) {
+    option (google.api.http) = {get: "/api/v1/transaction"};
+  }
+
   rpc commit(TwoPhaseCommitRequest) returns (TwoPhaseCommitResponse) {
     option (google.api.http) = {
       put: "/api/v1/transaction"
@@ -20,6 +24,15 @@ service TwoPhaseCommitService {
   }
 }
 
+message TwoPhaseListActivesRequest {}
+
+message TwoPhaseListActivesResponse {
+  repeated Transaction transactions = 1;
+  message Transaction {
+    string id = 1;
+  }
+}
+
 message TwoPhaseCommitRequest {
   string id = 1;
 }
@@ -28,7 +41,6 @@ message TwoPhaseCommitResponse {
   string message = 1;
   string id = 2;
 }
-
 
 message TwoPhaseRollbackRequest {
   string id = 1;

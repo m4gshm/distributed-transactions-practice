@@ -29,7 +29,10 @@ service OrdersService {
         };
     }
     rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
-        option (google.api.http) = {delete: "/api/v1/order/{id}"};
+        option (google.api.http) = {
+          post: "/api/v1/order/cancel"
+          body: "*"
+        };
     }
     rpc Get (OrderGetRequest) returns (OrderGetResponse) {
         option (google.api.http) = {
