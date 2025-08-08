@@ -66,6 +66,11 @@ dependencies {
 
     implementation("org.springframework:spring-webflux")
 
+    implementation("io.projectreactor.kafka:reactor-kafka")
+    implementation("org.springframework.kafka:spring-kafka")
+//    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka-reactive:4.3.0")
+//    implementation("org.springframework.cloud:spring-cloud-starter-stream-kafka:4.3.0")
+
 //    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 
     modules {

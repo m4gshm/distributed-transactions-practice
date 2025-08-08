@@ -7,10 +7,13 @@ import lombok.Builder;
 import reactor.core.publisher.Mono;
 
 public interface AccountStorage extends ReadStorage<Account, String> {
-    Mono<LockResult> addLock(Account account, double amount);
-    Mono<Void> unlock(Account account, double amount);
+    Mono<LockResult> addLock(String clientId, @Positive double amount);
 
-    Mono<WriteOffResult> writeOff(Account account, @Positive Double amount);
+    Mono<Void> unlock(String clientId, @Positive double amount);
+
+    Mono<BalanceResult> writeOff(String clientId, @Positive double amount);
+
+    Mono<BalanceResult> topUp(String clientId, @Positive double replenishment);
 
     @Builder
     public record LockResult(boolean success, double insufficientAmount) {
@@ -18,7 +21,7 @@ public interface AccountStorage extends ReadStorage<Account, String> {
     }
 
     @Builder
-    public record WriteOffResult(double balance) {
+    public record BalanceResult(double balance) {
 
     }
 }

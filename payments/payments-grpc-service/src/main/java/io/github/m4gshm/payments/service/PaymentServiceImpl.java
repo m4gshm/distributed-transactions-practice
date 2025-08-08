@@ -60,7 +60,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
         paymentAccount(responseObserver, request.getTwoPhaseCommit(), request.getId(),
                 Set.of(created, insufficient), (payment, account) -> {
-                    return accountStorage.addLock(account, payment.amount()).flatMap(lockResult -> {
+                    return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
                         var status = lockResult.success()
                                 ? hold
                                 : insufficient;
@@ -83,7 +83,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void pay(PaymentPayRequest request, StreamObserver<PaymentPayResponse> responseObserver) {
         paymentAccount(responseObserver, request.getTwoPhaseCommit(), request.getId(),
                 Set.of(hold), (payment, account) -> {
-                    return accountStorage.writeOff(account, payment.amount()).flatMap(writeOffResult -> {
+                    return accountStorage.writeOff(account.clientId(), payment.amount()).flatMap(writeOffResult -> {
                         return paymentStorage.save(withStatus(payment, paid)).map(_ -> {
                             return PaymentPayResponse.newBuilder()
                                     .setId(payment.id())
@@ -98,7 +98,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
         paymentAccount(responseObserver, request.getTwoPhaseCommit(), request.getId(),
                 Set.of(created, insufficient, hold), (payment, account) -> {
-                    return accountStorage.unlock(account, payment.amount()
+                    return accountStorage.unlock(account.clientId(), payment.amount()
                     ).then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
                         return PaymentCancelResponse.newBuilder()
                                 .setId(payment.id())

@@ -20,7 +20,7 @@ import java.util.List;
 
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
-import static io.github.m4gshm.jooq.utils.Update.checkUpdate;
+import static io.github.m4gshm.jooq.utils.Update.checkUpdateCount;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.*;
 import static lombok.AccessLevel.PRIVATE;
@@ -89,7 +89,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdate("reserve item", id, () -> {
+                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
                         return resultBuilder.reserved(true).build();
                     }));
                 } else {
@@ -121,7 +121,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdate("reserve item", id, () -> {
+                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
                         return resultBuilder.remainder(remainder).build();
                     }));
                 } else {
@@ -153,7 +153,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
                             .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
                             .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdate("reserve item", id, () -> {
+                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
                         return ItemOp.Result.builder().id(id).remainder(newTotalAmount).build();
                     }));
                 }

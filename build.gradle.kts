@@ -20,7 +20,20 @@ allprojects {
     the<DependencyManagementExtension>().apply {
         imports {
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
+//            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
         }
+
+//        <dependencyManagement>
+//    <dependencies>
+//        <dependency>
+//            <groupId>org.springframework.cloud</groupId>
+//            <artifactId>spring-cloud-dependencies</artifactId>
+//            <version>2023.0.2</version>
+//            <type>pom</type>
+//            <scope>import</scope>
+//        </dependency>
+//    </dependencies>
+//</dependencyManagement>
         dependencies{
             dependency("org.projectlombok:lombok:1.18.38")
 
@@ -47,6 +60,8 @@ allprojects {
             dependency("com.google.protobuf:protobuf-java-util:3.25.5")
 
             dependency("build.buf:protovalidate:0.2.1")
+
+            dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
         }
     }
 }

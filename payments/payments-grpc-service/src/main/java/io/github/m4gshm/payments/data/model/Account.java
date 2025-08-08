@@ -4,6 +4,6 @@ import lombok.Builder;
 
 import java.time.OffsetDateTime;
 
-@Builder
+@Builder(toBuilder = true)
 public record Account(String clientId, double amount, double locked, OffsetDateTime updatedAt) {
 }

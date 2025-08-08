@@ -65,6 +65,8 @@ dependencies {
 
     implementation("org.springframework:spring-webflux")
 
+    implementation("org.springframework.kafka:spring-kafka")
+
     modules {
         module("io.grpc:grpc-netty") {
             replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")

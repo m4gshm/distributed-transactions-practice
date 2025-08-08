@@ -8,6 +8,13 @@ service AccountService {
   rpc List(AccountListRequest) returns (AccountListResponse) {
     option (google.api.http) = {get: "/api/v1/account"};
   }
+
+  rpc TopUp(AccountTopUpRequest) returns (AccountTopUpResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/account"
+      body: "*"
+    };
+  }
 }
 
 message AccountListRequest {}
@@ -21,4 +28,16 @@ message Account {
   double amount = 2;
   double locked = 3;
   google.protobuf.Timestamp updated_at = 4;
+}
+
+message AccountTopUpRequest {
+  TopUp top_up = 1;
+  message TopUp {
+    string client_id = 1;
+    double amount = 2;
+  }
+}
+
+message AccountTopUpResponse {
+  double balance = 1;
 }
