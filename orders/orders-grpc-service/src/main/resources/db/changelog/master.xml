@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="createTable-orders" author="alex">
+        <createTable tableName="orders">
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="status" type="text"/>
+            <column name="customer_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reserve_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="payment_id" type="text">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="createTable-items" author="alex">
+        <createTable tableName="items">
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="order_id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             referencedColumnNames="id"
+                             referencedTableName="orders"
+                             foreignKeyName="items_orders_id_fk"
+                />
+            </column>
+            <column name="amount" type="int">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="createTable" author="alex">
+        <createTable tableName="delivery">
+            <column name="order_id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             referencedColumnNames="id"
+                             referencedTableName="orders"
+                             foreignKeyName="delivery_orders_id_fk"
+                />
+            </column>
+            <column name="address" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="type" type="text">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

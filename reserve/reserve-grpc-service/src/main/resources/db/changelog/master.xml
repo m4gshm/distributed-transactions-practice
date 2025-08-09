@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="createTable_warehouse_item" author="alex">
+        <createTable tableName="warehouse_item">
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="amount" type="int4">
+                <constraints nullable="false"/>
+            </column>
+            <column name="reserved" type="int4" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="unit_cost" type="double" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="createTable-reserve" author="alex">
+        <createTable tableName="reserve">
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="external_ref" type="text"/>
+            <column name="status" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="createTable_reserve_item" author="alex">
+        <createTable tableName="reserve_item">
+            <column name="reserve_id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             referencedColumnNames="id"
+                             referencedTableName="reserve"
+                             foreignKeyName="reserve_item_reserve_id_fk"
+                />
+            </column>
+            <column name="id" type="text">
+                <constraints nullable="false"
+                             primaryKey="true"
+                             referencedColumnNames="id"
+                             referencedTableName="warehouse_item"
+                             foreignKeyName="reserve_item_id_fk"
+                />
+            </column>
+            <column name="amount" type="int4">
+                <constraints nullable="false"/>
+            </column>
+            <column name="unsufficient" type="int4"/>
+            <column name="reserved" type="bool"/>
+        </createTable>
+    </changeSet>
+</databaseChangeLog>

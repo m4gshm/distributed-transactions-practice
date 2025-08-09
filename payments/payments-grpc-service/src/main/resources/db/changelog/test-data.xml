@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="loadUpdateData-account-1" author="alex">
+        <loadUpdateData tableName="account" file="./account.csv" primaryKey="client_id" relativeToChangelogFile="true"/>
+        <rollback>
+            <delete tableName="payment">
+                <where>
+                    client_id in ('ab745479-5741-46a8-b0b4-36174ef1fe7d','f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2')
+                </where>
+            </delete>
+            <delete tableName="account">
+                <where>
+                    client_id in ('ab745479-5741-46a8-b0b4-36174ef1fe7d','f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2')
+                </where>
+            </delete>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

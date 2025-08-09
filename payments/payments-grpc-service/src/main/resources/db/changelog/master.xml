@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="createTable-account" author="alex">
+        <createTable tableName="account">
+            <column name="client_id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="amount" type="float8">
+                <constraints nullable="false"/>
+            </column>
+            <column name="locked" type="float8" defaultValueNumeric="0">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+<!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
+<!--        <sql>-->
+<!--            ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked &lt;= amount);-->
+<!--        </sql>-->
+<!--        <rollback>-->
+<!--            <sql>-->
+<!--                ALTER TABLE account DROP CONSTRAINT lock_leq_amount;-->
+<!--            </sql>-->
+<!--        </rollback>-->
+<!--    </changeSet>-->
+    <changeSet id="createTable-payment" author="alex">
+        <createTable tableName="payment">
+            <column name="id" type="text">
+                <constraints nullable="false" primaryKey="true"/>
+            </column>
+            <column name="external_ref" type="text"/>
+            <column name="client_id" type="text">
+                <constraints nullable="false"
+                             referencedColumnNames="client_id"
+                             referencedTableName="account"
+                             foreignKeyName="payment_account_client_id_fk"
+                />
+            </column>
+            <column name="amount" type="float8">
+                <constraints nullable="false"/>
+            </column>
+            <column name="insufficient" type="float8"/>
+            <column name="status" type="text">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+                <constraints nullable="false"/>
+            </column>
+        </createTable>
+    </changeSet>
+    <changeSet id="createIndex-payment" author="alex">
+        <createIndex tableName="payment" indexName="payment_client_id">
+            <column name="client_id"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>
