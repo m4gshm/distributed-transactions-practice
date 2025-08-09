@@ -20,11 +20,14 @@ public class OrderStorageJooqMapperUtils {
                 .reserveId(order.get(ORDERS.RESERVE_ID))
                 .paymentId(order.get(ORDERS.PAYMENT_ID))
                 .delivery(toDelivery(delivery))
-                .items(items.stream().map(item -> Order.Item.builder()
-                        .id(item.get(ITEMS.ID))
-                        .amount(item.get(ITEMS.AMOUNT))
-                        .build()
-                ).toList())
+                .items(items.stream().map(OrderStorageJooqMapperUtils::toItem).toList())
+                .build();
+    }
+
+    private static Order.Item toItem(Record item) {
+        return Order.Item.builder()
+                .id(item.get(ITEMS.ID))
+                .amount(item.get(ITEMS.AMOUNT))
                 .build();
     }
 

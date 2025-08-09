@@ -65,6 +65,7 @@ dependencies {
 
     implementation("org.springframework:spring-webflux")
 
+    implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
 
     modules {

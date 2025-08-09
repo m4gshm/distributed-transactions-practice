@@ -35,6 +35,7 @@ dependencies {
     api(project(":jooq-r2dbc"))
     api(project(":orders:orders-grpc-api"))
     api(project(":payments:payments-grpc-api"))
+    api(project(":payments:payments-event-api"))
     api(project(":reserve:reserve-grpc-api"))
     api(project(":tpc:tpc-grpc-api"))
 
@@ -64,6 +65,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 
     implementation("org.springframework:spring-webflux")
+
+    implementation("io.projectreactor.kafka:reactor-kafka")
+    implementation("org.springframework.kafka:spring-kafka")
 
 //    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 

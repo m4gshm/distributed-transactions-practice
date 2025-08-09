@@ -39,8 +39,6 @@ logging:
     javax:
       management: INFO
 
-springdoc-bridge.protobuf.schemaNamingStrategy: PROTOBUF
-
 #spring:
 #  grpc:
 #    server:
@@ -77,3 +75,13 @@ spring:
     password: postgres
   liquibase:
     enabled: true
+  kafka:
+    bootstrap-servers:
+      - localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: payments
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer

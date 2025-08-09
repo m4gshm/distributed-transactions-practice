@@ -38,11 +38,12 @@ public class OrdersServiceUtils {
     static Orders.Order toOrder(Order order, Payment.Status paymentStatus,
                                 List<ReserveOuterClass.Reserve.Item> items) {
         var builder = Orders.Order.newBuilder()
-                .setId(toString(order.id()))
+                .setId(order.id())
                 .setCreatedAt(toTimestamp(order.createdAt()))
                 .setUpdatedAt(toTimestamp(order.updatedAt()))
-                .setPaymentId(toString(order.paymentId()))
-                .setReserveId(toString(order.reserveId()))
+                .setCustomerId(order.customerId())
+                .setPaymentId(order.paymentId())
+                .setReserveId(order.reserveId())
                 .mergeDelivery(toDelivery(order.delivery()))
                 .addAllItems(items != null ? items : List.of());
 
@@ -75,10 +76,6 @@ public class OrdersServiceUtils {
             case pickup -> Orders.Order.Delivery.Type.PICKUP;
             case courier -> Orders.Order.Delivery.Type.COURIER;
         };
-    }
-
-    private static String toString(Object id) {
-        return ofNullable(id).map(Object::toString).orElse(null);
     }
 
     static <T, ID> Mono<T> notFoundById(ID id) {

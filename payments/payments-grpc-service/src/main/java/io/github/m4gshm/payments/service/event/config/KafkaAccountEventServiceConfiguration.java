@@ -1,8 +1,8 @@
-package io.github.m4gshm.payments.service.integration.config;
+package io.github.m4gshm.payments.service.event.config;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import io.github.m4gshm.payments.service.integration.AccountEventService;
-import io.github.m4gshm.payments.service.integration.KafkaAccountEventServiceImpl;
+import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
+import io.github.m4gshm.payments.service.event.AccountEventService;
+import io.github.m4gshm.payments.service.event.KafkaAccountEventServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.NewTopic;
 import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
@@ -19,14 +19,14 @@ import static reactor.kafka.sender.SenderOptions.create;
 
 @RequiredArgsConstructor
 @Configuration
-@EnableConfigurationProperties(KafkaConfiguration.Properties.class)
-public class KafkaConfiguration {
+@EnableConfigurationProperties(KafkaAccountEventServiceConfiguration.Properties.class)
+public class KafkaAccountEventServiceConfiguration {
 
     private final KafkaProperties kafkaProperties;
     private final Properties properties;
 
     @Bean
-    public NewTopic topic() {
+    public NewTopic accountTopic() {
         var topic = properties.topic;
         var topicBuilder = TopicBuilder.name(topic.name);
         ofNullable(topic.partitions).ifPresent(topicBuilder::partitions);
@@ -34,21 +34,19 @@ public class KafkaConfiguration {
         return topicBuilder.build();
     }
 
-    @Bean
-    ReactiveKafkaProducerTemplate<String, String> template() {
+    public ReactiveKafkaProducerTemplate<String, AccountBalanceEvent> accountEventProducerTemplate() {
         return new ReactiveKafkaProducerTemplate<>(create(kafkaProperties.buildProducerProperties()));
     }
 
     @Bean
-    public AccountEventService kafkaEventService(ObjectMapper objectMapper,
-                                                 ReactiveKafkaProducerTemplate<String, String> template) {
-        return new KafkaAccountEventServiceImpl(objectMapper, template, properties.topic.name);
+    public AccountEventService kafkaEventService() {
+        return new KafkaAccountEventServiceImpl(accountEventProducerTemplate(), properties.topic.name);
     }
 
-    @ConfigurationProperties("service.kafka")
+    @ConfigurationProperties("service.kafka.account")
     public record Properties(@DefaultValue Topic topic) {
         public record Topic(
-                @DefaultValue("payment") String name,
+                @DefaultValue("payments") String name,
                 @DefaultValue("1") Integer partitions,
                 @DefaultValue("1") Integer replicas
         ) {

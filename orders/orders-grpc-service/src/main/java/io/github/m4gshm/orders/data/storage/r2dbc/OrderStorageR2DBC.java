@@ -1,10 +1,10 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
-import io.github.m4gshm.EnumWithCodeUtils;
+import io.github.m4gshm.EnumWithCode;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
-import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -14,7 +14,9 @@ import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+import java.util.Collection;
 import java.util.List;
+import java.util.Set;
 
 import static io.github.m4gshm.EnumWithCodeUtils.getCode;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
@@ -22,8 +24,11 @@ import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperU
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.orNow;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.selectOrdersJoinDelivery;
 import static java.util.Optional.ofNullable;
+import static java.util.stream.Collectors.groupingBy;
 import static lombok.AccessLevel.PRIVATE;
-import static orders.data.access.jooq.Tables.*;
+import static orders.data.access.jooq.Tables.DELIVERY;
+import static orders.data.access.jooq.Tables.ITEMS;
+import static orders.data.access.jooq.Tables.ORDERS;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.from;
 
@@ -109,6 +114,24 @@ public class OrderStorageR2DBC implements OrderStorage {
                     log.debug("stored delivery rows {}", deliveryRows);
                     log.debug("stored item rows {}", itemRows);
                     return order;
+                });
+            });
+        });
+    }
+
+    @Override
+    public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
+        return jooq.transactional(dsl -> {
+            var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId).and(ORDERS.STATUS.in(statuses.stream().map(EnumWithCode::getCode).toList())));
+            return Flux.from(selectOrder).collectList().flatMap(orders -> {
+                var orderIds = orders.stream().map(record -> record.get(ORDERS.ID)).toList();
+                var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.ORDER_ID.in(orderIds));
+                return Flux.from(selectItems).collectList().map(items -> {
+                    var itemsGroupedByOrderId = items.stream().collect(groupingBy(item -> item.get(ITEMS.ORDER_ID)));
+                    return orders.stream().map(order -> {
+                        var orderItems = itemsGroupedByOrderId.get(order.get(ORDERS.ID));
+                        return toOrder(order, order, orderItems);
+                    }).toList();
                 });
             });
         });

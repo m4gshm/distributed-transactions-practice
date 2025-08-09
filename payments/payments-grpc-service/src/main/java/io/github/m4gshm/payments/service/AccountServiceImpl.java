@@ -1,7 +1,7 @@
 package io.github.m4gshm.payments.service;
 
 import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.service.integration.AccountEventService;
+import io.github.m4gshm.payments.service.event.AccountEventService;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -18,7 +18,6 @@ import reactor.core.publisher.Mono;
 
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @Service
@@ -51,7 +50,7 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
             var plus = topUp.getAmount();
             var clientId = topUp.getClientId();
             return accountStorage.topUp(clientId, plus).flatMap(result -> {
-                return accountEventService.sendAccountTopUp(clientId).doOnError(e -> {
+                return accountEventService.sendAccountBalanceEvent(clientId, result.balance()).doOnError(e -> {
                     log.error("event send error", e);
                 }).thenReturn(AccountTopUpResponse.newBuilder()
                         .setBalance(result.balance())

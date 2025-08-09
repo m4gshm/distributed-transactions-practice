@@ -34,6 +34,7 @@ dependencies {
     api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
     api(project(":payments:payments-grpc-api"))
+    api(project(":payments:payments-event-api"))
     api(project(":tpc:tpc-grpc-service"))
 
     implementation("io.grpc:grpc-netty-shaded")

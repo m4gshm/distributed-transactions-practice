@@ -145,7 +145,7 @@ public class AccountStorageR2DBC implements AccountStorage {
                     .returning(ACCOUNT.fields());
             return from(returning
             ).map(accountRecord -> {
-                var balance = accountRecord.get(ACCOUNT.AMOUNT);
+                var balance = accountRecord.get(ACCOUNT.AMOUNT) -  accountRecord.get(ACCOUNT.LOCKED);
                 return BalanceResult.builder().balance(balance).build();
             }).switchIfEmpty(notFound("account", clientId));
         });
