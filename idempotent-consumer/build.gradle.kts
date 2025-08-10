@@ -1,0 +1,108 @@
+plugins {
+    `java-library`
+//    id("org.springframework.boot")
+    id("org.liquibase.gradle") version "3.0.2"
+    id("org.jooq.jooq-codegen-gradle") version "3.19.24"
+}
+apply(plugin = "io.spring.dependency-management")
+
+buildscript {
+    val liquibaseVer = "4.33.0"
+    dependencies {
+        classpath("org.liquibase:liquibase-core:$liquibaseVer")
+    }
+}
+
+//sourceSets {
+//    main {
+//        java {
+//            srcDirs("$projectDir/src/main")
+//        }
+//    }
+//}
+
+dependencies {
+    val liquibaseVer = "4.33.0"
+
+    implementation("org.projectlombok:lombok")
+    annotationProcessor("org.projectlombok:lombok")
+    testAnnotationProcessor("org.projectlombok:lombok")
+
+    api(project(":jooq-utils"))
+    api(project(":jooq-r2dbc"))
+
+//    implementation("org.liquibase:liquibase-core:$liquibaseVer")
+    implementation("org.postgresql:postgresql")
+    implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+
+    liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
+    liquibaseRuntime("info.picocli:picocli:4.7.7")
+    liquibaseRuntime("org.postgresql:postgresql")
+
+    jooqCodegen("org.postgresql:postgresql")
+
+    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+    implementation("org.springframework.boot:spring-boot-starter-jooq")
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
+}
+
+val dbSchema = "public"
+val dbUsername = "postgres"
+val dbPassword = "postgres"
+val dbUrl = "jdbc:postgresql://localhost:5000/idempotent_consumer"
+
+liquibase.activities.register("main") {
+    arguments = mapOf<String, Any?>(
+        "searchPath" to "${project.projectDir}/src/main/liquibase/",
+        "changelogFile" to requiredProperty("changeLogFile", "db/changelog/db.changelog-master.yaml"),
+        "url" to requiredProperty("dbUrl", dbUrl),
+        "username" to requiredProperty("dbUsername", dbUsername),
+        "password" to requiredProperty("dbPassword", dbPassword),
+        "liquibaseSchemaName" to requiredProperty("dbSchema", dbSchema),
+        "defaultSchemaName" to requiredProperty("dbSchema", dbSchema),
+        "logLevel" to "DEBUG",
+    ) + listOf(
+        "count"
+    ).map { it to project.findProperty(it) }.filter { it.second != null }
+}
+
+jooq {
+    configuration {
+        logging = org.jooq.meta.jaxb.Logging.DEBUG
+        jdbc {
+            driver = "org.postgresql.Driver"
+            url = dbUrl
+            user = dbUsername
+            password = dbPassword
+        }
+        generator {
+            name = "org.jooq.codegen.DefaultGenerator"
+            database {
+                inputSchema = "public"
+                isOutputSchemaToDefault = true
+                name = "org.jooq.meta.postgres.PostgresDatabase"
+                includes = "public.*"
+                excludes = "databasechangelog|databasechangeloglock"
+            }
+            target {
+                this.directory = "$projectDir/src/main/java"
+                packageName = "io.github.m4gshm.reactive.idempotent.consumer.storage"
+            }
+            generate {
+                isDefaultCatalog = false
+                isDefaultSchema = false
+                isTables = false
+                isKeys = false
+                isGlobalObjectReferences = false
+            }
+        }
+    }
+}
+
+fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)
+    ?: defaultValue ?: throw GradleException("undefined $propertyName")
+
+tasks.named("jooqCodegen") {
+    dependsOn("update")
+}
+

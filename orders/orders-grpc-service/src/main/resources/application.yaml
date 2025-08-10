@@ -1,0 +1,96 @@
+debug: true
+logging:
+  level:
+    root: INFO
+    org:
+      apache:
+        kafka:
+          clients:
+            FetchSessionHandler: INFO
+            NetworkClient: INFO
+            consumer:
+              internals: INFO
+          common:
+            telemetry:
+              internals: INFO
+    io:
+      github:
+        m4gshm: TRACE
+      r2dbc:
+        postgresql:
+          QUERY: DEBUG
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+#spring:
+#  grpc:
+#    server:
+#      port: 9090
+server:
+  port: 7080
+  error:
+    include-message: always
+grpc:
+  server:
+    port: 9080
+    channelz:
+      enabled: false
+    health:
+      enabled: false #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: false
+    exception-handling:
+      default-exception-advice-enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  #for liquibase
+  datasource:
+    url: r2dbc:postgresql://localhost:5000/orders
+    username: postgres
+    password: postgres
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/orders
+    username: postgres
+    password: postgres
+  liquibase:
+    enabled: true
+  kafka:
+#    bootstrap-servers:
+#      - localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+
+      group-id: orders
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      bootstrap-servers:
+        - localhost:9092
+      client-id: orders-1
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "io.github.m4gshm.payments.event.model"
+        reactiveAutoCommit: true
+
+service:
+  reserve:
+    address: localhost:9081
+  warehouse:
+    address: localhost:9081
+  payments:
+    address: localhost:9082
