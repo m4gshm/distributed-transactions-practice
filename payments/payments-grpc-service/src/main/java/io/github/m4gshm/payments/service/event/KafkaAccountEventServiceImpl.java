@@ -7,6 +7,8 @@ import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
 import reactor.core.publisher.Mono;
 import reactor.kafka.sender.SenderResult;
 
+import java.util.UUID;
+
 
 @RequiredArgsConstructor
 public class KafkaAccountEventServiceImpl implements AccountEventService {
@@ -18,9 +20,10 @@ public class KafkaAccountEventServiceImpl implements AccountEventService {
     @SneakyThrows
     public Mono<SenderResult<Void>> sendAccountBalanceEvent(String clientId, double balance) {
         return template.send(topicName, AccountBalanceEvent.builder()
+                .requestId(UUID.randomUUID().toString())
                 .clientId(clientId)
                 .balance(balance)
-                .build());
+                .build()
+        );
     }
-
 }

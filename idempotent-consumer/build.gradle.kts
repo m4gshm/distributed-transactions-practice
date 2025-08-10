@@ -1,6 +1,6 @@
 plugins {
     `java-library`
-    id("org.springframework.boot")
+//    id("org.springframework.boot")
     id("org.liquibase.gradle") version "3.0.2"
     id("org.jooq.jooq-codegen-gradle") version "3.19.24"
 }
@@ -13,13 +13,13 @@ buildscript {
     }
 }
 
-sourceSets {
-    main {
-        java {
-            srcDirs("$projectDir/build/generated-sources/jooq")
-        }
-    }
-}
+//sourceSets {
+//    main {
+//        java {
+//            srcDirs("$projectDir/src/main")
+//        }
+//    }
+//}
 
 dependencies {
     val liquibaseVer = "4.33.0"
@@ -28,21 +28,10 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
 
-    api(project(":storage-api"))
-    api(project(":grpc-webflux"))
-    api(project(":protobuf-utils"))
     api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
-    api(project(":orders:orders-grpc-api"))
-    api(project(":payments:payments-grpc-api"))
-    api(project(":payments:payments-event-api"))
-    api(project(":reserve:reserve-grpc-api"))
-    api(project(":tpc:tpc-grpc-api"))
-    api(project(":idempotent-consumer"))
 
-    implementation("io.grpc:grpc-netty-shaded")
-
-    implementation("org.liquibase:liquibase-core:$liquibaseVer")
+//    implementation("org.liquibase:liquibase-core:$liquibaseVer")
     implementation("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
 
@@ -54,39 +43,17 @@ dependencies {
 
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
-
-    implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
-
-    implementation("io.github.danielliu1123:grpc-server-boot-starter")
-    implementation("io.github.danielliu1123:grpc-starter-protovalidate")
-    implementation("io.github.danielliu1123:grpc-starter-transcoding")
-    implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
-
     implementation("org.springframework.boot:spring-boot-autoconfigure")
-
-    implementation("org.springframework:spring-webflux")
-
-    implementation("io.projectreactor.kafka:reactor-kafka")
-    implementation("org.springframework.kafka:spring-kafka")
-
-//    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
-
-    modules {
-        module("io.grpc:grpc-netty") {
-            replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")
-        }
-    }
 }
 
 val dbSchema = "public"
 val dbUsername = "postgres"
 val dbPassword = "postgres"
-val dbUrl = "jdbc:postgresql://localhost:5000/orders"
+val dbUrl = "jdbc:postgresql://localhost:5000/idempotent_consumer"
 
 liquibase.activities.register("main") {
     arguments = mapOf<String, Any?>(
-        "searchPath" to "${project.projectDir}/src/main/resources/",
+        "searchPath" to "${project.projectDir}/src/main/liquibase/",
         "changelogFile" to requiredProperty("changeLogFile", "db/changelog/db.changelog-master.yaml"),
         "url" to requiredProperty("dbUrl", dbUrl),
         "username" to requiredProperty("dbUsername", dbUsername),
@@ -112,19 +79,24 @@ jooq {
             name = "org.jooq.codegen.DefaultGenerator"
             database {
                 inputSchema = "public"
+                isOutputSchemaToDefault = true
                 name = "org.jooq.meta.postgres.PostgresDatabase"
-                includes = ".*"
-                excludes = ""
+                includes = "public.*"
+                excludes = "databasechangelog|databasechangeloglock"
             }
             target {
-                packageName = "orders.data.access.jooq"
+                this.directory = "$projectDir/src/main/java"
+                packageName = "io.github.m4gshm.reactive.idempotent.consumer.storage"
+            }
+            generate {
+                isDefaultCatalog = false
+                isDefaultSchema = false
+                isTables = false
+                isKeys = false
+                isGlobalObjectReferences = false
             }
         }
     }
-//    configurations {
-//        create("main") {
-//        }
-//    }
 }
 
 fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)
@@ -134,8 +106,3 @@ tasks.named("jooqCodegen") {
     dependsOn("update")
 }
 
-tasks.withType<JavaCompile> {
-    if (!project.hasProperty("no-codegen")) {
-        dependsOn(tasks.named("jooqCodegen"))
-    }
-}

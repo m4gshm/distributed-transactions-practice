@@ -20,8 +20,9 @@ public class TwoPhaseTransaction {
         return enabled ? routine.flatMap(result -> {
             return logTxId(dsl, "prepare2Pc", result);
         }).flatMap(result -> {
-            return prepare(dsl, id).onErrorResume(throwable -> error(new PrepareTransactionException(id, throwable)))
-                    .thenReturn(result).switchIfEmpty(just(result));
+            return prepare(dsl, id).onErrorResume(throwable -> {
+                        return error(new PrepareTransactionException(id, throwable));
+                    }).thenReturn(result).switchIfEmpty(just(result));
         }) : routine;
     }
 

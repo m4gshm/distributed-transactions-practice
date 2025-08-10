@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.Orders;
+import orders.v1.Orders.OrderCreateResponse;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
@@ -16,9 +17,7 @@ import payment.v1.PaymentServiceGrpc;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveServiceGrpc;
-import tpc.v1.TwoPhaseCommitServiceGrpc;
-import warehouse.v1.Warehouse;
-import warehouse.v1.WarehouseItemServiceGrpc;
+import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 import java.util.List;
 import java.util.Set;
@@ -42,9 +41,9 @@ import static io.github.m4gshm.orders.service.OrdersServiceUtils.string;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toDelivery;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrder;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderCreateResponse;
+import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderStatus;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static lombok.AccessLevel.PROTECTED;
-import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.fromSupplier;
@@ -57,10 +56,10 @@ import static reactor.core.publisher.Mono.just;
 public class OrdersServiceImpl implements OrdersService {
     OrderStorage orderRepository;
     ReserveServiceGrpc.ReserveServiceStub reserveClient;
-    TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub reserveClientTcp;
+    TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentServiceGrpc.PaymentServiceStub paymentsClient;
-    TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub paymentsClientTcp;
-    WarehouseItemServiceGrpc.WarehouseItemServiceStub warehouseClient;
+    TwoPhaseCommitServiceStub paymentsClientTcp;
+    ItemService itemService;
     Jooq jooq;
 
     static Mono<Integer> localRollback(DSLContext dsl, String orderId, Throwable result) {
@@ -100,20 +99,14 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     @Override
-    public Mono<Orders.OrderCreateResponse> create(Orders.OrderCreateRequest.OrderCreate createRequest, boolean twoPhaseCommit) {
+    public Mono<OrderCreateResponse> create(Orders.OrderCreateRequest.OrderCreate createRequest, boolean twoPhaseCommit) {
         return fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
             var itemsList = createRequest.getItemsList();
             var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
 
             var itemIds = itemsList.stream().map(Orders.OrderCreateRequest.OrderCreate.Item::getId).distinct().toList();
 
-            var costRoutine = fromIterable(itemIds).flatMap(itemId -> {
-                return toMono(Warehouse.GetItemCostRequest.newBuilder()
-                        .setId(itemId)
-                        .build(), warehouseClient::getItemCost);
-            }).map(Warehouse.GetItemCostResponse::getCost).reduce(0.0, Double::sum);
-
-            var paymentRoutine = costRoutine.map(cost -> {
+            var paymentRoutine = itemService.getSumCost(itemIds).map(cost -> {
                 return PaymentOuterClass.PaymentCreateRequest.newBuilder()
                         .setTwoPhaseCommit(twoPhaseCommit)
                         .setBody(PaymentOuterClass.PaymentCreateRequest.PaymentCreate.newBuilder()
@@ -153,7 +146,7 @@ public class OrdersServiceImpl implements OrdersService {
                         .delivery(toDelivery(createRequest.getDelivery()))
                         .items(items)
                         .build();
-                return saveAndCommit(twoPhaseCommit, order, paymentId, reserveId);
+                return saveAllAndCommit(twoPhaseCommit, order, paymentId, reserveId);
             });
         }).map(order -> {
             return toOrderCreateResponse(order);
@@ -165,12 +158,15 @@ public class OrdersServiceImpl implements OrdersService {
         return updateOrderOp("approve", orderId, twoPhaseCommit, Set.of(created, insufficient), (payment, reserve) -> {
             return getOrderStatus(payment.getStatus(), reserve.getStatus());
         }, paymentId -> PaymentOuterClass.PaymentApproveRequest.newBuilder()
-                .setId(paymentId).setTwoPhaseCommit(twoPhaseCommit)
+                .setId(paymentId)
+                .setTwoPhaseCommit(twoPhaseCommit)
                 .build(), reserveId -> ReserveOuterClass.ReserveApproveRequest.newBuilder()
-                .setId(reserveId).setTwoPhaseCommit(twoPhaseCommit)
+                .setId(reserveId)
+                .setTwoPhaseCommit(twoPhaseCommit)
                 .build(), paymentsClient::approve, reserveClient::approve, order -> {
             return Orders.OrderApproveResponse.newBuilder()
                     .setId(order.id())
+                    .setStatus(toOrderStatus(order.status()))
                     .build();
         });
     }
@@ -201,8 +197,8 @@ public class OrdersServiceImpl implements OrdersService {
         });
     }
 
-    protected Mono<Order> saveAndCommit(boolean twoPhaseCommit, Order order,
-                                        String paymentTransactionId, String reserveTransactionId) {
+    protected Mono<Order> saveAllAndCommit(boolean twoPhaseCommit, Order order,
+                                           String paymentTransactionId, String reserveTransactionId) {
         var orderId = order.id();
         return jooq.transactional(dsl -> {
             //run distributed transaction
@@ -211,12 +207,12 @@ public class OrdersServiceImpl implements OrdersService {
                 log.error("error on transactional operation with orderId [{}]", orderId, throwable);
                 return !twoPhaseCommit
                         ? error(throwable)
-                        : distributedRollback(dsl, orderId, reserveTransactionId, paymentTransactionId, throwable);
+                        : distributedRollback(dsl, orderId, paymentTransactionId, reserveTransactionId, throwable);
             }).flatMap(savedOrder -> {
                 //commit distributed transaction if no errors
                 return !twoPhaseCommit
                         ? just(savedOrder)
-                        : distributedCommit(dsl, orderId, reserveTransactionId, paymentTransactionId, savedOrder)
+                        : distributedCommit(dsl, orderId, paymentTransactionId, reserveTransactionId, savedOrder)
                         .doOnError(throwable -> {
                             log.error("error on commit distributed transaction [{}]", orderId, throwable);
                         });
@@ -224,8 +220,9 @@ public class OrdersServiceImpl implements OrdersService {
         });
     }
 
-    private <T> Mono<T> distributedCommit(DSLContext dsl, String orderId, String reserveTransactionId,
-                                          String paymentTransactionId, T result) {
+    private <T> Mono<T> distributedCommit(DSLContext dsl, String orderId,
+                                          String paymentTransactionId, String reserveTransactionId,
+                                          T result) {
         return toMono(newCommitRequest(reserveTransactionId), reserveClientTcp::commit)
                 .zipWith(toMono(newCommitRequest(paymentTransactionId), paymentsClientTcp::commit))
                 .then(TwoPhaseTransaction.commit(dsl, string(orderId)))
@@ -237,8 +234,9 @@ public class OrdersServiceImpl implements OrdersService {
                 });
     }
 
-    private <T> Mono<T> distributedRollback(DSLContext dsl, String orderId, String reserveTransactionId,
-                                            String paymentTransactionId, Throwable result) {
+    private <T> Mono<T> distributedRollback(DSLContext dsl, String orderId,
+                                            String paymentTransactionId, String reserveTransactionId,
+                                            Throwable result) {
         return remoteRollback(paymentTransactionId, reserveTransactionId)
                 .then(localRollback(dsl, orderId, result))
                 .then(defer(() -> {
@@ -255,9 +253,7 @@ public class OrdersServiceImpl implements OrdersService {
                 });
     }
 
-    protected Mono<Void> remoteRollback(
-            String paymentTransactionId, String reserveTransactionId
-    ) {
+    protected Mono<Void> remoteRollback(String paymentTransactionId, String reserveTransactionId) {
         return toMono(newRollbackRequest(reserveTransactionId), reserveClientTcp::rollback)
                 .zipWith(toMono(newRollbackRequest(paymentTransactionId), paymentsClientTcp::rollback))
                 .onErrorComplete(e -> {
@@ -273,22 +269,32 @@ public class OrdersServiceImpl implements OrdersService {
                                                         BiConsumer<RI, StreamObserver<RO>> reserveOp,
                                                         Function<Order, T> responseBuilder) {
         return orderRepository.getById(orderId).flatMap(order -> {
-            return checkStatus(order.status(), expected, just(order));
-        }).flatMap(order -> {
-            var paymentProcessRequest = paymentRequest.apply(order.paymentId());
-            var reserveReleaseRequest = reserveRequest.apply(order.reserveId());
-
-            return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp), (po, ro) -> {
-                log.debug("payment op {} result [{}] ", name, po);
-                log.debug("reserve op {} result [{}] ", name, ro);
-                log.info("order {} [{}]", name, orderId);
-                return finalStatus.apply(po, ro);
-            }).onErrorResume(e -> {
-                return remoteRollback(order.paymentId(), order.reserveId()).then(error(e));
-            }).flatMap(status -> {
-                return saveAndCommit(twoPhaseCommit, orderWithStatus(order, status),
-                        order.paymentId(), order.reserveId());
-            }).map(responseBuilder);
+            return checkStatus(order.status(), expected).then(defer(() -> {
+                var paymentId = order.paymentId();
+                var reserveId = order.reserveId();
+                var paymentProcessRequest = paymentRequest.apply(paymentId);
+                var reserveReleaseRequest = reserveRequest.apply(reserveId);
+                return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp), (po, ro) -> {
+                    log.debug("payment op '{}' result [{}] ", name, po);
+                    log.debug("reserve op '{}' result [{}] ", name, ro);
+                    log.info("order {} [{}]", name, orderId);
+                    return finalStatus.apply(po, ro);
+                }).onErrorResume(e -> {
+                    return twoPhaseCommit ? remoteRollback(paymentId, reserveId).then(error(e)) : error(e);
+                }).flatMap(status -> {
+                    var orderWithNewStatus = orderWithStatus(order, status);
+                    if (status == insufficient) {
+                        log.info("abort op '{}' on insufficient status of orderId [{}]", name, orderId);
+                        return orderRepository.save(orderWithNewStatus).flatMap(savedOrder -> {
+                            return twoPhaseCommit ? remoteRollback(paymentId, reserveId)
+                                    .thenReturn(savedOrder) : just(savedOrder);
+                        });
+                    } else {
+                        return saveAllAndCommit(twoPhaseCommit, orderWithNewStatus,
+                                paymentId, reserveId);
+                    }
+                }).map(responseBuilder);
+            }));
         });
     }
 

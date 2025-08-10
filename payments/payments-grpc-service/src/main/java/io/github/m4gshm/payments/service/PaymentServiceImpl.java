@@ -10,7 +10,18 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass.*;
+import payment.v1.PaymentOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentOuterClass.PaymentCancelResponse;
+import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentOuterClass.PaymentGetRequest;
+import payment.v1.PaymentOuterClass.PaymentGetResponse;
+import payment.v1.PaymentOuterClass.PaymentListRequest;
+import payment.v1.PaymentOuterClass.PaymentListResponse;
+import payment.v1.PaymentOuterClass.PaymentPayRequest;
+import payment.v1.PaymentOuterClass.PaymentPayResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.Set;
@@ -19,7 +30,11 @@ import java.util.function.BiFunction;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.payments.data.model.Payment.Status.*;
+import static io.github.m4gshm.payments.data.model.Payment.Status.cancelled;
+import static io.github.m4gshm.payments.data.model.Payment.Status.created;
+import static io.github.m4gshm.payments.data.model.Payment.Status.hold;
+import static io.github.m4gshm.payments.data.model.Payment.Status.insufficient;
+import static io.github.m4gshm.payments.data.model.Payment.Status.paid;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toDataModel;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toProto;
 import static lombok.AccessLevel.PRIVATE;
@@ -112,13 +127,11 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                     BiFunction<Payment, Account, Mono<T>> routine
     ) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
-            return prepare(twoPhaseCommit, dsl, paymentId, paymentStorage.getById(paymentId).flatMap(payment1 -> {
-                return checkStatus(payment1.status(), expected, just(payment1));
-            })).flatMap(payment -> {
-                return accountStorage.getById(payment.clientId()).flatMap(account -> {
-                    return routine.apply(payment, account);
-                });
-            });
+            return prepare(twoPhaseCommit, dsl, paymentId, paymentStorage.getById(paymentId).flatMap(payment -> {
+                return checkStatus(payment.status(), expected).then(defer(() -> {
+                    return accountStorage.getById(payment.clientId()).flatMap(account -> routine.apply(payment, account));
+                }));
+            }));
         }));
     }
 

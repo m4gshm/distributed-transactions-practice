@@ -13,7 +13,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass.*;
+import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
+import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
+import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
+import reserve.v1.ReserveOuterClass.ReserveGetRequest;
+import reserve.v1.ReserveOuterClass.ReserveGetResponse;
+import reserve.v1.ReserveOuterClass.ReserveListRequest;
+import reserve.v1.ReserveOuterClass.ReserveListResponse;
+import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
+import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.Set;
@@ -21,14 +32,20 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.ExceptionUtils.newStatusRuntimeException;
+import static io.github.m4gshm.ExceptionUtils.newStatusException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.*;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.*;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.approved;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.cancelled;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.created;
+import static io.github.m4gshm.reserve.data.model.Reserve.Status.released;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.newApproveResponse;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toItemOps;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserve;
 import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
+import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.just;
 
@@ -77,7 +94,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var notReservedItems = items.stream().filter(item -> !item.reserved()).toList();
 
             if (notReservedItems.isEmpty()) {
-                return error(newStatusRuntimeException(FAILED_PRECONDITION, "all items reserved already"));
+                return error(newStatusException(FAILED_PRECONDITION, "all items reserved already"));
             }
 
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
@@ -158,9 +175,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     private <T> void reserveInStatus(StreamObserver<T> responseObserver, String id, Set<Reserve.Status> expected,
                                      BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
-            return checkStatus(reserve.status(), expected, just(reserve)).flatMap(_ -> {
-                return routine.apply(dsl, reserve);
-            });
+            return checkStatus(reserve.status(), expected).then(routine.apply(dsl, reserve));
         })));
     }
 }

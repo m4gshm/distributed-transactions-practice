@@ -4,7 +4,7 @@ import org.gradle.kotlin.dsl.the
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.google.protobuf") version "0.9.5" apply false
-    id("org.springframework.boot") version "3.5.3" apply false
+    id("org.springframework.boot") version "3.5.4" apply false
 }
 
 allprojects {
@@ -21,19 +21,9 @@ allprojects {
         imports {
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
         }
 
-//        <dependencyManagement>
-//    <dependencies>
-//        <dependency>
-//            <groupId>org.springframework.cloud</groupId>
-//            <artifactId>spring-cloud-dependencies</artifactId>
-//            <version>2023.0.2</version>
-//            <type>pom</type>
-//            <scope>import</scope>
-//        </dependency>
-//    </dependencies>
-//</dependencyManagement>
         dependencies{
             dependency("org.projectlombok:lombok:1.18.38")
 
