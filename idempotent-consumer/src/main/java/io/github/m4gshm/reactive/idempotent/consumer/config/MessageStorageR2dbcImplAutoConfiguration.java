@@ -1,8 +1,9 @@
 package io.github.m4gshm.reactive.idempotent.consumer.config;
 
 import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.reactive.idempotent.consumer.MessageMaintenanceR2dbc;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
-import io.github.m4gshm.reactive.idempotent.consumer.MessageStorageR2dbcImpl;
+import io.github.m4gshm.reactive.idempotent.consumer.MessageStorageR2dbc;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
@@ -31,8 +32,9 @@ public class MessageStorageR2dbcImplAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     public MessageStorage messageStorageJooqR2dbcImpl() {
-        return new MessageStorageR2dbcImpl(jooq::transactional, INPUT_MESSAGES, Clock.systemDefaultZone(),
-                properties.createTable);
+        var maintenanceService = new MessageMaintenanceR2dbc(jooq::transactional, INPUT_MESSAGES);
+        return new MessageStorageR2dbc(maintenanceService, jooq::transactional, INPUT_MESSAGES,
+                Clock.systemDefaultZone(), properties.createTable);
     }
 
     @ConfigurationProperties("idempotent-consumer")
