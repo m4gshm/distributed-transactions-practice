@@ -1,6 +1,5 @@
 package io.github.m4gshm.orders.service;
 
-import orders.v1.Orders;
 import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelResponse;
 import orders.v1.Orders.OrderCreateRequest.OrderCreate;

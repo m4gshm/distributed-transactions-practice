@@ -27,7 +27,7 @@ public record Reserve(String id,
         released,
         cancelled;
 
-        private final static Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));
+        private static final Map<String, Status> byCode = Arrays.stream(Status.values()).collect(toMap(Status::getCode, status -> status));
 
         public static Status byCode(String code) {
             return byCode.get(code);

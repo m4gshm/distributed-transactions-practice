@@ -42,7 +42,6 @@ import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.APPROVE
 import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.INSUFFICIENT_AMOUNT;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.just;
 
 @Service
 @RequiredArgsConstructor

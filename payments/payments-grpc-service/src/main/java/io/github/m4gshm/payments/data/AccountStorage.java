@@ -16,12 +16,12 @@ public interface AccountStorage extends ReadStorage<Account, String> {
     Mono<BalanceResult> topUp(String clientId, @Positive double replenishment);
 
     @Builder
-    public record LockResult(boolean success, double insufficientAmount) {
+    record LockResult(boolean success, double insufficientAmount) {
 
     }
 
     @Builder
-    public record BalanceResult(double balance) {
+    record BalanceResult(double balance) {
 
     }
 }

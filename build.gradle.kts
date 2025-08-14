@@ -59,17 +59,16 @@ subprojects {
         the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
 //            this.isEnforceCheck = false
             kotlinGradle {
-//                ktfmt()
             }
             java {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
                 cleanthat()
-//                palantirJavaFormat().style("AOSP")
+//                eclipse().configFile("$rootDir/code-style.xml")
+//                prettier()
             }
         }
 
         tasks.findByName("assemble")?.dependsOn("spotlessApply")
-
     }
 }

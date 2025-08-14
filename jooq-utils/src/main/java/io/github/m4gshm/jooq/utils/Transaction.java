@@ -8,7 +8,6 @@ import reactor.core.publisher.Mono;
 
 import static io.github.m4gshm.jooq.utils.Query.select;
 import static org.jooq.impl.DSL.field;
-import static reactor.core.publisher.Mono.error;
 
 @Slf4j
 @UtilityClass

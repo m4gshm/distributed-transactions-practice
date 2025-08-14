@@ -4,7 +4,6 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
 
-import static reactor.core.publisher.Mono.error;
 import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
 
 @Slf4j
