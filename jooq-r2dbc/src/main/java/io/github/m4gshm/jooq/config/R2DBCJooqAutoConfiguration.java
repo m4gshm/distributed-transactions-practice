@@ -29,7 +29,7 @@ import static org.jooq.tools.jdbc.JDBCUtils.dialect;
 public class R2DBCJooqAutoConfiguration {
 
     @Bean
-    @ConditionalOnMissingBean(org.jooq.Configuration.class)
+    @ConditionalOnMissingBean(Configuration.class)
     DefaultConfiguration jooqConfiguration(ConnectionFactory connectionFactory) {
         var transactionAwareConnectionFactoryProxy = new TransactionAwareConnectionFactoryProxy(connectionFactory);
         var configuration = new DefaultConfiguration();

@@ -34,7 +34,7 @@ public class AccountStorageR2DBC implements AccountStorage {
     Class<Account> entityClass = Account.class;
     Jooq jooq;
 
-    public static Account toAccount(org.jooq.Record record) {
+    public static Account toAccount(Record record) {
         return Account.builder()
                 .clientId(record.get(ACCOUNT.CLIENT_ID))
                 .amount(record.get(ACCOUNT.AMOUNT))

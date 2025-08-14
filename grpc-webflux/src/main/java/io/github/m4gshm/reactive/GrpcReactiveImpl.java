@@ -67,7 +67,6 @@ public class GrpcReactiveImpl implements GrpcReactive {
             metadata = statusException.getTrailers();
         } else {
             grpcException = false;
-            ;
             metadata = metadataFactory.newMetadata(throwable);
         }
         for (var resolver : grpcExceptionResolvers) {

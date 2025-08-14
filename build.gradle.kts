@@ -1,16 +1,19 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+//import org.ec4j.gradle.EditorconfigExtension
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.google.protobuf") version "0.9.5" apply false
     id("org.springframework.boot") version "3.5.4" apply false
     id("com.diffplug.spotless") version "7.2.1" apply false
+//    id("org.ec4j.editorconfig") version "0.1.0" apply false
 }
 
 subprojects {
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "java-library")
+//    apply(plugin = "org.ec4j.editorconfig")
 
     repositories {
         mavenCentral()
@@ -57,18 +60,30 @@ subprojects {
             dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
         }
         the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
-//            this.isEnforceCheck = false
-            kotlinGradle {
-            }
+//            kotlinGradle {
+//            }
             java {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
                 cleanthat()
-//                eclipse().configFile("$rootDir/code-style.xml")
-//                prettier()
+                    .sourceCompatibility("24")
+                    .addMutator("PMD")
+                    .addMutator("SafeAndConsensual")
+                    .addMutator("SafeButNotConsensual")
+//                    .addMutator("SafeButControversial")
+                    .includeDraft(true)
+
             }
         }
 
         tasks.findByName("assemble")?.dependsOn("spotlessApply")
+
+//        the<EditorconfigExtension>().apply {
+////            this.isFailOnNoMatchingProperties=false
+//        }
+//
+//
+//        tasks.findByName("check")?.dependsOn("editorconfigFormat")
+
     }
 }
