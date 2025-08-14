@@ -1,14 +1,17 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import org.gradle.kotlin.dsl.the
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("com.google.protobuf") version "0.9.5" apply false
     id("org.springframework.boot") version "3.5.4" apply false
+    id("com.diffplug.spotless") version "7.2.1" apply false
 }
 
-allprojects {
+subprojects {
     apply(plugin = "io.spring.dependency-management")
+    apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "java-library")
+
     repositories {
         mavenCentral()
     }
@@ -24,7 +27,7 @@ allprojects {
             mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
         }
 
-        dependencies{
+        dependencies {
             dependency("org.projectlombok:lombok:1.18.38")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
@@ -53,5 +56,20 @@ allprojects {
 
             dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
         }
+        the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+//            this.isEnforceCheck = false
+            kotlinGradle {
+//                ktfmt()
+            }
+            java {
+                target("src/*/java/**/*.java")
+                removeUnusedImports()
+                cleanthat()
+//                palantirJavaFormat().style("AOSP")
+            }
+        }
+
+        tasks.findByName("assemble")?.dependsOn("spotlessApply")
+
     }
 }
