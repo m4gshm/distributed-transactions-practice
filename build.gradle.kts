@@ -1,4 +1,5 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
+
 //import org.ec4j.gradle.EditorconfigExtension
 
 plugins {
@@ -66,12 +67,14 @@ subprojects {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
                 cleanthat()
-                    .sourceCompatibility("24")
+                    .version("2.23")
+                    .sourceCompatibility("21")
                     .addMutator("PMD")
                     .addMutator("SafeAndConsensual")
                     .addMutator("SafeButNotConsensual")
-//                    .addMutator("SafeButControversial")
-                    .includeDraft(true)
+                    .addMutator("SafeButControversial")
+                    .excludeMutator("AvoidInlineConditionals")
+                    .includeDraft(false)
 
             }
         }
