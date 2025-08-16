@@ -34,11 +34,11 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
         grpc.subscribe(responseObserver, accountStorage.findAll().map(accounts -> {
             return AccountListResponse.newBuilder().addAllAccounts(accounts.stream().map(account -> {
                 return AccountOuterClass.Account.newBuilder()
-                        .setClientId(account.clientId())
-                        .setAmount(account.amount())
-                        .setLocked(account.locked())
-                        .setUpdatedAt(toTimestamp(account.updatedAt()))
-                        .build();
+                                                .setClientId(account.clientId())
+                                                .setAmount(account.amount())
+                                                .setLocked(account.locked())
+                                                .setUpdatedAt(toTimestamp(account.updatedAt()))
+                                                .build();
             }).toList()).build();
         }));
     }
@@ -52,9 +52,10 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
             return accountStorage.topUp(clientId, plus).flatMap(result -> {
                 return accountEventService.sendAccountBalanceEvent(clientId, result.balance()).doOnError(e -> {
                     log.error("event send error", e);
-                }).thenReturn(AccountTopUpResponse.newBuilder()
-                        .setBalance(result.balance())
-                        .build());
+                })
+                                          .thenReturn(AccountTopUpResponse.newBuilder()
+                                                                          .setBalance(result.balance())
+                                                                          .build());
             });
         }));
     }

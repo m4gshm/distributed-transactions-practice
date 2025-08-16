@@ -25,5 +25,4 @@ public class WarehouseServiceClientConfiguration {
         return WarehouseItemServiceGrpc.newStub(newManagedChannelBuilder(warehouseClientProperties).build());
     }
 
-
 }

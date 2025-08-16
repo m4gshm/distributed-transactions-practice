@@ -6,7 +6,8 @@ import lombok.Builder;
 import java.time.OffsetDateTime;
 
 @Builder
-public record WarehouseItem(String id,
+public record WarehouseItem(
+                            String id,
                             @Positive double unitCost,
                             @Positive int amount,
                             @Positive int reserved,

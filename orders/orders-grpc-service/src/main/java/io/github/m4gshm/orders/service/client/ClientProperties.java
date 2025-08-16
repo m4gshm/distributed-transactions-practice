@@ -13,8 +13,7 @@ public class ClientProperties {
     private boolean secure;
 
     public static ManagedChannelBuilder<? extends ManagedChannelBuilder<?>> newManagedChannelBuilder(
-            ClientProperties paymentsClientProperties
-    ) {
+                                                                                                     ClientProperties paymentsClientProperties) {
         var builder = forTarget(paymentsClientProperties.getAddress());
         if (!paymentsClientProperties.isSecure()) {
             builder.usePlaintext();

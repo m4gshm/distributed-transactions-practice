@@ -33,8 +33,11 @@ public class MessageStorageR2dbcImplAutoConfiguration {
     @ConditionalOnMissingBean
     public MessageStorage messageStorageJooqR2dbcImpl() {
         var maintenanceService = new MessageMaintenanceR2dbc(jooq::transactional, INPUT_MESSAGES);
-        return new MessageStorageR2dbc(maintenanceService, jooq::transactional, INPUT_MESSAGES,
-                Clock.systemDefaultZone(), properties.createTable);
+        return new MessageStorageR2dbc(maintenanceService,
+                                       jooq::transactional,
+                                       INPUT_MESSAGES,
+                                       Clock.systemDefaultZone(),
+                                       properties.createTable);
     }
 
     @ConfigurationProperties("idempotent-consumer")

@@ -24,14 +24,15 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
     GrpcReactive grpc;
 
     @Override
-    public void getItemCost(Warehouse.GetItemCostRequest request, StreamObserver<GetItemCostResponse> responseObserver) {
+    public void getItemCost(Warehouse.GetItemCostRequest request,
+                            StreamObserver<GetItemCostResponse> responseObserver) {
         grpc.subscribe(responseObserver, defer(() -> {
             var id = request.getId();
             return warehouseItemStorage.getById(id);
         }).map(warehouseItem -> {
             return GetItemCostResponse.newBuilder()
-                    .setCost(warehouseItem.unitCost())
-                    .build();
+                                      .setCost(warehouseItem.unitCost())
+                                      .build();
         }));
     }
 
@@ -39,13 +40,15 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
     public void itemList(ItemListRequest request, StreamObserver<ItemListResponse> responseObserver) {
         grpc.subscribe(responseObserver, warehouseItemStorage.findAll().map(items -> {
             return ItemListResponse.newBuilder()
-                    .addAllAccounts(items.stream().map(item -> Warehouse.Item.newBuilder()
-                            .setId(item.id())
-                            .setAmount(item.amount())
-                            .setReserved(item.reserved())
-                            .setUpdatedAt(toTimestamp(item.updatedAt()))
-                            .build()).toList())
-                    .build();
+                                   .addAllAccounts(items.stream()
+                                                        .map(item -> Warehouse.Item.newBuilder()
+                                                                                   .setId(item.id())
+                                                                                   .setAmount(item.amount())
+                                                                                   .setReserved(item.reserved())
+                                                                                   .setUpdatedAt(toTimestamp(item.updatedAt()))
+                                                                                   .build())
+                                                        .toList())
+                                   .build();
         }));
     }
 }

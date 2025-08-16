@@ -5,7 +5,8 @@ import lombok.Getter;
 
 @Builder
 public record MessageImpl(
-        @Getter String subscriberID,
-        @Getter String messageID
-) implements Message {
+                          @Getter String subscriberID,
+                          @Getter String messageID)
+                         implements
+                         Message {
 }

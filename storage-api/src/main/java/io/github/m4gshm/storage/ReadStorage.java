@@ -28,11 +28,13 @@ public interface ReadStorage<T, ID> {
     class NotFoundException extends RuntimeException {
         private final Object[] keys;
 
-        public NotFoundException(Class<?> entityType, Object... keys) {
+        public NotFoundException(Class<?> entityType,
+                                 Object... keys) {
             this(entityType.getName() + " not found by " + Arrays.toString(keys), keys);
         }
 
-        public NotFoundException(String message, Object... keys) {
+        public NotFoundException(String message,
+                                 Object... keys) {
             super(message);
             this.keys = keys;
         }

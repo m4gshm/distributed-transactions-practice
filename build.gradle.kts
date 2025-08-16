@@ -76,6 +76,7 @@ subprojects {
                     .excludeMutator("AvoidInlineConditionals")
                     .includeDraft(false)
 
+                eclipse().configFile("$rootDir/codestyle.xml")
             }
         }
 

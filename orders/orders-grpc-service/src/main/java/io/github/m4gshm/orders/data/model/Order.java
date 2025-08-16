@@ -10,10 +10,10 @@ import java.util.List;
 
 import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
 
-
 @Valid
 @Builder(toBuilder = true)
-public record Order(String id,
+public record Order(
+                    String id,
                     Status status,
                     String customerId,
                     String paymentId,
@@ -21,14 +21,13 @@ public record Order(String id,
                     OffsetDateTime createdAt,
                     OffsetDateTime updatedAt,
                     Delivery delivery,
-                    List<Item> items
-) {
+                    List<Item> items) {
     public enum Status implements EnumWithCode<Status> {
-        created,
-        approved,
-        released,
-        insufficient,
-        cancelled;
+                                                        created,
+                                                        approved,
+                                                        released,
+                                                        insufficient,
+                                                        cancelled;
 
         public static Status byCode(String code) {
             return getByCode(Status.class, code);
@@ -42,8 +41,8 @@ public record Order(String id,
     @Builder(toBuilder = true)
     public record Delivery(@NotBlank String address, OffsetDateTime dateTime, Type type) {
         public enum Type implements EnumWithCode<Type> {
-            pickup,
-            courier;
+                                                        pickup,
+                                                        courier;
 
             public static Type byCode(String code) {
                 return getByCode(Type.class, code);

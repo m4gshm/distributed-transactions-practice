@@ -26,7 +26,8 @@ public class Query {
         return dsl.select(table.fields()).from(table);
     }
 
-    public static SelectSelectStep<Record> selectAll(DSLContext dsl, TableLike<? extends Record> table,
+    public static SelectSelectStep<Record> selectAll(DSLContext dsl,
+                                                     TableLike<? extends Record> table,
                                                      TableLike<? extends Record>... tables) {
         var fields = concat(Stream.of(table), stream(tables)).map(Fields::fields).flatMap(Arrays::stream).toList();
         return dsl.select(fields);

@@ -20,8 +20,9 @@ public class OrderStorageJooqQueryUtils {
 
     public static SelectOnConditionStep<Record> selectOrdersJoinDelivery(DSLContext dsl) {
         return selectAll(dsl, ORDERS, DELIVERY)
-                .from(ORDERS)
-                .join(DELIVERY, LEFT_OUTER_JOIN).on(DELIVERY.ORDER_ID.eq(ORDERS.ID));
+                                               .from(ORDERS)
+                                               .join(DELIVERY, LEFT_OUTER_JOIN)
+                                               .on(DELIVERY.ORDER_ID.eq(ORDERS.ID));
     }
 
     public static OffsetDateTime orNow(OffsetDateTime value) {

@@ -21,8 +21,8 @@ public class TwoPhaseTransaction {
             return logTxId(dsl, "prepare2Pc", result);
         }).flatMap(result -> {
             return prepare(dsl, id).onErrorResume(throwable -> {
-                        return error(new PrepareTransactionException(id, throwable));
-                    }).thenReturn(result).switchIfEmpty(just(result));
+                return error(new PrepareTransactionException(id, throwable));
+            }).thenReturn(result).switchIfEmpty(just(result));
         }) : routine;
     }
 
@@ -39,15 +39,14 @@ public class TwoPhaseTransaction {
     }
 
     public static Flux<PreparedTransaction> listPrepared(DSLContext dsl) {
-        return Flux.from(dsl.resultQuery(
-                "select transaction,gid,prepared from pg_prepared_xacts where database = current_database()")
-        ).map(r -> {
-            return PreparedTransaction.builder()
-                    .transaction(r.get(DSL.field("transaction ", Integer.class)))
-                    .gid(r.get(DSL.field("gid", String.class)))
-                    .prepared(r.get(DSL.field("prepared", OffsetDateTime.class)))
-                    .build();
-        });
+        return Flux.from(dsl.resultQuery("select transaction,gid,prepared from pg_prepared_xacts where database = current_database()"))
+                   .map(r -> {
+                       return PreparedTransaction.builder()
+                                                 .transaction(r.get(DSL.field("transaction ", Integer.class)))
+                                                 .gid(r.get(DSL.field("gid", String.class)))
+                                                 .prepared(r.get(DSL.field("prepared", OffsetDateTime.class)))
+                                                 .build();
+                   });
 
     }
 
@@ -60,7 +59,8 @@ public class TwoPhaseTransaction {
 
         public final String id;
 
-        public PrepareTransactionException(String id, Throwable throwable) {
+        public PrepareTransactionException(String id,
+                                           Throwable throwable) {
             super(id, throwable);
             this.id = id;
         }

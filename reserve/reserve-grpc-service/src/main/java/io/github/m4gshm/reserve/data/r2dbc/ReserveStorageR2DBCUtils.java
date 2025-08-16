@@ -34,43 +34,48 @@ public class ReserveStorageR2DBCUtils {
 
     public static Reserve toReserve(Record record, List<Record> items) {
         return Reserve.builder()
-                .id(record.get(RESERVE.ID))
-                .externalRef(record.get(RESERVE.EXTERNAL_REF))
-                .createdAt(record.get(RESERVE.CREATED_AT))
-                .updatedAt(record.get(RESERVE.UPDATED_AT))
-                .status(Status.byCode(record.get(RESERVE.STATUS)))
-                .items(items.stream().map(item -> Reserve.Item.builder()
-                        .id(item.get(RESERVE_ITEM.ID))
-                        .amount(item.get(RESERVE_ITEM.AMOUNT))
-                        .reserved(item.get(RESERVE_ITEM.RESERVED))
-                        .build()).toList())
-                .build();
+                      .id(record.get(RESERVE.ID))
+                      .externalRef(record.get(RESERVE.EXTERNAL_REF))
+                      .createdAt(record.get(RESERVE.CREATED_AT))
+                      .updatedAt(record.get(RESERVE.UPDATED_AT))
+                      .status(Status.byCode(record.get(RESERVE.STATUS)))
+                      .items(items.stream()
+                                  .map(item -> Reserve.Item.builder()
+                                                           .id(item.get(RESERVE_ITEM.ID))
+                                                           .amount(item.get(RESERVE_ITEM.AMOUNT))
+                                                           .reserved(item.get(RESERVE_ITEM.RESERVED))
+                                                           .build())
+                                  .toList())
+                      .build();
     }
 
     public static Mono<Integer> mergeItems(DSLContext dsl, String reserveId, Collection<Reserve.Item> items) {
         return Flux.from(dsl.batch(Stream.ofNullable(items).flatMap(Collection::stream).map(item -> {
             return mergeItem(dsl, reserveId, item);
-        }).toList())).flatMap(count -> logTxId(dsl, "mergeItems", count)).collectList().map(l -> sumInt(l)
-        ).doOnSuccess(count -> {
-            log.debug("stored items count {}, reserveId {}", count, reserveId);
-        });
+        }).toList()))
+                   .flatMap(count -> logTxId(dsl, "mergeItems", count))
+                   .collectList()
+                   .map(l -> sumInt(l))
+                   .doOnSuccess(count -> {
+                       log.debug("stored items count {}, reserveId {}", count, reserveId);
+                   });
     }
 
     private static int sumInt(Collection<Integer> l) {
         return l.stream().filter(Objects::nonNull).mapToInt(i -> i).reduce(0, Integer::sum);
     }
 
-    public static InsertOnDuplicateSetMoreStep<ReserveItemRecord> mergeItem(DSLContext dsl, String reserveId,
+    public static InsertOnDuplicateSetMoreStep<ReserveItemRecord> mergeItem(DSLContext dsl,
+                                                                            String reserveId,
                                                                             Reserve.Item item) {
         return dsl.insertInto(RESERVE_ITEM)
-                .set(RESERVE_ITEM.RESERVE_ID, reserveId)
-                .set(RESERVE_ITEM.ID, item.id())
-                .set(RESERVE_ITEM.AMOUNT, item.amount())
-                .set(RESERVE_ITEM.RESERVED, item.reserved())
-                .onDuplicateKeyUpdate()
-                .set(RESERVE_ITEM.AMOUNT, item.amount())
-                .set(RESERVE_ITEM.RESERVED, item.reserved())
-                ;
+                  .set(RESERVE_ITEM.RESERVE_ID, reserveId)
+                  .set(RESERVE_ITEM.ID, item.id())
+                  .set(RESERVE_ITEM.AMOUNT, item.amount())
+                  .set(RESERVE_ITEM.RESERVED, item.reserved())
+                  .onDuplicateKeyUpdate()
+                  .set(RESERVE_ITEM.AMOUNT, item.amount())
+                  .set(RESERVE_ITEM.RESERVED, item.reserved());
     }
 
     public static SelectJoinStep<Record> selectReserves(DSLContext dsl) {

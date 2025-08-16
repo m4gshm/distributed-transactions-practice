@@ -23,14 +23,14 @@ public class PaymentStorageR2DBCUtils {
 
     public static Payment toPayment(Record record) {
         return Payment.builder()
-                .id(record.get(PAYMENT.ID))
-                .externalRef(record.get(PAYMENT.EXTERNAL_REF))
-                .status(Status.byCode(record.get(PAYMENT.STATUS)))
-                .amount(record.get(PAYMENT.AMOUNT))
-                .clientId(record.get(PAYMENT.CLIENT_ID))
-                .createdAt(record.get(PAYMENT.CREATED_AT))
-                .updatedAt(record.get(PAYMENT.UPDATED_AT))
-                .build();
+                      .id(record.get(PAYMENT.ID))
+                      .externalRef(record.get(PAYMENT.EXTERNAL_REF))
+                      .status(Status.byCode(record.get(PAYMENT.STATUS)))
+                      .amount(record.get(PAYMENT.AMOUNT))
+                      .clientId(record.get(PAYMENT.CLIENT_ID))
+                      .createdAt(record.get(PAYMENT.CREATED_AT))
+                      .updatedAt(record.get(PAYMENT.UPDATED_AT))
+                      .build();
     }
 
     public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {

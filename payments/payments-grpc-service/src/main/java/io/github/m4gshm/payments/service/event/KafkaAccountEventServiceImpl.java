@@ -9,7 +9,6 @@ import reactor.kafka.sender.SenderResult;
 
 import java.util.UUID;
 
-
 @RequiredArgsConstructor
 public class KafkaAccountEventServiceImpl implements AccountEventService {
 
@@ -19,11 +18,11 @@ public class KafkaAccountEventServiceImpl implements AccountEventService {
     @Override
     @SneakyThrows
     public Mono<SenderResult<Void>> sendAccountBalanceEvent(String clientId, double balance) {
-        return template.send(topicName, AccountBalanceEvent.builder()
-                .requestId(UUID.randomUUID().toString())
-                .clientId(clientId)
-                .balance(balance)
-                .build()
-        );
+        return template.send(topicName,
+                             AccountBalanceEvent.builder()
+                                                .requestId(UUID.randomUUID().toString())
+                                                .clientId(clientId)
+                                                .balance(balance)
+                                                .build());
     }
 }

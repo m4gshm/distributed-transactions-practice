@@ -31,8 +31,11 @@ public class ReactiveUtils {
                         sink.error(t);
                     } else {
                         log.error("expected one of {} but caught {}",
-                                List.of(StatusException.class, StatusRuntimeException.class),
-                                t != null ? t.getClass() : null, t);
+                                  List.of(StatusException.class, StatusRuntimeException.class),
+                                  t != null
+                                            ? t.getClass()
+                                            : null,
+                                  t);
                     }
                 }
             }

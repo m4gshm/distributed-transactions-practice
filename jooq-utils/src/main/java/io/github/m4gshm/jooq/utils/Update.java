@@ -18,8 +18,8 @@ public class Update {
         return count -> {
             log.debug("update result count: entity [{}], id [{}], rows [{}]", entity, id, count);
             return count > 0
-                    ? fromSupplier(result)
-                    : notFound(entity, id);
+                             ? fromSupplier(result)
+                             : notFound(entity, id);
         };
     }
 

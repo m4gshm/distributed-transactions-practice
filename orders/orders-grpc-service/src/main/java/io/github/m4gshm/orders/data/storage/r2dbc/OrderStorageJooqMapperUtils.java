@@ -12,23 +12,23 @@ import static orders.data.access.jooq.Tables.*;
 public class OrderStorageJooqMapperUtils {
     public static Order toOrder(Record order, Record delivery, List<Record> items) {
         return Order.builder()
-                .id(order.get(ORDERS.ID))
-                .status(Order.Status.byCode(order.get(ORDERS.STATUS)))
-                .createdAt(order.get(ORDERS.CREATED_AT))
-                .updatedAt(order.get(ORDERS.UPDATED_AT))
-                .customerId(order.get(ORDERS.CUSTOMER_ID))
-                .reserveId(order.get(ORDERS.RESERVE_ID))
-                .paymentId(order.get(ORDERS.PAYMENT_ID))
-                .delivery(toDelivery(delivery))
-                .items(items.stream().map(OrderStorageJooqMapperUtils::toItem).toList())
-                .build();
+                    .id(order.get(ORDERS.ID))
+                    .status(Order.Status.byCode(order.get(ORDERS.STATUS)))
+                    .createdAt(order.get(ORDERS.CREATED_AT))
+                    .updatedAt(order.get(ORDERS.UPDATED_AT))
+                    .customerId(order.get(ORDERS.CUSTOMER_ID))
+                    .reserveId(order.get(ORDERS.RESERVE_ID))
+                    .paymentId(order.get(ORDERS.PAYMENT_ID))
+                    .delivery(toDelivery(delivery))
+                    .items(items.stream().map(OrderStorageJooqMapperUtils::toItem).toList())
+                    .build();
     }
 
     private static Order.Item toItem(Record item) {
         return Order.Item.builder()
-                .id(item.get(ITEMS.ID))
-                .amount(item.get(ITEMS.AMOUNT))
-                .build();
+                         .id(item.get(ITEMS.ID))
+                         .amount(item.get(ITEMS.AMOUNT))
+                         .build();
     }
 
     private static Order.Delivery toDelivery(Record delivery) {
@@ -36,10 +36,11 @@ public class OrderStorageJooqMapperUtils {
             return null;
         } else {
             var address = delivery.get(DELIVERY.ADDRESS);
-            return address == null ? null : Order.Delivery.builder()
-                    .type(Order.Delivery.Type.byCode(delivery.get(DELIVERY.TYPE)))
-                    .address(address)
-                    .build();
+            return address == null ? null
+                                   : Order.Delivery.builder()
+                                                   .type(Order.Delivery.Type.byCode(delivery.get(DELIVERY.TYPE)))
+                                                   .address(address)
+                                                   .build();
         }
     }
 

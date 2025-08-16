@@ -57,16 +57,20 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     public Mono<Reserve> save(@Valid Reserve reserve) {
         return jooq.transactional(dsl -> defer(() -> {
             var mergeReserve = from(dsl.insertInto(RESERVE)
-                    .set(RESERVE.ID, reserve.id())
-                    .set(RESERVE.CREATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.createdAt()))
-                    .set(RESERVE.EXTERNAL_REF, reserve.externalRef())
-                    .set(RESERVE.STATUS, reserve.status().getCode())
-                    .onDuplicateKeyUpdate()
-                    .set(RESERVE.STATUS, reserve.status().getCode())
-                    .set(RESERVE.UPDATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.updatedAt()))
-            ).flatMap(count -> logTxId(dsl, "mergeReserve", count)).doOnSuccess(count -> {
-                log.debug("stored reserve count {}", count);
-            });
+                                       .set(RESERVE.ID, reserve.id())
+                                       .set(RESERVE.CREATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.createdAt()))
+                                       .set(RESERVE.EXTERNAL_REF, reserve.externalRef())
+                                       .set(RESERVE.STATUS, reserve.status().getCode())
+                                       .onDuplicateKeyUpdate()
+                                       .set(RESERVE.STATUS, reserve.status().getCode())
+                                       .set(RESERVE.UPDATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.updatedAt())))
+                                                                                                                     .flatMap(count -> logTxId(dsl,
+                                                                                                                                               "mergeReserve",
+                                                                                                                                               count))
+                                                                                                                     .doOnSuccess(count -> {
+                                                                                                                         log.debug("stored reserve count {}",
+                                                                                                                                   count);
+                                                                                                                     });
 
             var mergeAllItems = mergeItems(dsl, reserve.id(), reserve.items());
 
@@ -79,7 +83,9 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     @Override
     public Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items) {
         return jooq.transactional(dsl -> mergeItems(dsl, reserveId, items)
-                .map(c -> List.copyOf(items))
-                .flatMap(l -> logTxId(dsl, "saveReservedItems", l)));
+                                                                          .map(c -> List.copyOf(items))
+                                                                          .flatMap(l -> logTxId(dsl,
+                                                                                                "saveReservedItems",
+                                                                                                l)));
     }
 }

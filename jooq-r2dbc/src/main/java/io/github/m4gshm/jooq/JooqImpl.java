@@ -26,7 +26,9 @@ public class JooqImpl implements Jooq {
     ConnectionFactory connectionFactory;
     Configuration configuration;
 
-    public static DSLContext newDsl(ContextView context, ConnectionFactory connectionFactory, Configuration configuration) {
+    public static DSLContext newDsl(ContextView context,
+                                    ConnectionFactory connectionFactory,
+                                    Configuration configuration) {
         var transactionContext = context.get(TransactionContext.class);
         var o = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
         var connection = o.getConnection();
@@ -38,16 +40,16 @@ public class JooqImpl implements Jooq {
         return defer(() -> operator.execute(_ -> deferContextual(context -> {
             var dlsContextHolder = context.hasKey(DSLContextHolder.class) ? context.get(DSLContextHolder.class) : null;
             if (dlsContextHolder == null) {
-                //log
+                // log
                 return function.apply(newDsl(context, connectionFactory, configuration));
             }
-            for (; ; ) {
+            for (;;) {
                 var dslContext = dlsContextHolder.holder.get();
                 if (dslContext != null) {
-                    //log
+                    // log
                     return function.apply(dslContext);
                 } else {
-                    //log
+                    // log
                     dslContext = newDsl(context, connectionFactory, configuration);
                     if (dlsContextHolder.holder.compareAndSet(null, dslContext)) {
                         return function.apply(dslContext);

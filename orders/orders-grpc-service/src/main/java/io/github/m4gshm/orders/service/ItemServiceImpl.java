@@ -20,8 +20,9 @@ public class ItemServiceImpl implements ItemService {
     public Mono<Double> getSumCost(List<String> itemIds) {
         return fromIterable(itemIds).flatMap(itemId -> {
             return toMono(Warehouse.GetItemCostRequest.newBuilder()
-                    .setId(itemId)
-                    .build(), warehouseClient::getItemCost);
+                                                      .setId(itemId)
+                                                      .build(),
+                          warehouseClient::getItemCost);
         }).map(Warehouse.GetItemCostResponse::getCost).reduce(0.0, Double::sum);
     }
 }

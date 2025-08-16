@@ -13,7 +13,8 @@ import static org.jooq.impl.DSL.field;
 @UtilityClass
 public class Transaction {
     public static final Field<String> PG_CURRENT_XACT_ID = field("pg_current_xact_id()::text", String.class);
-    public static final Field<String> PG_CURRENT_XACT_ID_IF_ASSIGNED = field("pg_current_xact_id_if_assigned()::text", String.class);
+    public static final Field<String> PG_CURRENT_XACT_ID_IF_ASSIGNED = field("pg_current_xact_id_if_assigned()::text",
+                                                                             String.class);
 
     public static Mono<String> getCurrentTxid(DSLContext dsl) {
         return select(dsl, PG_CURRENT_XACT_ID);

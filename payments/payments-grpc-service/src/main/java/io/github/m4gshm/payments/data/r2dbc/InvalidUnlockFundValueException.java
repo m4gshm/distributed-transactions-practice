@@ -6,7 +6,8 @@ import lombok.Getter;
 public class InvalidUnlockFundValueException extends RuntimeException {
     private final String clientId;
 
-    public InvalidUnlockFundValueException(String clientId, double value) {
+    public InvalidUnlockFundValueException(String clientId,
+                                           double value) {
         super("invalid unlock funds value " + value + " for client " + clientId);
         this.clientId = clientId;
     }

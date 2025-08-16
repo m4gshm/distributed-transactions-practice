@@ -40,11 +40,10 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     private static Flux<Record3<String, Integer, Integer>> selectForUpdate(DSLContext dsl, Collection<String> ids) {
         return Flux.from(dsl
-                .select(WAREHOUSE_ITEM.ID, WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.RESERVED)
-                .from(WAREHOUSE_ITEM)
-                .where(WAREHOUSE_ITEM.ID.in(ids))
-                .forUpdate()
-        );
+                            .select(WAREHOUSE_ITEM.ID, WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.RESERVED)
+                            .from(WAREHOUSE_ITEM)
+                            .where(WAREHOUSE_ITEM.ID.in(ids))
+                            .forUpdate());
     }
 
     private SelectJoinStep<Record> selectItems(DSLContext dsl) {
@@ -71,8 +70,8 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
     @Override
     public Mono<List<ItemOp.ReserveResult>> reserve(Collection<ItemOp> items) {
         return jooq.transactional(dsl -> {
-            var amountPerId = items.stream().collect(groupingBy(ItemOp::id,
-                    mapping(ItemOp::amount, summingInt(i -> i))));
+            var amountPerId = items.stream()
+                                   .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 
             var reserveIds = amountPerId.keySet();
 
@@ -87,11 +86,13 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 var resultBuilder = ItemOp.ReserveResult.builder().id(id).remainder(remainder);
                 if (remainder >= 0) {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
-                        return resultBuilder.reserved(true).build();
-                    }));
+                                   .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
+                                   .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
+                                                                                              id,
+                                                                                              () -> {
+                                                                                                  return resultBuilder.reserved(true)
+                                                                                                                      .build();
+                                                                                              }));
                 } else {
                     log.info("not enough item amount: item [{}], need [{}]", id, -remainder);
                     return just(resultBuilder.reserved(false).build());
@@ -103,8 +104,8 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
     @Override
     public Mono<List<ItemOp.Result>> cancelReserve(Collection<ItemOp> items) {
         return jooq.transactional(dsl -> {
-            var amountPerId = items.stream().collect(groupingBy(ItemOp::id,
-                    mapping(ItemOp::amount, summingInt(i -> i))));
+            var amountPerId = items.stream()
+                                   .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 
             var reserveIds = amountPerId.keySet();
 
@@ -119,13 +120,15 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 var resultBuilder = ItemOp.Result.builder().id(id);
                 if (newReserved >= 0) {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForReserve))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
-                        return resultBuilder.remainder(remainder).build();
-                    }));
+                                   .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForReserve))
+                                   .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
+                                                                                              id,
+                                                                                              () -> {
+                                                                                                  return resultBuilder.remainder(remainder)
+                                                                                                                      .build();
+                                                                                              }));
                 } else {
-                    log.info("reserved cannot be less tah zero: item [{}], reserved [{}]", id,newReserved);
+                    log.info("reserved cannot be less tah zero: item [{}], reserved [{}]", id, newReserved);
                     return error(new InvalidReserveValueException(id, newReserved));
                 }
             }).collectList().flatMap(l -> logTxId(dsl, "cancelReserve", l));
@@ -134,8 +137,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     @Override
     public Mono<List<ItemOp.Result>> release(Collection<ItemOp> items) {
-        var amountPerId = items.stream().collect(groupingBy(ItemOp::id,
-                mapping(ItemOp::amount, summingInt(i -> i))));
+        var amountPerId = items.stream().collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
         var reserveIds = amountPerId.keySet();
         return jooq.transactional(dsl -> {
             return selectForUpdate(dsl, reserveIds).flatMap(record -> {
@@ -150,12 +152,16 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return error(new ReleaseItemException(id, -reserved, -newTotalAmount));
                 } else {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
-                            .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))
-                    ).flatMap(checkUpdateCount("reserve item", id, () -> {
-                        return ItemOp.Result.builder().id(id).remainder(newTotalAmount).build();
-                    }));
+                                   .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
+                                   .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
+                                   .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
+                                                                                              id,
+                                                                                              () -> {
+                                                                                                  return ItemOp.Result.builder()
+                                                                                                                      .id(id)
+                                                                                                                      .remainder(newTotalAmount)
+                                                                                                                      .build();
+                                                                                              }));
                 }
             }).collectList().flatMap(l -> logTxId(dsl, "release", l));
         });

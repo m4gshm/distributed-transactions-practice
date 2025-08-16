@@ -11,7 +11,8 @@ import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
 public class InternalStatusException extends RuntimeException {
     private final Status status;
 
-    public InternalStatusException(Status status, String message) {
+    public InternalStatusException(Status status,
+                                   String message) {
         super(message);
         this.status = status;
     }
