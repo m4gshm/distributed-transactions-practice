@@ -52,10 +52,7 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
             return accountStorage.topUp(clientId, plus).flatMap(result -> {
                 return accountEventService.sendAccountBalanceEvent(clientId, result.balance()).doOnError(e -> {
                     log.error("event send error", e);
-                })
-                                          .thenReturn(AccountTopUpResponse.newBuilder()
-                                                                          .setBalance(result.balance())
-                                                                          .build());
+                }).thenReturn(AccountTopUpResponse.newBuilder().setBalance(result.balance()).build());
             });
         }));
     }
