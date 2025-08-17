@@ -8,11 +8,11 @@ import payment.v1.PaymentOuterClass;
 public class PaymentServiceUtils {
     static PaymentOuterClass.Payment toProto(Payment payment) {
         return PaymentOuterClass.Payment.newBuilder()
-                                        .setClientId(payment.clientId())
-                                        .setAmount(payment.amount())
-                                        .setExternalRef(payment.externalRef())
-                                        .setStatus(toProtoStatus(payment.status()))
-                                        .build();
+                .setClientId(payment.clientId())
+                .setAmount(payment.amount())
+                .setExternalRef(payment.externalRef())
+                .setStatus(toProtoStatus(payment.status()))
+                .build();
     }
 
     private static PaymentOuterClass.Payment.Status toProtoStatus(Payment.Status status) {
@@ -27,24 +27,24 @@ public class PaymentServiceUtils {
 
     static Payment toDataModel(String id, PaymentOuterClass.Payment payment, Payment.Status status) {
         return Payment.builder()
-                      .id(id)
-                      .externalRef(payment.getExternalRef())
-                      .clientId(payment.getClientId())
-                      .amount(payment.getAmount())
-                      .status(status)
-                      .build();
+                .id(id)
+                .externalRef(payment.getExternalRef())
+                .clientId(payment.getClientId())
+                .amount(payment.getAmount())
+                .status(status)
+                .build();
     }
 
     static Payment toDataModel(String id,
-                               PaymentOuterClass.PaymentCreateRequest.PaymentCreate payment,
-                               Payment.Status status) {
+            PaymentOuterClass.PaymentCreateRequest.PaymentCreate payment,
+            Payment.Status status) {
         return Payment.builder()
-                      .id(id)
-                      .externalRef(payment.getExternalRef())
-                      .clientId(payment.getClientId())
-                      .amount(payment.getAmount())
-                      .status(status)
-                      .build();
+                .id(id)
+                .externalRef(payment.getExternalRef())
+                .clientId(payment.getClientId())
+                .amount(payment.getAmount())
+                .status(status)
+                .build();
     }
 
 }

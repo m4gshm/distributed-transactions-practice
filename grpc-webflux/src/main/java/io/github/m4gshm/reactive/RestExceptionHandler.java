@@ -29,7 +29,7 @@ public class RestExceptionHandler {
         errorAttributes.storeErrorInformation(exception, exchange);
         var serverRequest = ServerRequest.create(exchange, messageReaders);
         var errorAttributes = this.errorAttributes.getErrorAttributes(serverRequest,
-                                                                      ErrorAttributeOptions.of(PATH, STATUS, MESSAGE));
+                ErrorAttributeOptions.of(PATH, STATUS, MESSAGE));
         errorAttributes.put("headers", exception.getHeaders());
         return ResponseEntity.status(exception.getStatusCode()).body(errorAttributes);
     }

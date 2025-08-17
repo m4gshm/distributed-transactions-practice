@@ -45,8 +45,8 @@ public class OrderStorageR2DBC implements OrderStorage {
     public Mono<List<Order>> findAll() {
         return jooq.transactional(dsl -> {
             return Flux.from(selectOrdersJoinDelivery(dsl))
-                       .map(record -> toOrder(record, record, List.of()))
-                       .collectList();
+                    .map(record -> toOrder(record, record, List.of()))
+                    .collectList();
         });
     }
 
@@ -54,9 +54,9 @@ public class OrderStorageR2DBC implements OrderStorage {
     public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
         return jooq.transactional(dsl -> {
             var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId)
-                                                                                    .and(ORDERS.STATUS.in(statuses.stream()
-                                                                                                                  .map(EnumWithCode::getCode)
-                                                                                                                  .toList())));
+                    .and(ORDERS.STATUS.in(statuses.stream()
+                            .map(EnumWithCode::getCode)
+                            .toList())));
             return Flux.from(selectOrder).collectList().flatMap(orders -> {
                 var orderIds = orders.stream().map(record -> record.get(ORDERS.ID)).toList();
                 var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.ORDER_ID.in(orderIds));
@@ -87,18 +87,18 @@ public class OrderStorageR2DBC implements OrderStorage {
         return jooq.transactional(dsl -> {
             var orderStatus = getCode(order.status());
             var mergeOrder = from(dsl.insertInto(ORDERS)
-                                     .set(ORDERS.ID, order.id())
-                                     .set(ORDERS.STATUS, orderStatus)
-                                     .set(ORDERS.CREATED_AT, orNow(order.createdAt()))
-                                     .set(ORDERS.CUSTOMER_ID, order.customerId())
-                                     .set(ORDERS.RESERVE_ID, order.reserveId())
-                                     .set(ORDERS.PAYMENT_ID, order.paymentId())
-                                     .onDuplicateKeyUpdate()
-                                     .set(ORDERS.STATUS, orderStatus)
-                                     .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
-                                     .set(ORDERS.CUSTOMER_ID, order.customerId())
-                                     .set(ORDERS.RESERVE_ID, order.reserveId())
-                                     .set(ORDERS.PAYMENT_ID, order.paymentId()));
+                    .set(ORDERS.ID, order.id())
+                    .set(ORDERS.STATUS, orderStatus)
+                    .set(ORDERS.CREATED_AT, orNow(order.createdAt()))
+                    .set(ORDERS.CUSTOMER_ID, order.customerId())
+                    .set(ORDERS.RESERVE_ID, order.reserveId())
+                    .set(ORDERS.PAYMENT_ID, order.paymentId())
+                    .onDuplicateKeyUpdate()
+                    .set(ORDERS.STATUS, orderStatus)
+                    .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
+                    .set(ORDERS.CUSTOMER_ID, order.customerId())
+                    .set(ORDERS.RESERVE_ID, order.reserveId())
+                    .set(ORDERS.PAYMENT_ID, order.paymentId()));
 
             var delivery = order.delivery();
 
@@ -107,26 +107,26 @@ public class OrderStorageR2DBC implements OrderStorage {
                 mergeDelivery = Mono.empty();
             } else {
                 mergeDelivery = from(dsl.insertInto(DELIVERY)
-                                        .set(DELIVERY.ORDER_ID, order.id())
-                                        .set(DELIVERY.ADDRESS, delivery.address())
-                                        .set(DELIVERY.TYPE, getCode(delivery.type()))
-                                        .onDuplicateKeyUpdate()
-                                        .set(DELIVERY.ADDRESS, delivery.address())
-                                        .set(DELIVERY.TYPE, getCode(delivery.type())));
+                        .set(DELIVERY.ORDER_ID, order.id())
+                        .set(DELIVERY.ADDRESS, delivery.address())
+                        .set(DELIVERY.TYPE, getCode(delivery.type()))
+                        .onDuplicateKeyUpdate()
+                        .set(DELIVERY.ADDRESS, delivery.address())
+                        .set(DELIVERY.TYPE, getCode(delivery.type())));
             }
             var mergeAllItems = fromIterable(ofNullable(order.items())
-                                                                      .orElse(List.of())
-                                                                      .stream()
-                                                                      .map(item -> {
-                                                                          return dsl.insertInto(ITEMS)
-                                                                                    .set(ITEMS.ORDER_ID, order.id())
-                                                                                    .set(ITEMS.ID, item.id())
-                                                                                    .set(ITEMS.AMOUNT, item.amount())
-                                                                                    .onDuplicateKeyUpdate()
-                                                                                    .set(ITEMS.AMOUNT, item.amount());
-                                                                      })
-                                                                      .map(Mono::from)
-                                                                      .toList()).flatMap(i1 -> i1).reduce(Integer::sum);
+                    .orElse(List.of())
+                    .stream()
+                    .map(item -> {
+                        return dsl.insertInto(ITEMS)
+                                .set(ITEMS.ORDER_ID, order.id())
+                                .set(ITEMS.ID, item.id())
+                                .set(ITEMS.AMOUNT, item.amount())
+                                .onDuplicateKeyUpdate()
+                                .set(ITEMS.AMOUNT, item.amount());
+                    })
+                    .map(Mono::from)
+                    .toList()).flatMap(i1 -> i1).reduce(Integer::sum);
 
             return mergeOrder.flatMap(count -> {
                 log.debug("stored order rows {}", count);

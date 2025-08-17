@@ -30,27 +30,27 @@ public class R2DBCConnection {
     @NotNull
     public <T> Flux<T> flux(boolean autoCommit, Function<Connection, Flux<T>> routine) {
         return usingWhen(connection(autoCommit), routine, Connection::close)
-                                                                            .doOnError(e -> {
-                                                                                log.error("connection flux error", e);
-                                                                            });
+                .doOnError(e -> {
+                    log.error("connection flux error", e);
+                });
     }
 
     @NotNull
     public <T> Mono<T> mono(Function<Connection, Mono<T>> routine) {
         return usingWhen(connection(false), routine, Connection::close)
-                                                                       .doOnError(e -> {
-                                                                           log.error("connection mono error", e);
-                                                                       });
+                .doOnError(e -> {
+                    log.error("connection mono error", e);
+                });
     }
 
     @NotNull
     public <T> Mono<T> transactMono(Function<Connection, Mono<T>> routine) {
         return mono(c -> from(c.beginTransaction())
-                                                   .then(routine.apply(c))
-                                                   .flatMap(t -> from(c.commitTransaction()).thenReturn(t)))
-                                                                                                            .doOnError(e -> {
-                                                                                                                log.error("connection transaction mono error",
-                                                                                                                          e);
-                                                                                                            });
+                .then(routine.apply(c))
+                .flatMap(t -> from(c.commitTransaction()).thenReturn(t)))
+                        .doOnError(e -> {
+                            log.error("connection transaction mono error",
+                                    e);
+                        });
     }
 }

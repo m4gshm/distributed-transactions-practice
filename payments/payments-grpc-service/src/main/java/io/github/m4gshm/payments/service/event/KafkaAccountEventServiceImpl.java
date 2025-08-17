@@ -19,10 +19,10 @@ public class KafkaAccountEventServiceImpl implements AccountEventService {
     @SneakyThrows
     public Mono<SenderResult<Void>> sendAccountBalanceEvent(String clientId, double balance) {
         return template.send(topicName,
-                             AccountBalanceEvent.builder()
-                                                .requestId(UUID.randomUUID().toString())
-                                                .clientId(clientId)
-                                                .balance(balance)
-                                                .build());
+                AccountBalanceEvent.builder()
+                        .requestId(UUID.randomUUID().toString())
+                        .clientId(clientId)
+                        .balance(balance)
+                        .build());
     }
 }

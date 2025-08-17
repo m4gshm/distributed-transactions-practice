@@ -42,24 +42,25 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
 
     private static PaymentOuterClass.PaymentGetRequest paymentGetRequest(String paymentId) {
         return PaymentOuterClass.PaymentGetRequest.newBuilder()
-                                                  .setId(paymentId)
-                                                  .build();
+                .setId(paymentId)
+                .build();
     }
 
     private Mono<OrderApproveResponse> approveIfEnoughBalance(Order order, double balance) {
         return toMono(paymentGetRequest(order.paymentId()),
-                      paymentServiceStub::get).map(response -> response.getPayment().getAmount())
-                                              .flatMap(paymentAmount -> {
-                                                  if (paymentAmount < balance) {
-                                                      return ordersService.approve(order.id(), twoPhaseCommit);
-                                                  } else {
-                                                      log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
-                                                               order.id(),
-                                                               paymentAmount,
-                                                               balance);
-                                                      return empty();
-                                                  }
-                                              });
+                paymentServiceStub::get).map(response -> response.getPayment().getAmount())
+                        .flatMap(paymentAmount -> {
+                            if (paymentAmount < balance) {
+                                return ordersService.approve(order.id(), twoPhaseCommit);
+                            } else {
+                                log.info(
+                                        "insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
+                                        order.id(),
+                                        paymentAmount,
+                                        balance);
+                                return empty();
+                            }
+                        });
     }
 
     @PostConstruct
@@ -81,29 +82,29 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         var clientId = event.clientId();
         var balance = event.balance();
         return messageStorage.storeUnique(MessageImpl.builder()
-                                                     .messageID(requestId)
-                                                     .subscriberID("accountBalance")
-                                                     .build())
-                             .thenMany(orderStorage.findByClientIdAndStatuses(clientId, Set.of(insufficient))
-                                                   .doOnSuccess(orders -> {
-                                                       if (log.isDebugEnabled()) {
-                                                           log.debug("found active orders for client {}, amount {}, ids {}",
-                                                                     clientId,
-                                                                     orders.size(),
-                                                                     orders.stream()
-                                                                           .map(Order::id)
-                                                                           .toList());
-                                                       }
-                                                   })
-                                                   .flatMapMany(Flux::fromIterable)
-                                                   .flatMap(order -> approveIfEnoughBalance(order, balance))
-                                                   .doOnNext(response -> {
-                                                       log.info("success order approve on account balance event: id [{}], status [{}]",
-                                                                response.getId(),
-                                                                response.getStatus());
-                                                   })
-                                                   .onErrorContinue((error, response) -> {
-                                                       log.error("approve order on account balance event error", error);
-                                                   }));
+                .messageID(requestId)
+                .subscriberID("accountBalance")
+                .build())
+                .thenMany(orderStorage.findByClientIdAndStatuses(clientId, Set.of(insufficient))
+                        .doOnSuccess(orders -> {
+                            if (log.isDebugEnabled()) {
+                                log.debug("found active orders for client {}, amount {}, ids {}",
+                                        clientId,
+                                        orders.size(),
+                                        orders.stream()
+                                                .map(Order::id)
+                                                .toList());
+                            }
+                        })
+                        .flatMapMany(Flux::fromIterable)
+                        .flatMap(order -> approveIfEnoughBalance(order, balance))
+                        .doOnNext(response -> {
+                            log.info("success order approve on account balance event: id [{}], status [{}]",
+                                    response.getId(),
+                                    response.getStatus());
+                        })
+                        .onErrorContinue((error, response) -> {
+                            log.error("approve order on account balance event error", error);
+                        }));
     }
 }

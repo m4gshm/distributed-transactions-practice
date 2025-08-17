@@ -7,7 +7,7 @@ public class InvalidUnlockFundValueException extends RuntimeException {
     private final String clientId;
 
     public InvalidUnlockFundValueException(String clientId,
-                                           double value) {
+            double value) {
         super("invalid unlock funds value " + value + " for client " + clientId);
         this.clientId = clientId;
     }

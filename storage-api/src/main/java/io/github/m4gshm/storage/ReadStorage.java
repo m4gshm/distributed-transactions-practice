@@ -29,12 +29,12 @@ public interface ReadStorage<T, ID> {
         private final Object[] keys;
 
         public NotFoundException(Class<?> entityType,
-                                 Object... keys) {
+                Object... keys) {
             this(entityType.getName() + " not found by " + Arrays.toString(keys), keys);
         }
 
         public NotFoundException(String message,
-                                 Object... keys) {
+                Object... keys) {
             super(message);
             this.keys = keys;
         }

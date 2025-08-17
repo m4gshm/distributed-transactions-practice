@@ -14,7 +14,7 @@ import static org.jooq.impl.DSL.field;
 public class Transaction {
     public static final Field<String> PG_CURRENT_XACT_ID = field("pg_current_xact_id()::text", String.class);
     public static final Field<String> PG_CURRENT_XACT_ID_IF_ASSIGNED = field("pg_current_xact_id_if_assigned()::text",
-                                                                             String.class);
+            String.class);
 
     public static Mono<String> debugTxid(DSLContext dsl, String label) {
         return getCurrentTxidOrNull(dsl, "notxid").doOnSuccess(txid -> {

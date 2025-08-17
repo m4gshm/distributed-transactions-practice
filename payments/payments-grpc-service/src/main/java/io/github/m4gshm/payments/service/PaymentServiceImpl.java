@@ -62,46 +62,46 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         var twoPhaseCommit = request.getTwoPhaseCommit();
         var expected = Set.of(created, insufficient);
         paymentAccount(responseObserver,
-                       twoPhaseCommit,
-                       request.getId(),
-                       expected,
-                       (payment,
+                twoPhaseCommit,
+                request.getId(),
+                expected,
+                (payment,
                         account) -> {
-                           return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
-                               var status = lockResult.success() ? hold : insufficient;
-                               return paymentStorage.save(payment.toBuilder()
-                                                                 .status(status)
-                                                                 .insufficient(status
-                                                                               == insufficient
-                                                                                               ? lockResult.insufficientAmount()
-                                                                                               : null)
-                                                                 .build())
-                                                    .map(_ -> PaymentApproveResponse.newBuilder()
-                                                                                    .setId(request.getId())
-                                                                                    .setStatus(lockResult.success()
-                                                                                                                    ? APPROVED
-                                                                                                                    : INSUFFICIENT_AMOUNT)
-                                                                                    .setInsufficientAmount(lockResult.insufficientAmount())
-                                                                                    .build());
-                           });
-                       });
+                    return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
+                        var status = lockResult.success() ? hold : insufficient;
+                        return paymentStorage.save(payment.toBuilder()
+                                .status(status)
+                                .insufficient(status
+                                        == insufficient
+                                                ? lockResult.insufficientAmount()
+                                                : null)
+                                .build())
+                                .map(_ -> PaymentApproveResponse.newBuilder()
+                                        .setId(request.getId())
+                                        .setStatus(lockResult.success()
+                                                ? APPROVED
+                                                : INSUFFICIENT_AMOUNT)
+                                        .setInsufficientAmount(lockResult.insufficientAmount())
+                                        .build());
+                    });
+                });
     }
 
     @Override
     public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
         paymentAccount(responseObserver,
-                       request.getTwoPhaseCommit(),
-                       request.getId(),
-                       Set.of(created, insufficient, hold),
-                       (payment,
+                request.getTwoPhaseCommit(),
+                request.getId(),
+                Set.of(created, insufficient, hold),
+                (payment,
                         account) -> {
-                           return accountStorage.unlock(account.clientId(), payment.amount())
-                                                .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
-                                                    return PaymentCancelResponse.newBuilder()
-                                                                                .setId(payment.id())
-                                                                                .build();
-                                                }));
-                       });
+                    return accountStorage.unlock(account.clientId(), payment.amount())
+                            .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
+                                return PaymentCancelResponse.newBuilder()
+                                        .setId(payment.id())
+                                        .build();
+                            }));
+                });
     }
 
     @Override
@@ -110,13 +110,13 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
             var paymentId = UUID.randomUUID().toString();
             var payment = toDataModel(paymentId, request.getBody(), created);
             var response = PaymentCreateResponse.newBuilder()
-                                                .setId(paymentId)
-                                                .build();
+                    .setId(paymentId)
+                    .build();
             return jooq.transactional(dsl -> prepare(request.getTwoPhaseCommit(),
-                                                     dsl,
-                                                     paymentId,
-                                                     paymentStorage.save(payment)
-                                                                   .thenReturn(response)));
+                    dsl,
+                    paymentId,
+                    paymentStorage.save(payment)
+                            .thenReturn(response)));
         }));
     }
 
@@ -124,8 +124,8 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void get(PaymentGetRequest request, StreamObserver<PaymentGetResponse> responseObserver) {
         grpc.subscribe(responseObserver, paymentStorage.getById(request.getId()).map(payment -> {
             return PaymentGetResponse.newBuilder()
-                                     .setPayment(toProto(payment))
-                                     .build();
+                    .setPayment(toProto(payment))
+                    .build();
         }));
     }
 
@@ -133,41 +133,41 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void list(PaymentListRequest request, StreamObserver<PaymentListResponse> responseObserver) {
         grpc.subscribe(responseObserver, paymentStorage.findAll().map(payments -> {
             return PaymentListResponse.newBuilder()
-                                      .addAllPayments(payments.stream().map(PaymentServiceUtils::toProto).toList())
-                                      .build();
+                    .addAllPayments(payments.stream().map(PaymentServiceUtils::toProto).toList())
+                    .build();
         }));
     }
 
     @Override
     public void pay(PaymentPayRequest request, StreamObserver<PaymentPayResponse> responseObserver) {
         paymentAccount(responseObserver,
-                       request.getTwoPhaseCommit(),
-                       request.getId(),
-                       Set.of(hold),
-                       (payment,
+                request.getTwoPhaseCommit(),
+                request.getId(),
+                Set.of(hold),
+                (payment,
                         account) -> {
-                           return accountStorage.writeOff(account.clientId(), payment.amount())
-                                                .flatMap(writeOffResult -> {
-                                                    return paymentStorage.save(withStatus(payment, paid)).map(_ -> {
-                                                        return PaymentPayResponse.newBuilder()
-                                                                                 .setId(payment.id())
-                                                                                 .setBalance(writeOffResult.balance())
-                                                                                 .build();
-                                                    });
-                                                });
-                       });
+                    return accountStorage.writeOff(account.clientId(), payment.amount())
+                            .flatMap(writeOffResult -> {
+                                return paymentStorage.save(withStatus(payment, paid)).map(_ -> {
+                                    return PaymentPayResponse.newBuilder()
+                                            .setId(payment.id())
+                                            .setBalance(writeOffResult.balance())
+                                            .build();
+                                });
+                            });
+                });
     }
 
     private <T> void paymentAccount(StreamObserver<T> responseObserver,
-                                    boolean twoPhaseCommit,
-                                    String paymentId,
-                                    Set<Payment.Status> expected,
-                                    BiFunction<Payment, Account, Mono<T>> routine) {
+            boolean twoPhaseCommit,
+            String paymentId,
+            Set<Payment.Status> expected,
+            BiFunction<Payment, Account, Mono<T>> routine) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
             return prepare(twoPhaseCommit, dsl, paymentId, paymentStorage.getById(paymentId).flatMap(payment -> {
                 return checkStatus(payment.status(), expected).then(defer(() -> {
                     return accountStorage.getById(payment.clientId())
-                                         .flatMap(account -> routine.apply(payment, account));
+                            .flatMap(account -> routine.apply(payment, account));
                 }));
             }));
         }));

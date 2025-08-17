@@ -18,8 +18,8 @@ public class MessageMaintenanceR2dbc implements MessageMaintenanceService {
         return dslFactory.provide(dsl -> {
             var primaryKey = table.getPrimaryKey();
             var ddl = dsl
-                         .createTableIfNotExists(table)
-                         .columns(table.fields());
+                    .createTableIfNotExists(table)
+                    .columns(table.fields());
             if (primaryKey != null) {
                 ddl = ddl.constraints(primaryKey.constraint());
             }

@@ -18,10 +18,10 @@ public class EnumWithCodeUtils {
     @SuppressWarnings("unchecked")
     public static <T extends Enum<T> & EnumWithCode<T>> T getByCode(Class<T> type, String code) {
         return (T) enums.computeIfAbsent(type,
-                                         _ -> stream(type.getEnumConstants())
-                                                                             .collect(toMap(EnumWithCode::getCode,
-                                                                                            identity())))
-                        .get(code);
+                _ -> stream(type.getEnumConstants())
+                        .collect(toMap(EnumWithCode::getCode,
+                                identity())))
+                .get(code);
     }
 
     public static <T extends EnumWithCode<?>> String getCode(T value) {

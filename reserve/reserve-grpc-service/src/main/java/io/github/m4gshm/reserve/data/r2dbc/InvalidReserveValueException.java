@@ -8,7 +8,7 @@ public class InvalidReserveValueException extends RuntimeException {
     private final int value;
 
     public InvalidReserveValueException(String id,
-                                        int value) {
+            int value) {
         super("invalid reserve value " + value + " for item " + id);
         this.id = id;
         this.value = value;

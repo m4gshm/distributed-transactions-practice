@@ -76,40 +76,38 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
 
             return prepare(request.getTwoPhaseCommit(),
-                           dsl,
-                           reserveId,
-                           warehouseItemStorage.reserve(toItemOps(notReservedItems))
-                                               .flatMap(reserveResults -> {
-                                                   var items1 = reserveResults.stream()
-                                                                              .map(itemReserveResult -> {
-                                                                                  var itemId = itemReserveResult.id();
-                                                                                  var item =
-                                                                                           requireNonNull(notReservedItemPerId.get(itemId),
-                                                                                                          "no preloaded reserve item "
-                                                                                                                                            + itemId);
-                                                                                  var reserved =
-                                                                                               itemReserveResult.reserved();
-                                                                                  return item.toBuilder()
-                                                                                             .reserved(reserved)
-                                                                                             .insufficient(!reserved
-                                                                                                                     ? -itemReserveResult.remainder()
-                                                                                                                     : null)
-                                                                                             .build();
-                                                                              })
-                                                                              .toList();
+                    dsl,
+                    reserveId,
+                    warehouseItemStorage.reserve(toItemOps(notReservedItems))
+                            .flatMap(reserveResults -> {
+                                var items1 = reserveResults.stream()
+                                        .map(itemReserveResult -> {
+                                            var itemId = itemReserveResult.id();
+                                            var item = requireNonNull(notReservedItemPerId.get(itemId),
+                                                    "no preloaded reserve item "
+                                                            + itemId);
+                                            var reserved = itemReserveResult.reserved();
+                                            return item.toBuilder()
+                                                    .reserved(reserved)
+                                                    .insufficient(!reserved
+                                                            ? -itemReserveResult.remainder()
+                                                            : null)
+                                                    .build();
+                                        })
+                                        .toList();
 
-                                                   var updatingReserve = reserve.toBuilder();
-                                                   var allReserved = items1.size() == notReservedItems.size();
-                                                   if (allReserved) {
-                                                       updatingReserve.status(approved);
-                                                   }
-                                                   var response = newApproveResponse(reserveResults, reserveId);
-                                                   return reserveStorage.save(updatingReserve
-                                                                                             .items(items1)
-                                                                                             .build())
-                                                                        .map(_ -> response)
-                                                                        .defaultIfEmpty(response);
-                                               }));
+                                var updatingReserve = reserve.toBuilder();
+                                var allReserved = items1.size() == notReservedItems.size();
+                                if (allReserved) {
+                                    updatingReserve.status(approved);
+                                }
+                                var response = newApproveResponse(reserveResults, reserveId);
+                                return reserveStorage.save(updatingReserve
+                                        .items(items1)
+                                        .build())
+                                        .map(_ -> response)
+                                        .defaultIfEmpty(response);
+                            }));
         });
     }
 
@@ -119,19 +117,19 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         reserveInStatus(responseObserver, reserveId, Set.of(created, approved), (dsl, reserve) -> {
             var items = toItemOps(reserve.items());
             return prepare(request.getTwoPhaseCommit(),
-                           dsl,
-                           reserveId,
-                           warehouseItemStorage.cancelReserve(items)
-                                               .zipWith(reserveStorage.save(witStatus(reserve, cancelled)),
-                                                        (i,
-                                                         r) -> {
-                                                            log.debug("reserve cancelled: id [{}], items: [{}]",
-                                                                      r.id(),
-                                                                      i.size());
-                                                            return ReserveCancelResponse.newBuilder()
-                                                                                        .setId(reserveId)
-                                                                                        .build();
-                                                        }));
+                    dsl,
+                    reserveId,
+                    warehouseItemStorage.cancelReserve(items)
+                            .zipWith(reserveStorage.save(witStatus(reserve, cancelled)),
+                                    (i,
+                                            r) -> {
+                                        log.debug("reserve cancelled: id [{}], items: [{}]",
+                                                r.id(),
+                                                i.size());
+                                        return ReserveCancelResponse.newBuilder()
+                                                .setId(reserveId)
+                                                .build();
+                                    }));
         });
     }
 
@@ -141,20 +139,20 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var paymentId = UUID.randomUUID().toString();
             var body = request.getBody();
             var items = body.getItemsList()
-                            .stream()
-                            .map(item -> Item.builder()
-                                             .id(item.getId())
-                                             .amount(item.getAmount())
-                                             .build())
-                            .toList();
+                    .stream()
+                    .map(item -> Item.builder()
+                            .id(item.getId())
+                            .amount(item.getAmount())
+                            .build())
+                    .toList();
             var reserve = Reserve.builder()
-                                 .id(paymentId)
-                                 .externalRef(body.getExternalRef())
-                                 .status(created)
-                                 .items(items)
-                                 .build();
+                    .id(paymentId)
+                    .externalRef(body.getExternalRef())
+                    .status(created)
+                    .items(items)
+                    .build();
             var routine = reserveStorage.save(reserve)
-                                        .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
+                    .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
             return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), routine);
         }));
     }
@@ -170,8 +168,8 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     public void list(ReserveListRequest request, StreamObserver<ReserveListResponse> responseObserver) {
         grpc.subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
             return ReserveListResponse.newBuilder()
-                                      .addAllReserves(reserves.stream().map(reserve -> toReserve(reserve)).toList())
-                                      .build();
+                    .addAllReserves(reserves.stream().map(reserve -> toReserve(reserve)).toList())
+                    .build();
         }));
     }
 
@@ -181,26 +179,26 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         reserveInStatus(responseObserver, reserveId, Set.of(approved), (dsl, reserve) -> {
             var items = toItemOps(reserve.items());
             return prepare(request.getTwoPhaseCommit(),
-                           dsl,
-                           reserveId,
-                           warehouseItemStorage.release(items)
-                                               .zipWith(reserveStorage.save(witStatus(reserve, released)),
-                                                        (i,
-                                                         r) -> {
-                                                            log.debug("reserve released: id [{}], items: [{}]",
-                                                                      r.id(),
-                                                                      i.size());
-                                                            return ReserveReleaseResponse.newBuilder()
-                                                                                         .setId(reserveId)
-                                                                                         .build();
-                                                        }));
+                    dsl,
+                    reserveId,
+                    warehouseItemStorage.release(items)
+                            .zipWith(reserveStorage.save(witStatus(reserve, released)),
+                                    (i,
+                                            r) -> {
+                                        log.debug("reserve released: id [{}], items: [{}]",
+                                                r.id(),
+                                                i.size());
+                                        return ReserveReleaseResponse.newBuilder()
+                                                .setId(reserveId)
+                                                .build();
+                                    }));
         });
     }
 
     private <T> void reserveInStatus(StreamObserver<T> responseObserver,
-                                     String id,
-                                     Set<Reserve.Status> expected,
-                                     BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
+            String id,
+            Set<Reserve.Status> expected,
+            BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
             return checkStatus(reserve.status(), expected).then(routine.apply(dsl, reserve));
         })));

@@ -12,7 +12,7 @@ public class InternalStatusException extends RuntimeException {
     private final Status status;
 
     public InternalStatusException(Status status,
-                                   String message) {
+            String message) {
         super(message);
         this.status = status;
     }

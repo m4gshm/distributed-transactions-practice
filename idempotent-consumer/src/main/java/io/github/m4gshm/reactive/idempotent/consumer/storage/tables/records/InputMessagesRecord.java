@@ -29,8 +29,8 @@ public class InputMessagesRecord extends UpdatableRecordImpl<InputMessagesRecord
      * Create a detached, initialised InputMessagesRecord
      */
     public InputMessagesRecord(String messageId,
-                               String subscriberId,
-                               OffsetDateTime createdAt) {
+            String subscriberId,
+            OffsetDateTime createdAt) {
         super(InputMessages.INPUT_MESSAGES);
 
         setMessageId(messageId);

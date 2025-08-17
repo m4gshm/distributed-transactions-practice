@@ -37,16 +37,16 @@ public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
     @Override
     public Mono<Void> storeUnique(Message message) {
         return dslEnv.provide(dsl -> from(dsl.insertInto(table)
-                                             .set(table.MESSAGE_ID, message.getMessageID())
-                                             .set(table.SUBSCRIBER_ID, message.getSubscriberID())
-                                             .set(table.CREATED_AT, OffsetDateTime.now(clock))
-                                             .onDuplicateKeyIgnore()).flatMap(count -> {
-                                                 if (count == 1) {
-                                                     return Mono.empty();
-                                                 } else {
-                                                     return error(new MessageAlreadyProcessedException(message.getMessageID()));
-                                                 }
-                                             }));
+                .set(table.MESSAGE_ID, message.getMessageID())
+                .set(table.SUBSCRIBER_ID, message.getSubscriberID())
+                .set(table.CREATED_AT, OffsetDateTime.now(clock))
+                .onDuplicateKeyIgnore()).flatMap(count -> {
+                    if (count == 1) {
+                        return Mono.empty();
+                    } else {
+                        return error(new MessageAlreadyProcessedException(message.getMessageID()));
+                    }
+                }));
     }
 
     @FunctionalInterface

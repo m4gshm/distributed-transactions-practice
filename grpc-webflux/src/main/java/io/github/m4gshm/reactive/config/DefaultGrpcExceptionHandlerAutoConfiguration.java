@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 public class DefaultGrpcExceptionHandlerAutoConfiguration {
     @Bean
     public DefaultGrpcExceptionHandler grpcExceptionHandler(MetadataFactory metadataFactory,
-                                                            StatusExtractor statusExtractor) {
+            StatusExtractor statusExtractor) {
         return new DefaultGrpcExceptionHandler(metadataFactory, statusExtractor);
     }
 }

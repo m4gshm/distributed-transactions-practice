@@ -14,12 +14,12 @@ import static reactor.core.publisher.Mono.error;
 public class ExceptionUtils {
     public static <S extends Enum<S>> Mono<Void> checkStatus(S actual, Collection<S> expected) {
         return !expected.contains(actual)
-                                          ? error(newStatusException(FAILED_PRECONDITION,
-                                                                     "inappropriate status " + actual
-                                                                                          +
-                                                                                          ", expected "
-                                                                                          + expected))
-                                          : empty();
+                ? error(newStatusException(FAILED_PRECONDITION,
+                        "inappropriate status " + actual
+                                +
+                                ", expected "
+                                + expected))
+                : empty();
     }
 
     public static InternalStatusException newStatusException(Status status, String message) {

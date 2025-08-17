@@ -9,10 +9,10 @@ public class WriteOffException extends RuntimeException {
     private final double insufficientHold;
 
     public WriteOffException(double insufficientAmount,
-                             double insufficientHold) {
+            double insufficientHold) {
         super("write-off failed"
-              + (insufficientAmount > 0 ? ", insufficientAmount: " + insufficientAmount : "")
-              + (insufficientHold > 0 ? ", insufficientHold: " + insufficientHold : ""));
+                + (insufficientAmount > 0 ? ", insufficientAmount: " + insufficientAmount : "")
+                + (insufficientHold > 0 ? ", insufficientHold: " + insufficientHold : ""));
         this.insufficientAmount = insufficientAmount;
         this.insufficientHold = insufficientHold;
     }

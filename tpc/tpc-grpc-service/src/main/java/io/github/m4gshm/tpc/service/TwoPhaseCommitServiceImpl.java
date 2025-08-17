@@ -26,31 +26,31 @@ public class TwoPhaseCommitServiceImpl extends TwoPhaseCommitServiceGrpc.TwoPhas
     @Override
     public void commit(TwoPhaseCommitRequest request, StreamObserver<TwoPhaseCommitResponse> response) {
         grpc.subscribe(response,
-                       TwoPhaseTransaction.commit(dsl, request.getId())
-                                          .thenReturn(TwoPhaseCommitResponse.newBuilder()
-                                                                            .setId(request.getId())
-                                                                            .build()));
+                TwoPhaseTransaction.commit(dsl, request.getId())
+                        .thenReturn(TwoPhaseCommitResponse.newBuilder()
+                                .setId(request.getId())
+                                .build()));
     }
 
     @Override
     public void listActives(TwoPhaseListActivesRequest request, StreamObserver<TwoPhaseListActivesResponse> response) {
         grpc.subscribe(response, TwoPhaseTransaction.listPrepared(dsl).collectList().map(transactions -> {
             return TwoPhaseListActivesResponse.newBuilder()
-                                              .addAllTransactions(transactions.stream()
-                                                                              .map(t -> Transaction.newBuilder()
-                                                                                                   .setId(t.gid())
-                                                                                                   .build())
-                                                                              .toList())
-                                              .build();
+                    .addAllTransactions(transactions.stream()
+                            .map(t -> Transaction.newBuilder()
+                                    .setId(t.gid())
+                                    .build())
+                            .toList())
+                    .build();
         }));
     }
 
     @Override
     public void rollback(TwoPhaseRollbackRequest request, StreamObserver<TwoPhaseRollbackResponse> response) {
         grpc.subscribe(response,
-                       TwoPhaseTransaction.rollback(dsl, request.getId())
-                                          .thenReturn(TwoPhaseRollbackResponse.newBuilder()
-                                                                              .setId(request.getId())
-                                                                              .build()));
+                TwoPhaseTransaction.rollback(dsl, request.getId())
+                        .thenReturn(TwoPhaseRollbackResponse.newBuilder()
+                                .setId(request.getId())
+                                .build()));
     }
 }

@@ -18,8 +18,8 @@ public class GrpcReactiveAutoConfiguration {
 
     @Bean
     public GrpcReactive grpcCoreSubscriberFactory(MetadataFactory metadataFactory,
-                                                  StatusExtractor statusExtractor,
-                                                  List<GrpcExceptionResolver> grpcExceptionResolvers) {
+            StatusExtractor statusExtractor,
+            List<GrpcExceptionResolver> grpcExceptionResolvers) {
         return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers);
     }
 

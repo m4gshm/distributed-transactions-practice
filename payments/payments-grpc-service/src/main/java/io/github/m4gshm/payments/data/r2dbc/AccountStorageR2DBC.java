@@ -46,19 +46,19 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     private static Mono<Record2<Double, Double>> selectForUpdate(DSLContext dsl, String clientId) {
         return from(dsl
-                       .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
-                       .from(ACCOUNT)
-                       .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                       .forUpdate());
+                .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
+                .from(ACCOUNT)
+                .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                .forUpdate());
     }
 
     public static Account toAccount(Record record) {
         return Account.builder()
-                      .clientId(record.get(ACCOUNT.CLIENT_ID))
-                      .amount(record.get(ACCOUNT.AMOUNT))
-                      .locked(record.get(ACCOUNT.LOCKED))
-                      .updatedAt(record.get(ACCOUNT.UPDATED_AT))
-                      .build();
+                .clientId(record.get(ACCOUNT.CLIENT_ID))
+                .amount(record.get(ACCOUNT.AMOUNT))
+                .locked(record.get(ACCOUNT.LOCKED))
+                .updatedAt(record.get(ACCOUNT.UPDATED_AT))
+                .build();
     }
 
     @Override
@@ -74,12 +74,12 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return just(result.success(false).insufficientAmount(newLocked - totalAmount).build());
                 } else {
                     return from(dsl
-                                   .update(ACCOUNT)
-                                   .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
-                                   .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
-                                                                                                    clientId,
-                                                                                                    () -> result.success(true)
-                                                                                                                .build()));
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                                    clientId,
+                                    () -> result.success(true)
+                                            .build()));
                 }
             });
         });
@@ -103,10 +103,10 @@ public class AccountStorageR2DBC implements AccountStorage {
     public Mono<BalanceResult> topUp(String clientId, double replenishment) {
         return jooq.transactional(dsl -> {
             UpdateResultStep<AccountRecord> returning = dsl
-                                                           .update(ACCOUNT)
-                                                           .set(ACCOUNT.AMOUNT, ACCOUNT.AMOUNT.plus(replenishment))
-                                                           .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                                                           .returning(ACCOUNT.fields());
+                    .update(ACCOUNT)
+                    .set(ACCOUNT.AMOUNT, ACCOUNT.AMOUNT.plus(replenishment))
+                    .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                    .returning(ACCOUNT.fields());
             return from(returning).map(accountRecord -> {
                 var balance = accountRecord.get(ACCOUNT.AMOUNT) - accountRecord.get(ACCOUNT.LOCKED);
                 return BalanceResult.builder().balance(balance).build();
@@ -124,11 +124,11 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return Mono.error(new InvalidUnlockFundValueException(clientId, newLocked));
                 } else {
                     return from(dsl
-                                   .update(ACCOUNT)
-                                   .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.minus(amount))
-                                   .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
-                                                                                                    clientId,
-                                                                                                    () -> null));
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.minus(amount))
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                                    clientId,
+                                    () -> null));
                 }
             });
         });
@@ -146,16 +146,16 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return error(new WriteOffException(newLocked < 0 ? -newLocked : 0, newAmount < 0 ? -newAmount : 0));
                 } else {
                     return from(dsl
-                                   .update(ACCOUNT)
-                                   .set(ACCOUNT.LOCKED, newLocked)
-                                   .set(ACCOUNT.AMOUNT, newAmount)
-                                   .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
-                                                                                                    clientId,
-                                                                                                    () -> {
-                                                                                                        return BalanceResult.builder()
-                                                                                                                            .balance(newAmount)
-                                                                                                                            .build();
-                                                                                                    }));
+                            .update(ACCOUNT)
+                            .set(ACCOUNT.LOCKED, newLocked)
+                            .set(ACCOUNT.AMOUNT, newAmount)
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                                    clientId,
+                                    () -> {
+                                        return BalanceResult.builder()
+                                                .balance(newAmount)
+                                                .build();
+                                    }));
                 }
             });
         });

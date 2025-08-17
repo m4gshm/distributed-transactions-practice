@@ -47,22 +47,22 @@ public class PaymentStorageR2DBC implements PaymentStorage {
     public Mono<Payment> save(@Valid Payment payment) {
         return jooq.transactional(dsl -> {
             return Mono.from(dsl.insertInto(PAYMENT)
-                                .set(PAYMENT.ID, payment.id())
-                                .set(PAYMENT.CREATED_AT, PaymentStorageR2DBCUtils.orNow(payment.createdAt()))
-                                .set(PAYMENT.EXTERNAL_REF, payment.externalRef())
-                                .set(PAYMENT.CLIENT_ID, payment.clientId())
-                                .set(PAYMENT.STATUS, payment.status().getCode())
-                                .set(PAYMENT.AMOUNT, payment.amount())
-                                .set(PAYMENT.INSUFFICIENT, payment.insufficient())
-                                .onDuplicateKeyUpdate()
-                                .set(PAYMENT.UPDATED_AT, PaymentStorageR2DBCUtils.orNow(payment.updatedAt()))
-                                .set(PAYMENT.STATUS, payment.status().getCode())
-                                .set(PAYMENT.AMOUNT, payment.amount())
-                                .set(PAYMENT.INSUFFICIENT, payment.insufficient()))
-                       .map(count -> {
-                           log.debug("stored payment rows {}", count);
-                           return payment;
-                       });
+                    .set(PAYMENT.ID, payment.id())
+                    .set(PAYMENT.CREATED_AT, PaymentStorageR2DBCUtils.orNow(payment.createdAt()))
+                    .set(PAYMENT.EXTERNAL_REF, payment.externalRef())
+                    .set(PAYMENT.CLIENT_ID, payment.clientId())
+                    .set(PAYMENT.STATUS, payment.status().getCode())
+                    .set(PAYMENT.AMOUNT, payment.amount())
+                    .set(PAYMENT.INSUFFICIENT, payment.insufficient())
+                    .onDuplicateKeyUpdate()
+                    .set(PAYMENT.UPDATED_AT, PaymentStorageR2DBCUtils.orNow(payment.updatedAt()))
+                    .set(PAYMENT.STATUS, payment.status().getCode())
+                    .set(PAYMENT.AMOUNT, payment.amount())
+                    .set(PAYMENT.INSUFFICIENT, payment.insufficient()))
+                    .map(count -> {
+                        log.debug("stored payment rows {}", count);
+                        return payment;
+                    });
         });
     }
 }
