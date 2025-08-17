@@ -23,7 +23,9 @@ import static reactor.core.publisher.Mono.deferContextual;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class JooqImpl implements Jooq {
     TransactionalOperator operator;
+
     ConnectionFactory connectionFactory;
+
     Configuration configuration;
 
     public static DSLContext newDsl(ContextView context,

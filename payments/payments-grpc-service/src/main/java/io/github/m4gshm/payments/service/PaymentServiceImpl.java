@@ -10,7 +10,18 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass.*;
+import payment.v1.PaymentOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentOuterClass.PaymentCancelResponse;
+import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentOuterClass.PaymentGetRequest;
+import payment.v1.PaymentOuterClass.PaymentGetResponse;
+import payment.v1.PaymentOuterClass.PaymentListRequest;
+import payment.v1.PaymentOuterClass.PaymentListResponse;
+import payment.v1.PaymentOuterClass.PaymentPayRequest;
+import payment.v1.PaymentOuterClass.PaymentPayResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.Set;
@@ -19,7 +30,11 @@ import java.util.function.BiFunction;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.payments.data.model.Payment.Status.*;
+import static io.github.m4gshm.payments.data.model.Payment.Status.cancelled;
+import static io.github.m4gshm.payments.data.model.Payment.Status.created;
+import static io.github.m4gshm.payments.data.model.Payment.Status.hold;
+import static io.github.m4gshm.payments.data.model.Payment.Status.insufficient;
+import static io.github.m4gshm.payments.data.model.Payment.Status.paid;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toDataModel;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toProto;
 import static lombok.AccessLevel.PRIVATE;
@@ -33,12 +48,60 @@ import static reactor.core.publisher.Mono.defer;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PaymentServiceImpl extends PaymentServiceImplBase {
     Jooq jooq;
+
     GrpcReactive grpc;
     PaymentStorage paymentStorage;
     AccountStorage accountStorage;
 
     private static Payment withStatus(Payment payment, Payment.Status status) {
         return payment.toBuilder().status(status).build();
+    }
+
+    @Override
+    public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
+        var twoPhaseCommit = request.getTwoPhaseCommit();
+        var expected = Set.of(created, insufficient);
+        paymentAccount(responseObserver,
+                       twoPhaseCommit,
+                       request.getId(),
+                       expected,
+                       (payment,
+                        account) -> {
+                           return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
+                               var status = lockResult.success() ? hold : insufficient;
+                               return paymentStorage.save(payment.toBuilder()
+                                                                 .status(status)
+                                                                 .insufficient(status
+                                                                               == insufficient
+                                                                                               ? lockResult.insufficientAmount()
+                                                                                               : null)
+                                                                 .build())
+                                                    .map(_ -> PaymentApproveResponse.newBuilder()
+                                                                                    .setId(request.getId())
+                                                                                    .setStatus(lockResult.success()
+                                                                                                                    ? APPROVED
+                                                                                                                    : INSUFFICIENT_AMOUNT)
+                                                                                    .setInsufficientAmount(lockResult.insufficientAmount())
+                                                                                    .build());
+                           });
+                       });
+    }
+
+    @Override
+    public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
+        paymentAccount(responseObserver,
+                       request.getTwoPhaseCommit(),
+                       request.getId(),
+                       Set.of(created, insufficient, hold),
+                       (payment,
+                        account) -> {
+                           return accountStorage.unlock(account.clientId(), payment.amount())
+                                                .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
+                                                    return PaymentCancelResponse.newBuilder()
+                                                                                .setId(payment.id())
+                                                                                .build();
+                                                }));
+                       });
     }
 
     @Override
@@ -58,31 +121,21 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     }
 
     @Override
-    public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
-        var twoPhaseCommit = request.getTwoPhaseCommit();
-        var expected = Set.of(created, insufficient);
-        paymentAccount(responseObserver,
-                       twoPhaseCommit,
-                       request.getId(),
-                       expected,
-                       (payment,
-                        account) -> {
-                           return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
-                               var status = lockResult.success() ? hold : insufficient;
-                               return paymentStorage.save(payment.toBuilder()
-                                                                 .status(status)
-                                                                 .insufficient(status
-                                                                               == insufficient ? lockResult.insufficientAmount()
-                                                                                               : null)
-                                                                 .build())
-                                                    .map(_ -> PaymentApproveResponse.newBuilder()
-                                                                                    .setId(request.getId())
-                                                                                    .setStatus(lockResult.success() ? APPROVED
-                                                                                                                    : INSUFFICIENT_AMOUNT)
-                                                                                    .setInsufficientAmount(lockResult.insufficientAmount())
-                                                                                    .build());
-                           });
-                       });
+    public void get(PaymentGetRequest request, StreamObserver<PaymentGetResponse> responseObserver) {
+        grpc.subscribe(responseObserver, paymentStorage.getById(request.getId()).map(payment -> {
+            return PaymentGetResponse.newBuilder()
+                                     .setPayment(toProto(payment))
+                                     .build();
+        }));
+    }
+
+    @Override
+    public void list(PaymentListRequest request, StreamObserver<PaymentListResponse> responseObserver) {
+        grpc.subscribe(responseObserver, paymentStorage.findAll().map(payments -> {
+            return PaymentListResponse.newBuilder()
+                                      .addAllPayments(payments.stream().map(PaymentServiceUtils::toProto).toList())
+                                      .build();
+        }));
     }
 
     @Override
@@ -105,23 +158,6 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                        });
     }
 
-    @Override
-    public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
-        paymentAccount(responseObserver,
-                       request.getTwoPhaseCommit(),
-                       request.getId(),
-                       Set.of(created, insufficient, hold),
-                       (payment,
-                        account) -> {
-                           return accountStorage.unlock(account.clientId(), payment.amount())
-                                                .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
-                                                    return PaymentCancelResponse.newBuilder()
-                                                                                .setId(payment.id())
-                                                                                .build();
-                                                }));
-                       });
-    }
-
     private <T> void paymentAccount(StreamObserver<T> responseObserver,
                                     boolean twoPhaseCommit,
                                     String paymentId,
@@ -134,24 +170,6 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                          .flatMap(account -> routine.apply(payment, account));
                 }));
             }));
-        }));
-    }
-
-    @Override
-    public void get(PaymentGetRequest request, StreamObserver<PaymentGetResponse> responseObserver) {
-        grpc.subscribe(responseObserver, paymentStorage.getById(request.getId()).map(payment -> {
-            return PaymentGetResponse.newBuilder()
-                                     .setPayment(toProto(payment))
-                                     .build();
-        }));
-    }
-
-    @Override
-    public void list(PaymentListRequest request, StreamObserver<PaymentListResponse> responseObserver) {
-        grpc.subscribe(responseObserver, paymentStorage.findAll().map(payments -> {
-            return PaymentListResponse.newBuilder()
-                                      .addAllPayments(payments.stream().map(PaymentServiceUtils::toProto).toList())
-                                      .build();
         }));
     }
 }

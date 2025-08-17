@@ -28,6 +28,14 @@ public class R2DBCConnection {
     }
 
     @NotNull
+    public <T> Flux<T> flux(boolean autoCommit, Function<Connection, Flux<T>> routine) {
+        return usingWhen(connection(autoCommit), routine, Connection::close)
+                                                                            .doOnError(e -> {
+                                                                                log.error("connection flux error", e);
+                                                                            });
+    }
+
+    @NotNull
     public <T> Mono<T> mono(Function<Connection, Mono<T>> routine) {
         return usingWhen(connection(false), routine, Connection::close)
                                                                        .doOnError(e -> {
@@ -44,13 +52,5 @@ public class R2DBCConnection {
                                                                                                                 log.error("connection transaction mono error",
                                                                                                                           e);
                                                                                                             });
-    }
-
-    @NotNull
-    public <T> Flux<T> flux(boolean autoCommit, Function<Connection, Flux<T>> routine) {
-        return usingWhen(connection(autoCommit), routine, Connection::close)
-                                                                            .doOnError(e -> {
-                                                                                log.error("connection flux error", e);
-                                                                            });
     }
 }

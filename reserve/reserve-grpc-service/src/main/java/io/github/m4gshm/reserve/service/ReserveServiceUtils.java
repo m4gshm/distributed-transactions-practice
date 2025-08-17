@@ -12,6 +12,29 @@ import java.util.List;
 @UtilityClass
 public class ReserveServiceUtils {
 
+    public static ReserveApproveResponse newApproveResponse(
+                                                            List<ItemOp.ReserveResult> reserveResults,
+                                                            String reserveId) {
+        var reservedItems = reserveResults.stream().map(ReserveServiceUtils::toResponseItem).toList();
+        var allReserved = reservedItems.stream().allMatch(ReserveApproveResponse.Item::getReserved);
+        return ReserveApproveResponse.newBuilder()
+                                     .setId(reserveId)
+                                     .addAllItems(reservedItems)
+                                     .setStatus(allReserved
+                                                            ? Status.APPROVED
+                                                            : Status.INSUFFICIENT_QUANTITY)
+                                     .build();
+    }
+
+    static List<ItemOp> toItemOps(List<Reserve.Item> items) {
+        return items.stream().map(item -> {
+            return ItemOp.builder()
+                         .id(item.id())
+                         .amount(item.amount())
+                         .build();
+        }).toList();
+    }
+
     public static ReserveOuterClass.Reserve toReserve(Reserve reserve) {
         return ReserveOuterClass.Reserve.newBuilder()
                                         .setId(reserve.id())
@@ -30,20 +53,6 @@ public class ReserveServiceUtils {
                                         .build();
     }
 
-    public static ReserveApproveResponse newApproveResponse(
-                                                            List<ItemOp.ReserveResult> reserveResults,
-                                                            String reserveId) {
-        var reservedItems = reserveResults.stream().map(ReserveServiceUtils::toResponseItem).toList();
-        var allReserved = reservedItems.stream().allMatch(ReserveApproveResponse.Item::getReserved);
-        return ReserveApproveResponse.newBuilder()
-                                     .setId(reserveId)
-                                     .addAllItems(reservedItems)
-                                     .setStatus(allReserved
-                                                            ? Status.APPROVED
-                                                            : Status.INSUFFICIENT_QUANTITY)
-                                     .build();
-    }
-
     public static ReserveApproveResponse.Item toResponseItem(ItemOp.ReserveResult result) {
         var reserved = result.reserved();
         var builder = ReserveApproveResponse.Item.newBuilder()
@@ -55,14 +64,5 @@ public class ReserveServiceUtils {
         }
         return builder
                       .build();
-    }
-
-    static List<ItemOp> toItemOps(List<Reserve.Item> items) {
-        return items.stream().map(item -> {
-            return ItemOp.builder()
-                         .id(item.id())
-                         .amount(item.amount())
-                         .build();
-        }).toList();
     }
 }

@@ -8,8 +8,11 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.*;
+import org.jooq.DSLContext;
 import org.jooq.Record;
+import org.jooq.Record2;
+import org.jooq.SelectJoinStep;
+import org.jooq.UpdateResultStep;
 import org.springframework.stereotype.Service;
 import payments.data.access.jooq.tables.records.AccountRecord;
 import reactor.core.publisher.Flux;
@@ -23,7 +26,9 @@ import static io.github.m4gshm.jooq.utils.Update.notFound;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
-import static reactor.core.publisher.Mono.*;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.from;
+import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @Service
@@ -32,16 +37,8 @@ import static reactor.core.publisher.Mono.*;
 public class AccountStorageR2DBC implements AccountStorage {
     @Getter
     Class<Account> entityClass = Account.class;
-    Jooq jooq;
 
-    public static Account toAccount(Record record) {
-        return Account.builder()
-                      .clientId(record.get(ACCOUNT.CLIENT_ID))
-                      .amount(record.get(ACCOUNT.AMOUNT))
-                      .locked(record.get(ACCOUNT.LOCKED))
-                      .updatedAt(record.get(ACCOUNT.UPDATED_AT))
-                      .build();
-    }
+    Jooq jooq;
 
     public static SelectJoinStep<Record> selectAccounts(DSLContext dsl) {
         return selectAllFrom(dsl, ACCOUNT);
@@ -55,18 +52,13 @@ public class AccountStorageR2DBC implements AccountStorage {
                        .forUpdate());
     }
 
-    @Override
-    public Mono<List<Account>> findAll() {
-        return jooq.transactional(dsl -> {
-            return Flux.from(selectAccounts(dsl)).map(AccountStorageR2DBC::toAccount).collectList();
-        });
-    }
-
-    @Override
-    public Mono<Account> findById(String id) {
-        return jooq.transactional(dsl -> {
-            return from(selectAccounts(dsl).where(ACCOUNT.CLIENT_ID.eq(id))).map(AccountStorageR2DBC::toAccount);
-        });
+    public static Account toAccount(Record record) {
+        return Account.builder()
+                      .clientId(record.get(ACCOUNT.CLIENT_ID))
+                      .amount(record.get(ACCOUNT.AMOUNT))
+                      .locked(record.get(ACCOUNT.LOCKED))
+                      .updatedAt(record.get(ACCOUNT.UPDATED_AT))
+                      .build();
     }
 
     @Override
@@ -90,6 +82,35 @@ public class AccountStorageR2DBC implements AccountStorage {
                                                                                                                 .build()));
                 }
             });
+        });
+    }
+
+    @Override
+    public Mono<List<Account>> findAll() {
+        return jooq.transactional(dsl -> {
+            return Flux.from(selectAccounts(dsl)).map(AccountStorageR2DBC::toAccount).collectList();
+        });
+    }
+
+    @Override
+    public Mono<Account> findById(String id) {
+        return jooq.transactional(dsl -> {
+            return from(selectAccounts(dsl).where(ACCOUNT.CLIENT_ID.eq(id))).map(AccountStorageR2DBC::toAccount);
+        });
+    }
+
+    @Override
+    public Mono<BalanceResult> topUp(String clientId, double replenishment) {
+        return jooq.transactional(dsl -> {
+            UpdateResultStep<AccountRecord> returning = dsl
+                                                           .update(ACCOUNT)
+                                                           .set(ACCOUNT.AMOUNT, ACCOUNT.AMOUNT.plus(replenishment))
+                                                           .where(ACCOUNT.CLIENT_ID.eq(clientId))
+                                                           .returning(ACCOUNT.fields());
+            return from(returning).map(accountRecord -> {
+                var balance = accountRecord.get(ACCOUNT.AMOUNT) - accountRecord.get(ACCOUNT.LOCKED);
+                return BalanceResult.builder().balance(balance).build();
+            }).switchIfEmpty(notFound("account", clientId));
         });
     }
 
@@ -137,21 +158,6 @@ public class AccountStorageR2DBC implements AccountStorage {
                                                                                                     }));
                 }
             });
-        });
-    }
-
-    @Override
-    public Mono<BalanceResult> topUp(String clientId, double replenishment) {
-        return jooq.transactional(dsl -> {
-            UpdateResultStep<AccountRecord> returning = dsl
-                                                           .update(ACCOUNT)
-                                                           .set(ACCOUNT.AMOUNT, ACCOUNT.AMOUNT.plus(replenishment))
-                                                           .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                                                           .returning(ACCOUNT.fields());
-            return from(returning).map(accountRecord -> {
-                var balance = accountRecord.get(ACCOUNT.AMOUNT) - accountRecord.get(ACCOUNT.LOCKED);
-                return BalanceResult.builder().balance(balance).build();
-            }).switchIfEmpty(notFound("account", clientId));
         });
     }
 }

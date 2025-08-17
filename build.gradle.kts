@@ -14,6 +14,12 @@ subprojects {
     apply(plugin = "io.spring.dependency-management")
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "java-library")
+    apply(plugin = "checkstyle")
+
+
+    the<CheckstyleExtension>().apply {
+        this.toolVersion = "11.0.0"
+    }
 
     the<DependencyManagementExtension>().apply {
         imports {
@@ -54,7 +60,7 @@ subprojects {
         the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
             java {
                 target("src/*/java/**/*.java")
-                removeUnusedImports()
+//                removeUnusedImports()
                 cleanthat()
                     .version("2.23")
                     .sourceCompatibility("21")
@@ -65,10 +71,17 @@ subprojects {
                     .excludeMutator("AvoidInlineConditionals")
                     .includeDraft(false)
 
-                eclipse().configFile("$rootDir/codestyle.xml")
+                eclipse()
+                    .sortMembersEnabled(true)
+                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
+//                    .sortMembersDoNotSortFields(false)
+//                    .sortMembersVisibilityOrderEnabled(true)
+//                    .sortMembersVisibilityOrder("B,R,D,V")
+                    .configFile("$rootDir/config/codestyle.xml")
             }
         }
 
         tasks.findByName("assemble")?.dependsOn("spotlessApply")
+        tasks.findByName("checkstyleMain")?.dependsOn("spotlessApply")
     }
 }

@@ -21,6 +21,10 @@ public class PaymentStorageR2DBCUtils {
         return ofNullable(value).orElseGet(OffsetDateTime::now);
     }
 
+    public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {
+        return selectAllFrom(dsl, PAYMENT);
+    }
+
     public static Payment toPayment(Record record) {
         return Payment.builder()
                       .id(record.get(PAYMENT.ID))
@@ -31,9 +35,5 @@ public class PaymentStorageR2DBCUtils {
                       .createdAt(record.get(PAYMENT.CREATED_AT))
                       .updatedAt(record.get(PAYMENT.UPDATED_AT))
                       .build();
-    }
-
-    public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {
-        return selectAllFrom(dsl, PAYMENT);
     }
 }

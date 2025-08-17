@@ -55,7 +55,9 @@ import static reactor.core.publisher.Mono.just;
 @FieldDefaults(makeFinal = true, level = PROTECTED)
 public class OrdersServiceImpl implements OrdersService {
     OrderStorage orderRepository;
+
     ReserveServiceGrpc.ReserveServiceStub reserveClient;
+
     TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentServiceGrpc.PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
@@ -79,25 +81,51 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     @Override
-    public Mono<Orders.OrderGetResponse> get(String orderId) {
-        return orderRepository.findById(orderId).switchIfEmpty(notFoundById(orderId)).flatMap(order -> {
-            return getItems(order.reserveId()).zipWith(getPaymentStatus(order.paymentId()), (items, paymentStatus) -> {
-                return toOrder(order, paymentStatus, items);
-            });
-        }).map(order -> Orders.OrderGetResponse.newBuilder().setOrder(order).build());
+    public Mono<Orders.OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit) {
+        return updateOrderOp("approve", orderId, twoPhaseCommit, Set.of(created, insufficient), (payment, reserve) -> {
+            return getOrderStatus(payment.getStatus(), reserve.getStatus());
+        },
+                             paymentId -> PaymentOuterClass.PaymentApproveRequest.newBuilder()
+                                                                                 .setId(paymentId)
+                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
+                                                                                 .build(),
+                             reserveId -> ReserveOuterClass.ReserveApproveRequest.newBuilder()
+                                                                                 .setId(reserveId)
+                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
+                                                                                 .build(),
+                             paymentsClient::approve,
+                             reserveClient::approve,
+                             order -> {
+                                 return Orders.OrderApproveResponse.newBuilder()
+                                                                   .setId(order.id())
+                                                                   .setStatus(toOrderStatus(order.status()))
+                                                                   .build();
+                             });
     }
 
     @Override
-    public Mono<Orders.OrderListResponse> list() {
-        return orderRepository.findAll().defaultIfEmpty(List.of()).map(orders -> {
-            return orders.stream()
-                         .map(order -> toOrder(order, null, null))
-                         .toList();
-        }).map(orders -> {
-            return Orders.OrderListResponse.newBuilder()
-                                           .addAllOrders(orders)
-                                           .build();
-        });
+    public Mono<Orders.OrderCancelResponse> cancel(String orderId, boolean twoPhaseCommit) {
+        return updateOrderOp("cancel",
+                             orderId,
+                             twoPhaseCommit,
+                             Set.of(created, insufficient, approved),
+                             (_,
+                              _) -> cancelled,
+                             paymentId -> PaymentOuterClass.PaymentCancelRequest.newBuilder()
+                                                                                .setId(paymentId)
+                                                                                .setTwoPhaseCommit(twoPhaseCommit)
+                                                                                .build(),
+                             reserveId -> ReserveOuterClass.ReserveCancelRequest.newBuilder()
+                                                                                .setId(reserveId)
+                                                                                .setTwoPhaseCommit(twoPhaseCommit)
+                                                                                .build(),
+                             paymentsClient::cancel,
+                             reserveClient::cancel,
+                             order -> {
+                                 return Orders.OrderCancelResponse.newBuilder()
+                                                                  .setId(order.id())
+                                                                  .build();
+                             });
     }
 
     @Override
@@ -158,114 +186,6 @@ public class OrdersServiceImpl implements OrdersService {
         });
     }
 
-    @Override
-    public Mono<Orders.OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit) {
-        return updateOrderOp("approve", orderId, twoPhaseCommit, Set.of(created, insufficient), (payment, reserve) -> {
-            return getOrderStatus(payment.getStatus(), reserve.getStatus());
-        },
-                             paymentId -> PaymentOuterClass.PaymentApproveRequest.newBuilder()
-                                                                                 .setId(paymentId)
-                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
-                                                                                 .build(),
-                             reserveId -> ReserveOuterClass.ReserveApproveRequest.newBuilder()
-                                                                                 .setId(reserveId)
-                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
-                                                                                 .build(),
-                             paymentsClient::approve,
-                             reserveClient::approve,
-                             order -> {
-                                 return Orders.OrderApproveResponse.newBuilder()
-                                                                   .setId(order.id())
-                                                                   .setStatus(toOrderStatus(order.status()))
-                                                                   .build();
-                             });
-    }
-
-    @Override
-    public Mono<Orders.OrderReleaseResponse> release(String orderId, boolean twoPhaseCommit) {
-        return updateOrderOp("release",
-                             orderId,
-                             twoPhaseCommit,
-                             Set.of(approved),
-                             (_,
-                              _) -> released,
-                             paymentId -> PaymentOuterClass.PaymentPayRequest.newBuilder()
-                                                                             .setId(paymentId)
-                                                                             .setTwoPhaseCommit(twoPhaseCommit)
-                                                                             .build(),
-                             reserveId -> ReserveOuterClass.ReserveReleaseRequest.newBuilder()
-                                                                                 .setId(reserveId)
-                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
-                                                                                 .build(),
-                             paymentsClient::pay,
-                             reserveClient::release,
-                             order -> {
-                                 return Orders.OrderReleaseResponse.newBuilder()
-                                                                   .setId(order.id())
-                                                                   .build();
-                             });
-    }
-
-    @Override
-    public Mono<Orders.OrderCancelResponse> cancel(String orderId, boolean twoPhaseCommit) {
-        return updateOrderOp("cancel",
-                             orderId,
-                             twoPhaseCommit,
-                             Set.of(created, insufficient, approved),
-                             (_,
-                              _) -> cancelled,
-                             paymentId -> PaymentOuterClass.PaymentCancelRequest.newBuilder()
-                                                                                .setId(paymentId)
-                                                                                .setTwoPhaseCommit(twoPhaseCommit)
-                                                                                .build(),
-                             reserveId -> ReserveOuterClass.ReserveCancelRequest.newBuilder()
-                                                                                .setId(reserveId)
-                                                                                .setTwoPhaseCommit(twoPhaseCommit)
-                                                                                .build(),
-                             paymentsClient::cancel,
-                             reserveClient::cancel,
-                             order -> {
-                                 return Orders.OrderCancelResponse.newBuilder()
-                                                                  .setId(order.id())
-                                                                  .build();
-                             });
-    }
-
-    protected Mono<Order> saveAllAndCommit(boolean twoPhaseCommit,
-                                           Order order,
-                                           String paymentTransactionId,
-                                           String reserveTransactionId) {
-        var orderId = order.id();
-        return jooq.transactional(dsl -> {
-            // run distributed transaction
-            return prepare(twoPhaseCommit, dsl, order.id(), orderRepository.save(order)).onErrorResume(throwable -> {
-                // rollback distributed transaction on error
-                log.error("error on transactional operation with orderId [{}]", orderId, throwable);
-                return !twoPhaseCommit
-                                       ? error(throwable)
-                                       : distributedRollback(dsl,
-                                                             orderId,
-                                                             paymentTransactionId,
-                                                             reserveTransactionId,
-                                                             throwable);
-            }).flatMap(savedOrder -> {
-                // commit distributed transaction if no errors
-                return !twoPhaseCommit
-                                       ? just(savedOrder)
-                                       : distributedCommit(dsl,
-                                                           orderId,
-                                                           paymentTransactionId,
-                                                           reserveTransactionId,
-                                                           savedOrder)
-                                                                      .doOnError(throwable -> {
-                                                                          log.error("error on commit distributed transaction [{}]",
-                                                                                    orderId,
-                                                                                    throwable);
-                                                                      });
-            });
-        });
-    }
-
     private <T> Mono<T> distributedCommit(DSLContext dsl,
                                           String orderId,
                                           String paymentTransactionId,
@@ -315,6 +235,71 @@ public class OrdersServiceImpl implements OrdersService {
                                                                          });
     }
 
+    @Override
+    public Mono<Orders.OrderGetResponse> get(String orderId) {
+        return orderRepository.findById(orderId).switchIfEmpty(notFoundById(orderId)).flatMap(order -> {
+            return getItems(order.reserveId()).zipWith(getPaymentStatus(order.paymentId()), (items, paymentStatus) -> {
+                return toOrder(order, paymentStatus, items);
+            });
+        }).map(order -> Orders.OrderGetResponse.newBuilder().setOrder(order).build());
+    }
+
+    private Mono<List<ReserveOuterClass.Reserve.Item>> getItems(String reserveId) {
+        return toMono(ReserveOuterClass.ReserveGetRequest.newBuilder()
+                                                         .setId(reserveId)
+                                                         .build(),
+                      reserveClient::get).map(reserveGetResponse -> {
+                          return reserveGetResponse.getReserve().getItemsList();
+                      });
+    }
+
+    private Mono<PaymentOuterClass.Payment.Status> getPaymentStatus(String paymentId) {
+        return toMono(PaymentOuterClass.PaymentGetRequest.newBuilder()
+                                                         .setId(paymentId)
+                                                         .build(),
+                      paymentsClient::get).map(response -> {
+                          return response.getPayment().getStatus();
+                      });
+    }
+
+    @Override
+    public Mono<Orders.OrderListResponse> list() {
+        return orderRepository.findAll().defaultIfEmpty(List.of()).map(orders -> {
+            return orders.stream()
+                         .map(order -> toOrder(order, null, null))
+                         .toList();
+        }).map(orders -> {
+            return Orders.OrderListResponse.newBuilder()
+                                           .addAllOrders(orders)
+                                           .build();
+        });
+    }
+
+    @Override
+    public Mono<Orders.OrderReleaseResponse> release(String orderId, boolean twoPhaseCommit) {
+        return updateOrderOp("release",
+                             orderId,
+                             twoPhaseCommit,
+                             Set.of(approved),
+                             (_,
+                              _) -> released,
+                             paymentId -> PaymentOuterClass.PaymentPayRequest.newBuilder()
+                                                                             .setId(paymentId)
+                                                                             .setTwoPhaseCommit(twoPhaseCommit)
+                                                                             .build(),
+                             reserveId -> ReserveOuterClass.ReserveReleaseRequest.newBuilder()
+                                                                                 .setId(reserveId)
+                                                                                 .setTwoPhaseCommit(twoPhaseCommit)
+                                                                                 .build(),
+                             paymentsClient::pay,
+                             reserveClient::release,
+                             order -> {
+                                 return Orders.OrderReleaseResponse.newBuilder()
+                                                                   .setId(order.id())
+                                                                   .build();
+                             });
+    }
+
     protected Mono<Void> remoteRollback(String paymentTransactionId, String reserveTransactionId) {
         return toMono(newRollbackRequest(reserveTransactionId), reserveClientTcp::rollback)
                                                                                            .zipWith(toMono(newRollbackRequest(paymentTransactionId),
@@ -325,6 +310,41 @@ public class OrdersServiceImpl implements OrdersService {
                                                                                                return true;
                                                                                            })
                                                                                            .then();
+    }
+
+    protected Mono<Order> saveAllAndCommit(boolean twoPhaseCommit,
+                                           Order order,
+                                           String paymentTransactionId,
+                                           String reserveTransactionId) {
+        var orderId = order.id();
+        return jooq.transactional(dsl -> {
+            // run distributed transaction
+            return prepare(twoPhaseCommit, dsl, order.id(), orderRepository.save(order)).onErrorResume(throwable -> {
+                // rollback distributed transaction on error
+                log.error("error on transactional operation with orderId [{}]", orderId, throwable);
+                return !twoPhaseCommit
+                                       ? error(throwable)
+                                       : distributedRollback(dsl,
+                                                             orderId,
+                                                             paymentTransactionId,
+                                                             reserveTransactionId,
+                                                             throwable);
+            }).flatMap(savedOrder -> {
+                // commit distributed transaction if no errors
+                return !twoPhaseCommit
+                                       ? just(savedOrder)
+                                       : distributedCommit(dsl,
+                                                           orderId,
+                                                           paymentTransactionId,
+                                                           reserveTransactionId,
+                                                           savedOrder)
+                                                                      .doOnError(throwable -> {
+                                                                          log.error("error on commit distributed transaction [{}]",
+                                                                                    orderId,
+                                                                                    throwable);
+                                                                      });
+            });
+        });
     }
 
     protected <T, PI, PO, RI, RO> Mono<T> updateOrderOp(String name,
@@ -384,24 +404,6 @@ public class OrdersServiceImpl implements OrdersService {
                                                                .map(responseBuilder);
             }));
         });
-    }
-
-    private Mono<List<ReserveOuterClass.Reserve.Item>> getItems(String reserveId) {
-        return toMono(ReserveOuterClass.ReserveGetRequest.newBuilder()
-                                                         .setId(reserveId)
-                                                         .build(),
-                      reserveClient::get).map(reserveGetResponse -> {
-                          return reserveGetResponse.getReserve().getItemsList();
-                      });
-    }
-
-    private Mono<PaymentOuterClass.Payment.Status> getPaymentStatus(String paymentId) {
-        return toMono(PaymentOuterClass.PaymentGetRequest.newBuilder()
-                                                         .setId(paymentId)
-                                                         .build(),
-                      paymentsClient::get).map(response -> {
-                          return response.getPayment().getStatus();
-                      });
     }
 
 }

@@ -17,14 +17,14 @@ import static payment.v1.PaymentServiceGrpc.newStub;
 public class PaymentsServiceClientConfiguration {
 
     @Bean
-    @ConfigurationProperties("service.payments")
-    public ClientProperties paymentsClientProperties() {
-        return new ClientProperties();
+    public PaymentServiceStub paymentsClient(ClientProperties paymentsClientProperties) {
+        return newStub(newManagedChannelBuilder(paymentsClientProperties).build());
     }
 
     @Bean
-    public PaymentServiceStub paymentsClient(ClientProperties paymentsClientProperties) {
-        return newStub(newManagedChannelBuilder(paymentsClientProperties).build());
+    @ConfigurationProperties("service.payments")
+    public ClientProperties paymentsClientProperties() {
+        return new ClientProperties();
     }
 
     @Bean

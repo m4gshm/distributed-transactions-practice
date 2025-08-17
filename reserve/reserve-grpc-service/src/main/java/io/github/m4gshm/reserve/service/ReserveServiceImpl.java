@@ -53,36 +53,13 @@ import static reactor.core.publisher.Mono.error;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBase {
     ReserveStorage reserveStorage;
+
     WarehouseItemStorage warehouseItemStorage;
     Jooq jooq;
     GrpcReactive grpc;
 
     private static Reserve witStatus(Reserve reserve, Reserve.Status status) {
         return reserve.toBuilder().status(status).build();
-    }
-
-    @Override
-    public void create(ReserveCreateRequest request, StreamObserver<ReserveCreateResponse> response) {
-        grpc.subscribe(response, jooq.transactional(dsl -> {
-            var paymentId = UUID.randomUUID().toString();
-            var body = request.getBody();
-            var items = body.getItemsList()
-                            .stream()
-                            .map(item -> Item.builder()
-                                             .id(item.getId())
-                                             .amount(item.getAmount())
-                                             .build())
-                            .toList();
-            var reserve = Reserve.builder()
-                                 .id(paymentId)
-                                 .externalRef(body.getExternalRef())
-                                 .status(created)
-                                 .items(items)
-                                 .build();
-            var routine = reserveStorage.save(reserve)
-                                        .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
-            return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), routine);
-        }));
     }
 
     @Override
@@ -137,28 +114,6 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     }
 
     @Override
-    public void release(ReserveReleaseRequest request, StreamObserver<ReserveReleaseResponse> responseObserver) {
-        var reserveId = request.getId();
-        reserveInStatus(responseObserver, reserveId, Set.of(approved), (dsl, reserve) -> {
-            var items = toItemOps(reserve.items());
-            return prepare(request.getTwoPhaseCommit(),
-                           dsl,
-                           reserveId,
-                           warehouseItemStorage.release(items)
-                                               .zipWith(reserveStorage.save(witStatus(reserve, released)),
-                                                        (i,
-                                                         r) -> {
-                                                            log.debug("reserve released: id [{}], items: [{}]",
-                                                                      r.id(),
-                                                                      i.size());
-                                                            return ReserveReleaseResponse.newBuilder()
-                                                                                         .setId(reserveId)
-                                                                                         .build();
-                                                        }));
-        });
-    }
-
-    @Override
     public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         var reserveId = request.getId();
         reserveInStatus(responseObserver, reserveId, Set.of(created, approved), (dsl, reserve) -> {
@@ -181,6 +136,30 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     }
 
     @Override
+    public void create(ReserveCreateRequest request, StreamObserver<ReserveCreateResponse> response) {
+        grpc.subscribe(response, jooq.transactional(dsl -> {
+            var paymentId = UUID.randomUUID().toString();
+            var body = request.getBody();
+            var items = body.getItemsList()
+                            .stream()
+                            .map(item -> Item.builder()
+                                             .id(item.getId())
+                                             .amount(item.getAmount())
+                                             .build())
+                            .toList();
+            var reserve = Reserve.builder()
+                                 .id(paymentId)
+                                 .externalRef(body.getExternalRef())
+                                 .status(created)
+                                 .items(items)
+                                 .build();
+            var routine = reserveStorage.save(reserve)
+                                        .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
+            return prepare(request.getTwoPhaseCommit(), dsl, reserve.id(), routine);
+        }));
+    }
+
+    @Override
     public void get(ReserveGetRequest request, StreamObserver<ReserveGetResponse> responseObserver) {
         grpc.subscribe(responseObserver, reserveStorage.getById(request.getId()).map(reserve -> {
             return ReserveGetResponse.newBuilder().setReserve(toReserve(reserve)).build();
@@ -194,6 +173,28 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                                       .addAllReserves(reserves.stream().map(reserve -> toReserve(reserve)).toList())
                                       .build();
         }));
+    }
+
+    @Override
+    public void release(ReserveReleaseRequest request, StreamObserver<ReserveReleaseResponse> responseObserver) {
+        var reserveId = request.getId();
+        reserveInStatus(responseObserver, reserveId, Set.of(approved), (dsl, reserve) -> {
+            var items = toItemOps(reserve.items());
+            return prepare(request.getTwoPhaseCommit(),
+                           dsl,
+                           reserveId,
+                           warehouseItemStorage.release(items)
+                                               .zipWith(reserveStorage.save(witStatus(reserve, released)),
+                                                        (i,
+                                                         r) -> {
+                                                            log.debug("reserve released: id [{}], items: [{}]",
+                                                                      r.id(),
+                                                                      i.size());
+                                                            return ReserveReleaseResponse.newBuilder()
+                                                                                         .setId(reserveId)
+                                                                                         .build();
+                                                        }));
+        });
     }
 
     private <T> void reserveInStatus(StreamObserver<T> responseObserver,

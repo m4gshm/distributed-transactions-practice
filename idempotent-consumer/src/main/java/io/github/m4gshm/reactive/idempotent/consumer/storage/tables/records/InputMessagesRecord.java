@@ -19,61 +19,6 @@ public class InputMessagesRecord extends UpdatableRecordImpl<InputMessagesRecord
     private static final long serialVersionUID = 1L;
 
     /**
-     * Setter for <code>input_messages.message_id</code>.
-     */
-    public void setMessageId(String value) {
-        set(0, value);
-    }
-
-    /**
-     * Getter for <code>input_messages.message_id</code>.
-     */
-    public String getMessageId() {
-        return (String) get(0);
-    }
-
-    /**
-     * Setter for <code>input_messages.subscriber_id</code>.
-     */
-    public void setSubscriberId(String value) {
-        set(1, value);
-    }
-
-    /**
-     * Getter for <code>input_messages.subscriber_id</code>.
-     */
-    public String getSubscriberId() {
-        return (String) get(1);
-    }
-
-    /**
-     * Setter for <code>input_messages.created_at</code>.
-     */
-    public void setCreatedAt(OffsetDateTime value) {
-        set(2, value);
-    }
-
-    /**
-     * Getter for <code>input_messages.created_at</code>.
-     */
-    public OffsetDateTime getCreatedAt() {
-        return (OffsetDateTime) get(2);
-    }
-
-    // -------------------------------------------------------------------------
-    // Primary key information
-    // -------------------------------------------------------------------------
-
-    @Override
-    public Record2<String, String> key() {
-        return (Record2) super.key();
-    }
-
-    // -------------------------------------------------------------------------
-    // Constructors
-    // -------------------------------------------------------------------------
-
-    /**
      * Create a detached InputMessagesRecord
      */
     public InputMessagesRecord() {
@@ -92,5 +37,60 @@ public class InputMessagesRecord extends UpdatableRecordImpl<InputMessagesRecord
         setSubscriberId(subscriberId);
         setCreatedAt(createdAt);
         resetChangedOnNotNull();
+    }
+
+    /**
+     * Getter for <code>input_messages.created_at</code>.
+     */
+    public OffsetDateTime getCreatedAt() {
+        return (OffsetDateTime) get(2);
+    }
+
+    /**
+     * Getter for <code>input_messages.message_id</code>.
+     */
+    public String getMessageId() {
+        return (String) get(0);
+    }
+
+    /**
+     * Getter for <code>input_messages.subscriber_id</code>.
+     */
+    public String getSubscriberId() {
+        return (String) get(1);
+    }
+
+    @Override
+    public Record2<String, String> key() {
+        return (Record2) super.key();
+    }
+
+    // -------------------------------------------------------------------------
+    // Primary key information
+    // -------------------------------------------------------------------------
+
+    /**
+     * Setter for <code>input_messages.created_at</code>.
+     */
+    public void setCreatedAt(OffsetDateTime value) {
+        set(2, value);
+    }
+
+    // -------------------------------------------------------------------------
+    // Constructors
+    // -------------------------------------------------------------------------
+
+    /**
+     * Setter for <code>input_messages.message_id</code>.
+     */
+    public void setMessageId(String value) {
+        set(0, value);
+    }
+
+    /**
+     * Setter for <code>input_messages.subscriber_id</code>.
+     */
+    public void setSubscriberId(String value) {
+        set(1, value);
     }
 }

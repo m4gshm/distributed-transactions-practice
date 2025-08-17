@@ -29,6 +29,11 @@ public class MessageStorageR2dbcImplAutoConfiguration {
     Jooq jooq;
     MessageStorageR2dbcImplAutoConfiguration.Properties properties;
 
+    @ConfigurationProperties("idempotent-consumer")
+    public record Properties(@DefaultValue("true") boolean createTable) {
+
+    }
+
     @Bean
     @ConditionalOnMissingBean
     public MessageStorage messageStorageJooqR2dbcImpl() {
@@ -38,10 +43,5 @@ public class MessageStorageR2dbcImplAutoConfiguration {
                                        INPUT_MESSAGES,
                                        Clock.systemDefaultZone(),
                                        properties.createTable);
-    }
-
-    @ConfigurationProperties("idempotent-consumer")
-    public record Properties(@DefaultValue("true") boolean createTable) {
-
     }
 }

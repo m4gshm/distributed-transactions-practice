@@ -24,38 +24,6 @@ public class GrpcReactiveImpl implements GrpcReactive {
     StatusExtractor statusExtractor;
     List<GrpcExceptionResolver> grpcExceptionResolvers;
 
-    @Override
-    public <T> CoreSubscriber<T> newSubscriber(StreamObserver<T> observer) {
-        return new CoreSubscriber<>() {
-
-            volatile Throwable error;
-
-            @Override
-            public void onSubscribe(Subscription s) {
-                s.request(1);
-            }
-
-            @Override
-            public void onNext(T t) {
-                observer.onNext(t);
-            }
-
-            @Override
-            public void onError(Throwable throwable) {
-                log.error("Error on subscribe", throwable);
-                this.error = throwable;
-                observer.onError(handle(throwable));
-            }
-
-            @Override
-            public void onComplete() {
-                if (error == null) {
-                    observer.onCompleted();
-                }
-            }
-        };
-    }
-
     private Throwable handle(Throwable throwable) {
         final boolean grpcException;
         final Metadata metadata;
@@ -76,6 +44,38 @@ public class GrpcReactiveImpl implements GrpcReactive {
             }
         }
         return grpcException ? throwable : new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
+    }
+
+    @Override
+    public <T> CoreSubscriber<T> newSubscriber(StreamObserver<T> observer) {
+        return new CoreSubscriber<>() {
+
+            volatile Throwable error;
+
+            @Override
+            public void onComplete() {
+                if (error == null) {
+                    observer.onCompleted();
+                }
+            }
+
+            @Override
+            public void onError(Throwable throwable) {
+                log.error("Error on subscribe", throwable);
+                this.error = throwable;
+                observer.onError(handle(throwable));
+            }
+
+            @Override
+            public void onNext(T t) {
+                observer.onNext(t);
+            }
+
+            @Override
+            public void onSubscribe(Subscription s) {
+                s.request(1);
+            }
+        };
     }
 
 }

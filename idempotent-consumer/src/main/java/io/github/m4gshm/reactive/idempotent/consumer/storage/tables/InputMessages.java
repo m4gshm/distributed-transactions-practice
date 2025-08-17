@@ -39,14 +39,6 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
     public static final InputMessages INPUT_MESSAGES = new InputMessages();
 
     /**
-     * The class holding records for this type
-     */
-    @Override
-    public Class<InputMessagesRecord> getRecordType() {
-        return InputMessagesRecord.class;
-    }
-
-    /**
      * The column <code>input_messages.message_id</code>.
      */
     public final TableField<InputMessagesRecord,
@@ -77,6 +69,20 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
                                                                    this,
                                                                    "");
 
+    /**
+     * Create a <code>input_messages</code> table reference
+     */
+    public InputMessages() {
+        this(DSL.name("input_messages"), null);
+    }
+
+    /**
+     * Create an aliased <code>input_messages</code> table reference
+     */
+    public InputMessages(Name alias) {
+        this(alias, INPUT_MESSAGES);
+    }
+
     private InputMessages(Name alias,
                           Table<InputMessagesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
@@ -96,18 +102,19 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
         this(DSL.name(alias), INPUT_MESSAGES);
     }
 
-    /**
-     * Create an aliased <code>input_messages</code> table reference
-     */
-    public InputMessages(Name alias) {
-        this(alias, INPUT_MESSAGES);
+    @Override
+    public InputMessages as(Name alias) {
+        return new InputMessages(alias, this);
     }
 
-    /**
-     * Create a <code>input_messages</code> table reference
-     */
-    public InputMessages() {
-        this(DSL.name("input_messages"), null);
+    @Override
+    public InputMessages as(String alias) {
+        return new InputMessages(DSL.name(alias), this);
+    }
+
+    @Override
+    public InputMessages as(Table<?> alias) {
+        return new InputMessages(alias.getQualifiedName(), this);
     }
 
     @Override
@@ -120,27 +127,12 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
                                         true);
     }
 
-    @Override
-    public InputMessages as(String alias) {
-        return new InputMessages(DSL.name(alias), this);
-    }
-
-    @Override
-    public InputMessages as(Name alias) {
-        return new InputMessages(alias, this);
-    }
-
-    @Override
-    public InputMessages as(Table<?> alias) {
-        return new InputMessages(alias.getQualifiedName(), this);
-    }
-
     /**
-     * Rename this table
+     * The class holding records for this type
      */
     @Override
-    public InputMessages rename(String name) {
-        return new InputMessages(DSL.name(name), null);
+    public Class<InputMessagesRecord> getRecordType() {
+        return InputMessagesRecord.class;
     }
 
     /**
@@ -155,6 +147,14 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
      * Rename this table
      */
     @Override
+    public InputMessages rename(String name) {
+        return new InputMessages(DSL.name(name), null);
+    }
+
+    /**
+     * Rename this table
+     */
+    @Override
     public InputMessages rename(Table<?> name) {
         return new InputMessages(name.getQualifiedName(), null);
     }
@@ -163,16 +163,16 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
      * Create an inline derived table from this table
      */
     @Override
-    public InputMessages where(Condition condition) {
-        return new InputMessages(getQualifiedName(), aliased() ? this : null, null, condition);
+    public InputMessages where(Collection<? extends Condition> conditions) {
+        return where(DSL.and(conditions));
     }
 
     /**
      * Create an inline derived table from this table
      */
     @Override
-    public InputMessages where(Collection<? extends Condition> conditions) {
-        return where(DSL.and(conditions));
+    public InputMessages where(Condition condition) {
+        return new InputMessages(getQualifiedName(), aliased() ? this : null, null, condition);
     }
 
     /**

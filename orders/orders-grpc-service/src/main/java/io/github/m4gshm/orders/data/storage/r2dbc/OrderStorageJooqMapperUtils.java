@@ -6,10 +6,32 @@ import org.jooq.Record;
 
 import java.util.List;
 
-import static orders.data.access.jooq.Tables.*;
+import static orders.data.access.jooq.Tables.DELIVERY;
+import static orders.data.access.jooq.Tables.ITEMS;
+import static orders.data.access.jooq.Tables.ORDERS;
 
 @UtilityClass
 public class OrderStorageJooqMapperUtils {
+    private static Order.Delivery toDelivery(Record delivery) {
+        if (delivery == null) {
+            return null;
+        } else {
+            var address = delivery.get(DELIVERY.ADDRESS);
+            return address == null ? null
+                                   : Order.Delivery.builder()
+                                                   .type(Order.Delivery.Type.byCode(delivery.get(DELIVERY.TYPE)))
+                                                   .address(address)
+                                                   .build();
+        }
+    }
+
+    private static Order.Item toItem(Record item) {
+        return Order.Item.builder()
+                         .id(item.get(ITEMS.ID))
+                         .amount(item.get(ITEMS.AMOUNT))
+                         .build();
+    }
+
     public static Order toOrder(Record order, Record delivery, List<Record> items) {
         return Order.builder()
                     .id(order.get(ORDERS.ID))
@@ -22,26 +44,6 @@ public class OrderStorageJooqMapperUtils {
                     .delivery(toDelivery(delivery))
                     .items(items.stream().map(OrderStorageJooqMapperUtils::toItem).toList())
                     .build();
-    }
-
-    private static Order.Item toItem(Record item) {
-        return Order.Item.builder()
-                         .id(item.get(ITEMS.ID))
-                         .amount(item.get(ITEMS.AMOUNT))
-                         .build();
-    }
-
-    private static Order.Delivery toDelivery(Record delivery) {
-        if (delivery == null) {
-            return null;
-        } else {
-            var address = delivery.get(DELIVERY.ADDRESS);
-            return address == null ? null
-                                   : Order.Delivery.builder()
-                                                   .type(Order.Delivery.Type.byCode(delivery.get(DELIVERY.TYPE)))
-                                                   .address(address)
-                                                   .build();
-        }
     }
 
 }

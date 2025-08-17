@@ -15,14 +15,14 @@ import static io.github.m4gshm.orders.service.client.ClientProperties.newManaged
 public class WarehouseServiceClientConfiguration {
 
     @Bean
-    @ConfigurationProperties("service.warehouse")
-    public ClientProperties warehouseClientProperties() {
-        return new ClientProperties();
+    public WarehouseItemServiceStub warehouseClient(ClientProperties warehouseClientProperties) {
+        return WarehouseItemServiceGrpc.newStub(newManagedChannelBuilder(warehouseClientProperties).build());
     }
 
     @Bean
-    public WarehouseItemServiceStub warehouseClient(ClientProperties warehouseClientProperties) {
-        return WarehouseItemServiceGrpc.newStub(newManagedChannelBuilder(warehouseClientProperties).build());
+    @ConfigurationProperties("service.warehouse")
+    public ClientProperties warehouseClientProperties() {
+        return new ClientProperties();
     }
 
 }

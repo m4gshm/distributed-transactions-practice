@@ -15,11 +15,14 @@ import java.util.function.BiConsumer;
 @Slf4j
 @UtilityClass
 public class ReactiveUtils {
+    public static <T, R> Mono<R> toMono(T request, BiConsumer<T, StreamObserver<R>> call) {
+        return Mono.create(sink -> call.accept(request, toStreamObserver(sink)));
+    }
+
     public static <T> StreamObserver<T> toStreamObserver(MonoSink<T> sink) {
         return new StreamObserver<>() {
             @Override
-            public void onNext(T value) {
-                sink.success(value);
+            public void onCompleted() {
             }
 
             @Override
@@ -41,13 +44,10 @@ public class ReactiveUtils {
             }
 
             @Override
-            public void onCompleted() {
+            public void onNext(T value) {
+                sink.success(value);
             }
         };
-    }
-
-    public static <T, R> Mono<R> toMono(T request, BiConsumer<T, StreamObserver<R>> call) {
-        return Mono.create(sink -> call.accept(request, toStreamObserver(sink)));
     }
 
 }

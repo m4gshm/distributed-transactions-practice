@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 import javax.annotation.PostConstruct;
 import java.util.Set;
@@ -31,6 +32,7 @@ import static reactor.core.publisher.Mono.empty;
 public class KafkaAccountBalanceEventListenerServiceImpl {
 
     ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate;
+
     OrderStorage orderStorage;
     OrdersService ordersService;
     PaymentServiceStub paymentServiceStub;
@@ -42,6 +44,22 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         return PaymentOuterClass.PaymentGetRequest.newBuilder()
                                                   .setId(paymentId)
                                                   .build();
+    }
+
+    private Mono<OrderApproveResponse> approveIfEnoughBalance(Order order, double balance) {
+        return toMono(paymentGetRequest(order.paymentId()),
+                      paymentServiceStub::get).map(response -> response.getPayment().getAmount())
+                                              .flatMap(paymentAmount -> {
+                                                  if (paymentAmount < balance) {
+                                                      return ordersService.approve(order.id(), twoPhaseCommit);
+                                                  } else {
+                                                      log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
+                                                               order.id(),
+                                                               paymentAmount,
+                                                               balance);
+                                                      return empty();
+                                                  }
+                                              });
     }
 
     @PostConstruct
@@ -78,22 +96,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
                                                        }
                                                    })
                                                    .flatMapMany(Flux::fromIterable)
-                                                   .flatMap(order -> toMono(paymentGetRequest(order.paymentId()),
-                                                                            paymentServiceStub::get).map(response -> response.getPayment()
-                                                                                                                             .getAmount())
-                                                                                                    .flatMap(paymentAmount -> {
-                                                                                                        if (paymentAmount
-                                                                                                            < balance) {
-                                                                                                            return ordersService.approve(order.id(),
-                                                                                                                                         twoPhaseCommit);
-                                                                                                        } else {
-                                                                                                            log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
-                                                                                                                     order.id(),
-                                                                                                                     paymentAmount,
-                                                                                                                     balance);
-                                                                                                            return empty();
-                                                                                                        }
-                                                                                                    }))
+                                                   .flatMap(order -> approveIfEnoughBalance(order, balance))
                                                    .doOnNext(response -> {
                                                        log.info("success order approve on account balance event: id [{}], status [{}]",
                                                                 response.getId(),

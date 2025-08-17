@@ -16,18 +16,18 @@ public class Transaction {
     public static final Field<String> PG_CURRENT_XACT_ID_IF_ASSIGNED = field("pg_current_xact_id_if_assigned()::text",
                                                                              String.class);
 
+    public static Mono<String> debugTxid(DSLContext dsl, String label) {
+        return getCurrentTxidOrNull(dsl, "notxid").doOnSuccess(txid -> {
+            log.debug("{} with txid {}", label, txid);
+        });
+    }
+
     public static Mono<String> getCurrentTxid(DSLContext dsl) {
         return select(dsl, PG_CURRENT_XACT_ID);
     }
 
     public static Mono<String> getCurrentTxidOrNull(DSLContext dsl, String noTxid) {
         return select(dsl, PG_CURRENT_XACT_ID_IF_ASSIGNED).defaultIfEmpty(noTxid);
-    }
-
-    public static Mono<String> debugTxid(DSLContext dsl, String label) {
-        return getCurrentTxidOrNull(dsl, "notxid").doOnSuccess(txid -> {
-            log.debug("{} with txid {}", label, txid);
-        });
     }
 
     public static <T> Mono<T> logTxId(DSLContext dsl, String label, T result) {

@@ -10,15 +10,15 @@ import orders.v1.Orders.OrderReleaseResponse;
 import reactor.core.publisher.Mono;
 
 public interface OrdersService {
-    Mono<OrderCreateResponse> create(OrderCreate createRequest, boolean twoPhaseCommit);
-
     Mono<OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit);
 
-    Mono<OrderReleaseResponse> release(String orderId, boolean twoPhaseCommit);
-
     Mono<OrderCancelResponse> cancel(String orderId, boolean twoPhaseCommit);
+
+    Mono<OrderCreateResponse> create(OrderCreate createRequest, boolean twoPhaseCommit);
 
     Mono<OrderGetResponse> get(String orderId);
 
     Mono<OrderListResponse> list();
+
+    Mono<OrderReleaseResponse> release(String orderId, boolean twoPhaseCommit);
 }

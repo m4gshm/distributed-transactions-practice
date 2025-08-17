@@ -51,6 +51,27 @@ public class OrderStorageR2DBC implements OrderStorage {
     }
 
     @Override
+    public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
+        return jooq.transactional(dsl -> {
+            var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId)
+                                                                                    .and(ORDERS.STATUS.in(statuses.stream()
+                                                                                                                  .map(EnumWithCode::getCode)
+                                                                                                                  .toList())));
+            return Flux.from(selectOrder).collectList().flatMap(orders -> {
+                var orderIds = orders.stream().map(record -> record.get(ORDERS.ID)).toList();
+                var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.ORDER_ID.in(orderIds));
+                return Flux.from(selectItems).collectList().map(items -> {
+                    var itemsGroupedByOrderId = items.stream().collect(groupingBy(item -> item.get(ITEMS.ORDER_ID)));
+                    return orders.stream().map(order -> {
+                        var orderItems = itemsGroupedByOrderId.get(order.get(ORDERS.ID));
+                        return toOrder(order, order, orderItems);
+                    }).toList();
+                });
+            });
+        });
+    }
+
+    @Override
     public Mono<Order> findById(String id) {
         return jooq.transactional(dsl -> {
             var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.ID.eq(id));
@@ -113,27 +134,6 @@ public class OrderStorageR2DBC implements OrderStorage {
                     log.debug("stored delivery rows {}", deliveryRows);
                     log.debug("stored item rows {}", itemRows);
                     return order;
-                });
-            });
-        });
-    }
-
-    @Override
-    public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
-        return jooq.transactional(dsl -> {
-            var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId)
-                                                                                    .and(ORDERS.STATUS.in(statuses.stream()
-                                                                                                                  .map(EnumWithCode::getCode)
-                                                                                                                  .toList())));
-            return Flux.from(selectOrder).collectList().flatMap(orders -> {
-                var orderIds = orders.stream().map(record -> record.get(ORDERS.ID)).toList();
-                var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.ORDER_ID.in(orderIds));
-                return Flux.from(selectItems).collectList().map(items -> {
-                    var itemsGroupedByOrderId = items.stream().collect(groupingBy(item -> item.get(ITEMS.ORDER_ID)));
-                    return orders.stream().map(order -> {
-                        var orderItems = itemsGroupedByOrderId.get(order.get(ORDERS.ID));
-                        return toOrder(order, order, orderItems);
-                    }).toList();
                 });
             });
         });

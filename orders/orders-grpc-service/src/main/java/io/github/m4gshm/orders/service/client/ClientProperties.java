@@ -10,6 +10,7 @@ import static io.grpc.ManagedChannelBuilder.forTarget;
 @NoArgsConstructor
 public class ClientProperties {
     private String address;
+
     private boolean secure;
 
     public static ManagedChannelBuilder<? extends ManagedChannelBuilder<?>> newManagedChannelBuilder(

@@ -12,10 +12,6 @@ import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class ExceptionUtils {
-    public static InternalStatusException newStatusException(Status status, String message) {
-        return new InternalStatusException(status, message);
-    }
-
     public static <S extends Enum<S>> Mono<Void> checkStatus(S actual, Collection<S> expected) {
         return !expected.contains(actual)
                                           ? error(newStatusException(FAILED_PRECONDITION,
@@ -24,6 +20,10 @@ public class ExceptionUtils {
                                                                                           ", expected "
                                                                                           + expected))
                                           : empty();
+    }
+
+    public static InternalStatusException newStatusException(Status status, String message) {
+        return new InternalStatusException(status, message);
     }
 
 }

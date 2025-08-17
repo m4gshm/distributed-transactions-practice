@@ -19,21 +19,26 @@ import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
-import static orders.v1.Orders.Order.Status.*;
+import static orders.v1.Orders.Order.Status.APPROVED;
+import static orders.v1.Orders.Order.Status.CANCELLED;
+import static orders.v1.Orders.Order.Status.CREATED;
+import static orders.v1.Orders.Order.Status.INSUFFICIENT;
+import static orders.v1.Orders.Order.Status.RELEASED;
 import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class OrdersServiceUtils {
 
-//    static Orders.Order toOrder(Order order) {
-//        var paymentStatus = toPaymentStatus(order.paymentStatus());
-//        return toOrder(order, paymentStatus);
-//    }
-//
-//    static Orders.Order toOrder(Order order, Payment.Status paymentStatus) {
-//        var items = order.items().stream().map(OrdersServiceUtils::toOrderItem).toList();
-//        return toOrder(order, paymentStatus, items);
-//    }
+    // static Orders.Order toOrder(Order order) {
+    // var paymentStatus = toPaymentStatus(order.paymentStatus());
+    // return toOrder(order, paymentStatus);
+    // }
+    //
+    // static Orders.Order toOrder(Order order, Payment.Status paymentStatus) {
+    // var items =
+    // order.items().stream().map(OrdersServiceUtils::toOrderItem).toList();
+    // return toOrder(order, paymentStatus, items);
+    // }
 
     static Orders.Order toOrder(Order order,
                                 Payment.Status paymentStatus,
@@ -73,21 +78,6 @@ public class OrdersServiceUtils {
                                                        .build();
     }
 
-    private static Orders.Order.Delivery.Type toType(Order.Delivery.Type type) {
-        return type == null ? null : switch (type) {
-            case pickup -> Orders.Order.Delivery.Type.PICKUP;
-            case courier -> Orders.Order.Delivery.Type.COURIER;
-        };
-    }
-
-    static <T, ID> Mono<T> notFoundById(ID id) {
-        return error(() -> NOT_FOUND.withDescription(String.valueOf(id)).asRuntimeException());
-    }
-
-    public static String string(Object orderId) {
-        return orderId == null ? null : orderId.toString();
-    }
-
     static Order.Delivery toDelivery(Orders.Order.Delivery delivery) {
         return delivery == null ? null
                                 : Order.Delivery.builder()
@@ -104,6 +94,21 @@ public class OrdersServiceUtils {
             case COURIER -> Order.Delivery.Type.courier;
             case UNRECOGNIZED -> null;
         };
+    }
+
+    private static Orders.Order.Delivery.Type toType(Order.Delivery.Type type) {
+        return type == null ? null : switch (type) {
+            case pickup -> Orders.Order.Delivery.Type.PICKUP;
+            case courier -> Orders.Order.Delivery.Type.COURIER;
+        };
+    }
+
+    static <T, ID> Mono<T> notFoundById(ID id) {
+        return error(() -> NOT_FOUND.withDescription(String.valueOf(id)).asRuntimeException());
+    }
+
+    public static String string(Object orderId) {
+        return orderId == null ? null : orderId.toString();
     }
 
     static Order.Item toItem(OrderCreate.Item item) {

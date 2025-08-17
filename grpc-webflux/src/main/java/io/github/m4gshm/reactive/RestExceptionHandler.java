@@ -13,7 +13,9 @@ import org.springframework.web.server.ServerWebExchange;
 
 import java.util.List;
 
-import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.*;
+import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.MESSAGE;
+import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.PATH;
+import static org.springframework.boot.web.error.ErrorAttributeOptions.Include.STATUS;
 
 @ControllerAdvice
 @RequiredArgsConstructor

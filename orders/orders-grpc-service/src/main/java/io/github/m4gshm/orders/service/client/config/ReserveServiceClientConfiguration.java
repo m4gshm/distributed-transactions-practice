@@ -17,14 +17,14 @@ import static io.github.m4gshm.orders.service.client.ClientProperties.newManaged
 public class ReserveServiceClientConfiguration {
 
     @Bean
-    @ConfigurationProperties("service.reserve")
-    public ClientProperties reserveClientProperties() {
-        return new ClientProperties();
+    public ReserveServiceStub reserveClient(ClientProperties reserveClientProperties) {
+        return ReserveServiceGrpc.newStub(newManagedChannelBuilder(reserveClientProperties).build());
     }
 
     @Bean
-    public ReserveServiceStub reserveClient(ClientProperties reserveClientProperties) {
-        return ReserveServiceGrpc.newStub(newManagedChannelBuilder(reserveClientProperties).build());
+    @ConfigurationProperties("service.reserve")
+    public ClientProperties reserveClientProperties() {
+        return new ClientProperties();
     }
 
     @Bean

@@ -18,14 +18,14 @@ import static org.jooq.JoinType.LEFT_OUTER_JOIN;
 @UtilityClass
 public class OrderStorageJooqQueryUtils {
 
+    public static OffsetDateTime orNow(OffsetDateTime value) {
+        return ofNullable(value).orElseGet(OffsetDateTime::now);
+    }
+
     public static SelectOnConditionStep<Record> selectOrdersJoinDelivery(DSLContext dsl) {
         return selectAll(dsl, ORDERS, DELIVERY)
                                                .from(ORDERS)
                                                .join(DELIVERY, LEFT_OUTER_JOIN)
                                                .on(DELIVERY.ORDER_ID.eq(ORDERS.ID));
-    }
-
-    public static OffsetDateTime orNow(OffsetDateTime value) {
-        return ofNullable(value).orElseGet(OffsetDateTime::now);
     }
 }

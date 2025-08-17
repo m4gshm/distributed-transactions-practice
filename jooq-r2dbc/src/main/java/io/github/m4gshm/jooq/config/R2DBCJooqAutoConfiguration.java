@@ -29,6 +29,16 @@ import static org.jooq.tools.jdbc.JDBCUtils.dialect;
 public class R2DBCJooqAutoConfiguration {
 
     @Bean
+    public DSLContext dslContext(Configuration configuration) {
+        return DSL.using(configuration);
+    }
+
+    @Bean
+    public Jooq jooq(TransactionalOperator operator, ConnectionFactory connectionFactory, Configuration configuration) {
+        return new JooqImpl(operator, connectionFactory, configuration);
+    }
+
+    @Bean
     @ConditionalOnMissingBean(Configuration.class)
     DefaultConfiguration jooqConfiguration(ConnectionFactory connectionFactory) {
         var transactionAwareConnectionFactoryProxy = new TransactionAwareConnectionFactoryProxy(connectionFactory);
@@ -37,16 +47,6 @@ public class R2DBCJooqAutoConfiguration {
         configuration.set(transactionAwareConnectionFactoryProxy);
         configuration.set(new Settings().withParamType(INLINED).withStatementType(STATIC_STATEMENT));
         return configuration;
-    }
-
-    @Bean
-    public DSLContext dslContext(Configuration configuration) {
-        return DSL.using(configuration);
-    }
-
-    @Bean
-    public Jooq jooq(TransactionalOperator operator, ConnectionFactory connectionFactory, Configuration configuration) {
-        return new JooqImpl(operator, connectionFactory, configuration);
     }
 
 }
