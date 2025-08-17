@@ -1,19 +1,20 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
+import static reactor.core.publisher.Flux.usingWhen;
+import static reactor.core.publisher.Mono.from;
+import static reactor.core.publisher.Mono.usingWhen;
+
+import java.util.function.Function;
+
+import org.springframework.stereotype.Component;
+
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import jakarta.validation.constraints.NotNull;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Component;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.function.Function;
-
-import static reactor.core.publisher.Flux.usingWhen;
-import static reactor.core.publisher.Mono.from;
-import static reactor.core.publisher.Mono.usingWhen;
 
 @Slf4j
 @Component
@@ -48,9 +49,8 @@ public class R2DBCConnection {
         return mono(c -> from(c.beginTransaction())
                 .then(routine.apply(c))
                 .flatMap(t -> from(c.commitTransaction()).thenReturn(t)))
-                        .doOnError(e -> {
-                            log.error("connection transaction mono error",
-                                    e);
-                        });
+                .doOnError(e -> {
+                    log.error("connection transaction mono error", e);
+                });
     }
 }

@@ -26,7 +26,7 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
 
     @Override
     public void getItemCost(Warehouse.GetItemCostRequest request,
-            StreamObserver<GetItemCostResponse> responseObserver) {
+                            StreamObserver<GetItemCostResponse> responseObserver) {
         grpc.subscribe(responseObserver, defer(() -> {
             var id = request.getId();
             return warehouseItemStorage.getById(id);

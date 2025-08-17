@@ -1,33 +1,5 @@
 package io.github.m4gshm.payments.service;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.PaymentStorage;
-import io.github.m4gshm.payments.data.model.Account;
-import io.github.m4gshm.payments.data.model.Payment;
-import io.github.m4gshm.reactive.GrpcReactive;
-import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass.PaymentApproveRequest;
-import payment.v1.PaymentOuterClass.PaymentApproveResponse;
-import payment.v1.PaymentOuterClass.PaymentCancelRequest;
-import payment.v1.PaymentOuterClass.PaymentCancelResponse;
-import payment.v1.PaymentOuterClass.PaymentCreateRequest;
-import payment.v1.PaymentOuterClass.PaymentCreateResponse;
-import payment.v1.PaymentOuterClass.PaymentGetRequest;
-import payment.v1.PaymentOuterClass.PaymentGetResponse;
-import payment.v1.PaymentOuterClass.PaymentListRequest;
-import payment.v1.PaymentOuterClass.PaymentListResponse;
-import payment.v1.PaymentOuterClass.PaymentPayRequest;
-import payment.v1.PaymentOuterClass.PaymentPayResponse;
-import reactor.core.publisher.Mono;
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.payments.data.model.Payment.Status.cancelled;
@@ -42,6 +14,35 @@ import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.APPROVE
 import static payment.v1.PaymentOuterClass.PaymentApproveResponse.Status.INSUFFICIENT_AMOUNT;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Account;
+import io.github.m4gshm.payments.data.model.Payment;
+import io.github.m4gshm.reactive.GrpcReactive;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import payment.v1.PaymentOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentOuterClass.PaymentCancelResponse;
+import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentOuterClass.PaymentGetRequest;
+import payment.v1.PaymentOuterClass.PaymentGetResponse;
+import payment.v1.PaymentOuterClass.PaymentListRequest;
+import payment.v1.PaymentOuterClass.PaymentListResponse;
+import payment.v1.PaymentOuterClass.PaymentPayRequest;
+import payment.v1.PaymentOuterClass.PaymentPayResponse;
+import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -65,8 +66,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 twoPhaseCommit,
                 request.getId(),
                 expected,
-                (payment,
-                        account) -> {
+                (payment, account) -> {
                     return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
                         var status = lockResult.success() ? hold : insufficient;
                         return paymentStorage.save(payment.toBuilder()
@@ -94,7 +94,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(created, insufficient, hold),
                 (payment,
-                        account) -> {
+                 account) -> {
                     return accountStorage.unlock(account.clientId(), payment.amount())
                             .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
                                 return PaymentCancelResponse.newBuilder()
@@ -145,7 +145,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(hold),
                 (payment,
-                        account) -> {
+                 account) -> {
                     return accountStorage.writeOff(account.clientId(), payment.amount())
                             .flatMap(writeOffResult -> {
                                 return paymentStorage.save(withStatus(payment, paid)).map(_ -> {
@@ -159,10 +159,10 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     }
 
     private <T> void paymentAccount(StreamObserver<T> responseObserver,
-            boolean twoPhaseCommit,
-            String paymentId,
-            Set<Payment.Status> expected,
-            BiFunction<Payment, Account, Mono<T>> routine) {
+                                    boolean twoPhaseCommit,
+                                    String paymentId,
+                                    Set<Payment.Status> expected,
+                                    BiFunction<Payment, Account, Mono<T>> routine) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
             return prepare(twoPhaseCommit, dsl, paymentId, paymentStorage.getById(paymentId).flatMap(payment -> {
                 return checkStatus(payment.status(), expected).then(defer(() -> {

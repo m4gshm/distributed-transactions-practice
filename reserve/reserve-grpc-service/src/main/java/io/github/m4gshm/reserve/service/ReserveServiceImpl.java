@@ -1,36 +1,5 @@
 package io.github.m4gshm.reserve.service;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.reactive.GrpcReactive;
-import io.github.m4gshm.reserve.data.ReserveStorage;
-import io.github.m4gshm.reserve.data.WarehouseItemStorage;
-import io.github.m4gshm.reserve.data.model.Reserve;
-import io.grpc.stub.StreamObserver;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
-import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
-import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
-import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
-import reserve.v1.ReserveOuterClass.ReserveGetRequest;
-import reserve.v1.ReserveOuterClass.ReserveGetResponse;
-import reserve.v1.ReserveOuterClass.ReserveListRequest;
-import reserve.v1.ReserveOuterClass.ReserveListResponse;
-import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
-import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
-import reserve.v1.ReserveServiceGrpc;
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newStatusException;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
@@ -46,6 +15,38 @@ import static io.grpc.Status.FAILED_PRECONDITION;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Mono.error;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reserve.data.ReserveStorage;
+import io.github.m4gshm.reserve.data.WarehouseItemStorage;
+import io.github.m4gshm.reserve.data.model.Reserve;
+import io.grpc.stub.StreamObserver;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
+import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
+import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
+import reserve.v1.ReserveOuterClass.ReserveGetRequest;
+import reserve.v1.ReserveOuterClass.ReserveGetResponse;
+import reserve.v1.ReserveOuterClass.ReserveListRequest;
+import reserve.v1.ReserveOuterClass.ReserveListResponse;
+import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
+import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
+import reserve.v1.ReserveServiceGrpc;
 
 @Slf4j
 @Service
@@ -121,8 +122,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     reserveId,
                     warehouseItemStorage.cancelReserve(items)
                             .zipWith(reserveStorage.save(witStatus(reserve, cancelled)),
-                                    (i,
-                                            r) -> {
+                                    (i, r) -> {
                                         log.debug("reserve cancelled: id [{}], items: [{}]",
                                                 r.id(),
                                                 i.size());
@@ -184,7 +184,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     warehouseItemStorage.release(items)
                             .zipWith(reserveStorage.save(witStatus(reserve, released)),
                                     (i,
-                                            r) -> {
+                                     r) -> {
                                         log.debug("reserve released: id [{}], items: [{}]",
                                                 r.id(),
                                                 i.size());
@@ -196,9 +196,9 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     }
 
     private <T> void reserveInStatus(StreamObserver<T> responseObserver,
-            String id,
-            Set<Reserve.Status> expected,
-            BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
+                                     String id,
+                                     Set<Reserve.Status> expected,
+                                     BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
         grpc.subscribe(responseObserver, jooq.transactional(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
             return checkStatus(reserve.status(), expected).then(routine.apply(dsl, reserve));
         })));

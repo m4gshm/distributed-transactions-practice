@@ -1,21 +1,5 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.reserve.data.ReserveStorage;
-import io.github.m4gshm.reserve.data.model.Reserve;
-import jakarta.validation.Valid;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.Collection;
-import java.util.List;
-
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
@@ -26,6 +10,23 @@ import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.from;
 import static reserve.data.access.jooq.Tables.RESERVE;
 import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
+
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.reserve.data.ReserveStorage;
+import io.github.m4gshm.reserve.data.model.Reserve;
+import jakarta.validation.Valid;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -66,13 +67,10 @@ public class ReserveStorageR2DBC implements ReserveStorage {
                     .onDuplicateKeyUpdate()
                     .set(RESERVE.STATUS, reserve.status().getCode())
                     .set(RESERVE.UPDATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.updatedAt())))
-                            .flatMap(count -> logTxId(dsl,
-                                    "mergeReserve",
-                                    count))
-                            .doOnSuccess(count -> {
-                                log.debug("stored reserve count {}",
-                                        count);
-                            });
+                    .flatMap(count -> logTxId(dsl, "mergeReserve", count))
+                    .doOnSuccess(count -> {
+                        log.debug("stored reserve count {}", count);
+                    });
 
             var mergeAllItems = mergeItems(dsl, reserve.id(), reserve.items());
 

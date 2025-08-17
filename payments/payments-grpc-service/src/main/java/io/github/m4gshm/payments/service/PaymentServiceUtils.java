@@ -36,8 +36,8 @@ public class PaymentServiceUtils {
     }
 
     static Payment toDataModel(String id,
-            PaymentOuterClass.PaymentCreateRequest.PaymentCreate payment,
-            Payment.Status status) {
+                               PaymentOuterClass.PaymentCreateRequest.PaymentCreate payment,
+                               Payment.Status status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())

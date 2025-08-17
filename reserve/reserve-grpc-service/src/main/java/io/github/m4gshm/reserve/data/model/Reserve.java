@@ -16,17 +16,17 @@ import static java.util.stream.Collectors.toMap;
 @Valid
 @Builder(toBuilder = true)
 public record Reserve(
-        String id,
-        String externalRef,
-        Status status,
-        OffsetDateTime createdAt,
-        OffsetDateTime updatedAt,
-        @Valid List<Item> items) {
+                      String id,
+                      String externalRef,
+                      Status status,
+                      OffsetDateTime createdAt,
+                      OffsetDateTime updatedAt,
+                      @Valid List<Item> items) {
     public enum Status {
-        created,
-        approved,
-        released,
-        cancelled;
+            created,
+            approved,
+            released,
+            cancelled;
 
         private static final Map<String, Status> byCode = Arrays.stream(Status.values())
                 .collect(toMap(Status::getCode, status -> status));

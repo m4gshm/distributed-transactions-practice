@@ -29,8 +29,8 @@ public class JooqImpl implements Jooq {
     Configuration configuration;
 
     public static DSLContext newDsl(ContextView context,
-            ConnectionFactory connectionFactory,
-            Configuration configuration) {
+                                    ConnectionFactory connectionFactory,
+                                    Configuration configuration) {
         var transactionContext = context.get(TransactionContext.class);
         var o = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
         var connection = o.getConnection();

@@ -1,31 +1,5 @@
 package io.github.m4gshm.orders.service;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders;
-import orders.v1.Orders.OrderCreateResponse;
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentServiceGrpc;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass;
-import reserve.v1.ReserveServiceGrpc;
-import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.orders.data.model.Order.Status.approved;
@@ -48,6 +22,33 @@ import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.utils.TwoPhaseTransaction;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders;
+import orders.v1.Orders.OrderCreateResponse;
+import payment.v1.PaymentOuterClass;
+import payment.v1.PaymentServiceGrpc;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveOuterClass;
+import reserve.v1.ReserveServiceGrpc;
+import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 @Slf4j
 @Service
@@ -109,8 +110,7 @@ public class OrdersServiceImpl implements OrdersService {
                 orderId,
                 twoPhaseCommit,
                 Set.of(created, insufficient, approved),
-                (_,
-                        _) -> cancelled,
+                (_, _) -> cancelled,
                 paymentId -> PaymentOuterClass.PaymentCancelRequest.newBuilder()
                         .setId(paymentId)
                         .setTwoPhaseCommit(twoPhaseCommit)
@@ -130,7 +130,7 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public Mono<OrderCreateResponse> create(Orders.OrderCreateRequest.OrderCreate createRequest,
-            boolean twoPhaseCommit) {
+                                            boolean twoPhaseCommit) {
         return fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
             var itemsList = createRequest.getItemsList();
             var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
@@ -187,10 +187,10 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     private <T> Mono<T> distributedCommit(DSLContext dsl,
-            String orderId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            T result) {
+                                          String orderId,
+                                          String paymentTransactionId,
+                                          String reserveTransactionId,
+                                          T result) {
         return toMono(newCommitRequest(reserveTransactionId), reserveClientTcp::commit)
                 .zipWith(toMono(newCommitRequest(paymentTransactionId),
                         paymentsClientTcp::commit))
@@ -209,10 +209,10 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     private <T> Mono<T> distributedRollback(DSLContext dsl,
-            String orderId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            Throwable result) {
+                                            String orderId,
+                                            String paymentTransactionId,
+                                            String reserveTransactionId,
+                                            Throwable result) {
         return remoteRollback(paymentTransactionId, reserveTransactionId)
                 .then(localRollback(dsl, orderId, result))
                 .then(defer(() -> {
@@ -282,7 +282,7 @@ public class OrdersServiceImpl implements OrdersService {
                 twoPhaseCommit,
                 Set.of(approved),
                 (_,
-                        _) -> released,
+                 _) -> released,
                 paymentId -> PaymentOuterClass.PaymentPayRequest.newBuilder()
                         .setId(paymentId)
                         .setTwoPhaseCommit(twoPhaseCommit)
@@ -313,9 +313,9 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     protected Mono<Order> saveAllAndCommit(boolean twoPhaseCommit,
-            Order order,
-            String paymentTransactionId,
-            String reserveTransactionId) {
+                                           Order order,
+                                           String paymentTransactionId,
+                                           String reserveTransactionId) {
         var orderId = order.id();
         return jooq.transactional(dsl -> {
             // run distributed transaction
@@ -338,25 +338,25 @@ public class OrdersServiceImpl implements OrdersService {
                                 paymentTransactionId,
                                 reserveTransactionId,
                                 savedOrder)
-                                        .doOnError(throwable -> {
-                                            log.error("error on commit distributed transaction [{}]",
-                                                    orderId,
-                                                    throwable);
-                                        });
+                                .doOnError(throwable -> {
+                                    log.error("error on commit distributed transaction [{}]",
+                                            orderId,
+                                            throwable);
+                                });
             });
         });
     }
 
     protected <T, PI, PO, RI, RO> Mono<T> updateOrderOp(String name,
-            String orderId,
-            boolean twoPhaseCommit,
-            Set<Order.Status> expected,
-            BiFunction<PO, RO, Order.Status> finalStatus,
-            Function<String, PI> paymentRequest,
-            Function<String, RI> reserveRequest,
-            BiConsumer<PI, StreamObserver<PO>> paymentOp,
-            BiConsumer<RI, StreamObserver<RO>> reserveOp,
-            Function<Order, T> responseBuilder) {
+                                                        String orderId,
+                                                        boolean twoPhaseCommit,
+                                                        Set<Order.Status> expected,
+                                                        BiFunction<PO, RO, Order.Status> finalStatus,
+                                                        Function<String, PI> paymentRequest,
+                                                        Function<String, RI> reserveRequest,
+                                                        BiConsumer<PI, StreamObserver<PO>> paymentOp,
+                                                        BiConsumer<RI, StreamObserver<RO>> reserveOp,
+                                                        Function<Order, T> responseBuilder) {
         return orderRepository.getById(orderId).flatMap(order -> {
             return checkStatus(order.status(), expected).then(defer(() -> {
                 var paymentId = order.paymentId();
@@ -365,7 +365,7 @@ public class OrdersServiceImpl implements OrdersService {
                 var reserveReleaseRequest = reserveRequest.apply(reserveId);
                 return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp),
                         (po,
-                                ro) -> {
+                         ro) -> {
                             log.debug("payment op '{}' result [{}] ",
                                     name,
                                     po);
@@ -391,7 +391,7 @@ public class OrdersServiceImpl implements OrdersService {
                                         .flatMap(savedOrder -> {
                                             return twoPhaseCommit ? remoteRollback(paymentId,
                                                     reserveId)
-                                                            .thenReturn(savedOrder)
+                                                    .thenReturn(savedOrder)
                                                     : just(savedOrder);
                                         });
                             } else {

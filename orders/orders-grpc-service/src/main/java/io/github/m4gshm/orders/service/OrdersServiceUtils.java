@@ -41,8 +41,8 @@ public class OrdersServiceUtils {
     // }
 
     static Orders.Order toOrder(Order order,
-            Payment.Status paymentStatus,
-            List<ReserveOuterClass.Reserve.Item> items) {
+                                Payment.Status paymentStatus,
+                                List<ReserveOuterClass.Reserve.Item> items) {
         var builder = Orders.Order.newBuilder()
                 .setId(order.id())
                 .setCreatedAt(toTimestamp(order.createdAt()))
@@ -142,7 +142,7 @@ public class OrdersServiceUtils {
     }
 
     static Order.Status getOrderStatus(PaymentApproveResponse.Status paymentStatus,
-            ReserveApproveResponse.Status reserveStatus) {
+                                       ReserveApproveResponse.Status reserveStatus) {
         if (paymentStatus == PaymentApproveResponse.Status.APPROVED
                 && reserveStatus == ReserveApproveResponse.Status.APPROVED) {
             return Order.Status.approved;

@@ -1,18 +1,17 @@
 package io.github.m4gshm;
 
+import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
+
 import io.grpc.Metadata;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
 import lombok.Getter;
 
-import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
-
 @Getter
 public class InternalStatusException extends RuntimeException {
     private final Status status;
 
-    public InternalStatusException(Status status,
-            String message) {
+    public InternalStatusException(Status status, String message) {
         super(message);
         this.status = status;
     }

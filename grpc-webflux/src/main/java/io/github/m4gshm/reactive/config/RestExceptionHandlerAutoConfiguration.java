@@ -12,7 +12,7 @@ import java.util.List;
 public class RestExceptionHandlerAutoConfiguration {
     @Bean
     public RestExceptionHandler restExceptionHandler(ErrorAttributes errorAttributes,
-            List<HttpMessageReader<?>> messageReaders) {
+                                                     List<HttpMessageReader<?>> messageReaders) {
         return new RestExceptionHandler(errorAttributes, messageReaders);
     }
 }

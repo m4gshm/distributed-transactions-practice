@@ -29,8 +29,8 @@ import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 public class ReserveStorageR2DBCUtils {
 
     public static InsertOnDuplicateSetMoreStep<ReserveItemRecord> mergeItem(DSLContext dsl,
-            String reserveId,
-            Reserve.Item item) {
+                                                                            String reserveId,
+                                                                            Reserve.Item item) {
         return dsl.insertInto(RESERVE_ITEM)
                 .set(RESERVE_ITEM.RESERVE_ID, reserveId)
                 .set(RESERVE_ITEM.ID, item.id())

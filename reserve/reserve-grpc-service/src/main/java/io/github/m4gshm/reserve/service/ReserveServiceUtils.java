@@ -1,5 +1,7 @@
 package io.github.m4gshm.reserve.service;
 
+import java.util.List;
+
 import io.github.m4gshm.reserve.data.WarehouseItemStorage.ItemOp;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import lombok.experimental.UtilityClass;
@@ -7,14 +9,11 @@ import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
 import reserve.v1.ReserveOuterClass.ReserveApproveResponse.Status;
 
-import java.util.List;
-
 @UtilityClass
 public class ReserveServiceUtils {
 
-    public static ReserveApproveResponse newApproveResponse(
-            List<ItemOp.ReserveResult> reserveResults,
-            String reserveId) {
+    public static ReserveApproveResponse newApproveResponse(List<ItemOp.ReserveResult> reserveResults,
+                                                            String reserveId) {
         var reservedItems = reserveResults.stream().map(ReserveServiceUtils::toResponseItem).toList();
         var allReserved = reservedItems.stream().allMatch(ReserveApproveResponse.Item::getReserved);
         return ReserveApproveResponse.newBuilder()
