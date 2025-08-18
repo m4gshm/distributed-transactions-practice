@@ -1,14 +1,14 @@
 package io.github.m4gshm.orders.data.model;
 
-import io.github.m4gshm.EnumWithCode;
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.NotBlank;
-import lombok.Builder;
+import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
 
 import java.time.OffsetDateTime;
 import java.util.List;
 
-import static io.github.m4gshm.EnumWithCodeUtils.getByCode;
+import io.github.m4gshm.EnumWithCode;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.NotBlank;
+import lombok.Builder;
 
 @Valid
 @Builder(toBuilder = true)
@@ -21,13 +21,21 @@ public record Order(
                     OffsetDateTime createdAt,
                     OffsetDateTime updatedAt,
                     Delivery delivery,
-                    List<Item> items) {
+                    List<Item> items,
+                    String paymentTransactionId,
+                    String reserveTransactionId
+) {
     public enum Status implements EnumWithCode<Status> {
-            created,
-            approved,
-            released,
-            insufficient,
-            cancelled;
+            CREATING,
+            CREATED,
+            APPROVING,
+            APPROVED,
+            RELEASING,
+            RELEASED,
+            INSUFFICIENT,
+            CANCELLING,
+            CANCELLED,
+            ;
 
         public static Status byCode(String code) {
             return getByCode(Status.class, code);

@@ -52,7 +52,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     @Override
     public Mono<List<ItemOp.Result>> cancelReserve(Collection<ItemOp> items) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var amountPerId = items.stream()
                     .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 
@@ -84,7 +84,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     @Override
     public Mono<List<WarehouseItem>> findAll() {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var select = selectItems(dsl);
             return Flux.from(select).map(WarehouseItemStorageR2DBCUtils::toWarehouseItem).collectList();
         });
@@ -93,7 +93,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     @Override
     public Mono<WarehouseItem> findById(String id) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var select = selectItems(dsl).where(WAREHOUSE_ITEM.ID.eq(id));
             return Mono.from(select).map(WarehouseItemStorageR2DBCUtils::toWarehouseItem);
         });
@@ -103,7 +103,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
     public Mono<List<ItemOp.Result>> release(Collection<ItemOp> items) {
         var amountPerId = items.stream().collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
         var reserveIds = amountPerId.keySet();
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return selectForUpdate(dsl, reserveIds).flatMap(record -> {
                 var id = record.get(WAREHOUSE_ITEM.ID);
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
@@ -133,7 +133,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     @Override
     public Mono<List<ItemOp.ReserveResult>> reserve(Collection<ItemOp> items) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var amountPerId = items.stream()
                     .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 

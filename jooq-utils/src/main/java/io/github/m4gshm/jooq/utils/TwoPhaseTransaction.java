@@ -1,19 +1,20 @@
 package io.github.m4gshm.jooq.utils;
 
-import lombok.Builder;
-import lombok.NonNull;
-import lombok.experimental.UtilityClass;
-import org.jooq.DSLContext;
-import org.jooq.impl.DSL;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.time.OffsetDateTime;
-
 import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
+
+import java.time.OffsetDateTime;
+
+import org.jooq.DSLContext;
+import org.jooq.impl.DSL;
+
+import lombok.Builder;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @UtilityClass
 public class TwoPhaseTransaction {
@@ -39,8 +40,8 @@ public class TwoPhaseTransaction {
         return from(dsl.query("PREPARE TRANSACTION '" + id + "'"));
     }
 
-    public static <T> Mono<T> prepare(boolean enabled, DSLContext dsl, String id, Mono<T> routine) {
-        return enabled ? routine.flatMap(result -> {
+    public static <T> Mono<T> prepare(DSLContext dsl, String id, Mono<T> routine) {
+        return id != null ? routine.flatMap(result -> {
             return logTxId(dsl, "prepare2Pc", result);
         }).flatMap(result -> {
             return prepare(dsl, id).onErrorResume(throwable -> {

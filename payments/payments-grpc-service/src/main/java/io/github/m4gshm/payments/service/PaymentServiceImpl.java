@@ -2,11 +2,11 @@ package io.github.m4gshm.payments.service;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.payments.data.model.Payment.Status.cancelled;
-import static io.github.m4gshm.payments.data.model.Payment.Status.created;
-import static io.github.m4gshm.payments.data.model.Payment.Status.hold;
-import static io.github.m4gshm.payments.data.model.Payment.Status.insufficient;
-import static io.github.m4gshm.payments.data.model.Payment.Status.paid;
+import static io.github.m4gshm.payments.data.model.Payment.Status.CANCELLED;
+import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
+import static io.github.m4gshm.payments.data.model.Payment.Status.HOLD;
+import static io.github.m4gshm.payments.data.model.Payment.Status.INSUFFICIENT;
+import static io.github.m4gshm.payments.data.model.Payment.Status.PAID;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toDataModel;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toProto;
 import static lombok.AccessLevel.PRIVATE;
@@ -60,19 +60,19 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
-        var twoPhaseCommit = request.getTwoPhaseCommit();
-        var expected = Set.of(created, insufficient);
+        var preparedTransactionId = request.getPreparedTransactionId();
+        var expected = Set.of(CREATED, INSUFFICIENT);
         paymentAccount(responseObserver,
-                twoPhaseCommit,
+                preparedTransactionId,
                 request.getId(),
                 expected,
                 (payment, account) -> {
                     return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
-                        var status = lockResult.success() ? hold : insufficient;
+                        var status = lockResult.success() ? HOLD : INSUFFICIENT;
                         return paymentStorage.save(payment.toBuilder()
                                 .status(status)
                                 .insufficient(status
-                                        == insufficient
+                                        == INSUFFICIENT
                                                 ? lockResult.insufficientAmount()
                                                 : null)
                                 .build())
@@ -90,13 +90,13 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
         paymentAccount(responseObserver,
-                request.getTwoPhaseCommit(),
+                request.getPreparedTransactionId(),
                 request.getId(),
-                Set.of(created, insufficient, hold),
+                Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment,
                  account) -> {
                     return accountStorage.unlock(account.clientId(), payment.amount())
-                            .then(paymentStorage.save(withStatus(payment, cancelled)).map(_ -> {
+                            .then(paymentStorage.save(withStatus(payment, CANCELLED)).map(_ -> {
                                 return PaymentCancelResponse.newBuilder()
                                         .setId(payment.id())
                                         .build();
@@ -108,13 +108,12 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void create(PaymentCreateRequest request, StreamObserver<PaymentCreateResponse> responseObserver) {
         grpc.subscribe(responseObserver, defer(() -> {
             var paymentId = UUID.randomUUID().toString();
-            var payment = toDataModel(paymentId, request.getBody(), created);
+            var payment = toDataModel(paymentId, request.getBody(), CREATED);
             var response = PaymentCreateResponse.newBuilder()
                     .setId(paymentId)
                     .build();
-            return jooq.transactional(dsl -> prepare(request.getTwoPhaseCommit(),
-                    dsl,
-                    paymentId,
+            return jooq.inTransaction(dsl -> prepare(dsl,
+                    request.getPreparedTransactionId(),
                     paymentStorage.save(payment)
                             .thenReturn(response)));
         }));
@@ -141,14 +140,14 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void pay(PaymentPayRequest request, StreamObserver<PaymentPayResponse> responseObserver) {
         paymentAccount(responseObserver,
-                request.getTwoPhaseCommit(),
+                request.getPreparedTransactionId(),
                 request.getId(),
-                Set.of(hold),
+                Set.of(HOLD),
                 (payment,
                  account) -> {
                     return accountStorage.writeOff(account.clientId(), payment.amount())
                             .flatMap(writeOffResult -> {
-                                return paymentStorage.save(withStatus(payment, paid)).map(_ -> {
+                                return paymentStorage.save(withStatus(payment, PAID)).map(_ -> {
                                     return PaymentPayResponse.newBuilder()
                                             .setId(payment.id())
                                             .setBalance(writeOffResult.balance())
@@ -159,17 +158,19 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     }
 
     private <T> void paymentAccount(StreamObserver<T> responseObserver,
-                                    boolean twoPhaseCommit,
+                                    String preparedTransactionId,
                                     String paymentId,
                                     Set<Payment.Status> expected,
                                     BiFunction<Payment, Account, Mono<T>> routine) {
-        grpc.subscribe(responseObserver, jooq.transactional(dsl -> {
-            return prepare(twoPhaseCommit, dsl, paymentId, paymentStorage.getById(paymentId).flatMap(payment -> {
-                return checkStatus(payment.status(), expected).then(defer(() -> {
-                    return accountStorage.getById(payment.clientId())
-                            .flatMap(account -> routine.apply(payment, account));
-                }));
-            }));
+        grpc.subscribe(responseObserver, jooq.inTransaction(dsl -> {
+            return prepare(dsl,
+                    preparedTransactionId,
+                    paymentStorage.getById(paymentId).flatMap(payment -> {
+                        return checkStatus(payment.status(), expected).then(defer(() -> {
+                            return accountStorage.getById(payment.clientId())
+                                    .flatMap(account -> routine.apply(payment, account));
+                        }));
+                    }));
         }));
     }
 }

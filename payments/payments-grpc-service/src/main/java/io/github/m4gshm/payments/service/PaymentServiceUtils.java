@@ -17,11 +17,11 @@ public class PaymentServiceUtils {
 
     private static PaymentOuterClass.Payment.Status toProtoStatus(Payment.Status status) {
         return switch (status) {
-            case created -> PaymentOuterClass.Payment.Status.CREATED;
-            case hold -> PaymentOuterClass.Payment.Status.HOLD;
-            case insufficient -> PaymentOuterClass.Payment.Status.INSUFFICIENT;
-            case paid -> PaymentOuterClass.Payment.Status.PAID;
-            case cancelled -> PaymentOuterClass.Payment.Status.CANCELLED;
+            case CREATED -> PaymentOuterClass.Payment.Status.CREATED;
+            case HOLD -> PaymentOuterClass.Payment.Status.HOLD;
+            case INSUFFICIENT -> PaymentOuterClass.Payment.Status.INSUFFICIENT;
+            case PAID -> PaymentOuterClass.Payment.Status.PAID;
+            case CANCELLED -> PaymentOuterClass.Payment.Status.CANCELLED;
         };
     }
 

@@ -1,5 +1,20 @@
 package io.github.m4gshm.orders.service;
 
+import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
+import static io.grpc.Status.NOT_FOUND;
+import static java.time.ZoneId.systemDefault;
+import static java.util.Optional.ofNullable;
+import static orders.v1.Orders.Order.Status.APPROVED;
+import static orders.v1.Orders.Order.Status.CANCELLED;
+import static orders.v1.Orders.Order.Status.CANCELLING;
+import static orders.v1.Orders.Order.Status.CREATED;
+import static orders.v1.Orders.Order.Status.INSUFFICIENT;
+import static orders.v1.Orders.Order.Status.RELEASED;
+import static reactor.core.publisher.Mono.error;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
@@ -11,20 +26,6 @@ import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
 import tpc.v1.Tpc;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-
-import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
-import static io.grpc.Status.NOT_FOUND;
-import static java.time.ZoneId.systemDefault;
-import static java.util.Optional.ofNullable;
-import static orders.v1.Orders.Order.Status.APPROVED;
-import static orders.v1.Orders.Order.Status.CANCELLED;
-import static orders.v1.Orders.Order.Status.CREATED;
-import static orders.v1.Orders.Order.Status.INSUFFICIENT;
-import static orders.v1.Orders.Order.Status.RELEASED;
-import static reactor.core.publisher.Mono.error;
 
 @UtilityClass
 public class OrdersServiceUtils {
@@ -61,11 +62,15 @@ public class OrdersServiceUtils {
 
     public static Orders.Order.Status toOrderStatus(Order.Status status) {
         return status == null ? null : switch (status) {
-            case created -> CREATED;
-            case approved -> APPROVED;
-            case released -> RELEASED;
-            case insufficient -> INSUFFICIENT;
-            case cancelled -> CANCELLED;
+            case CREATING -> null;
+            case CREATED -> CREATED;
+            case APPROVING -> CREATED;
+            case APPROVED -> APPROVED;
+            case RELEASING -> APPROVED;
+            case RELEASED -> RELEASED;
+            case INSUFFICIENT -> INSUFFICIENT;
+            case CANCELLING -> CANCELLING;
+            case CANCELLED -> CANCELLED;
         };
     }
 
@@ -145,10 +150,10 @@ public class OrdersServiceUtils {
                                        ReserveApproveResponse.Status reserveStatus) {
         if (paymentStatus == PaymentApproveResponse.Status.APPROVED
                 && reserveStatus == ReserveApproveResponse.Status.APPROVED) {
-            return Order.Status.approved;
+            return Order.Status.APPROVED;
         } else if (paymentStatus == PaymentApproveResponse.Status.INSUFFICIENT_AMOUNT
                 || reserveStatus == ReserveApproveResponse.Status.INSUFFICIENT_QUANTITY) {
-            return Order.Status.insufficient;
+            return Order.Status.INSUFFICIENT;
         } else {
             throw new IllegalStateException("unexpected payment and reserve statuses: '" + paymentStatus
                     + "','"

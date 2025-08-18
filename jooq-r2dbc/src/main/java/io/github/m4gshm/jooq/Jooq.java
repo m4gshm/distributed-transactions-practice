@@ -1,10 +1,13 @@
 package io.github.m4gshm.jooq;
 
-import org.jooq.DSLContext;
-import reactor.core.publisher.Mono;
-
 import java.util.function.Function;
 
+import org.jooq.DSLContext;
+
+import reactor.core.publisher.Mono;
+
 public interface Jooq {
-    <T> Mono<T> transactional(Function<DSLContext, Mono<T>> function);
+    <T> Mono<T> inTransaction(Function<DSLContext, Mono<T>> function);
+
+    <T> Mono<T> newTransaction(Function<DSLContext, Mono<T>> function);
 }

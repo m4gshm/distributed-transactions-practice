@@ -2,11 +2,12 @@ package io.github.m4gshm.orders.service;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.jooq.utils.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.orders.data.model.Order.Status.approved;
-import static io.github.m4gshm.orders.data.model.Order.Status.cancelled;
-import static io.github.m4gshm.orders.data.model.Order.Status.created;
-import static io.github.m4gshm.orders.data.model.Order.Status.insufficient;
-import static io.github.m4gshm.orders.data.model.Order.Status.released;
+import static io.github.m4gshm.orders.data.model.Order.Status.APPROVED;
+import static io.github.m4gshm.orders.data.model.Order.Status.CANCELLED;
+import static io.github.m4gshm.orders.data.model.Order.Status.CREATED;
+import static io.github.m4gshm.orders.data.model.Order.Status.CREATING;
+import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
+import static io.github.m4gshm.orders.data.model.Order.Status.RELEASED;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.getOrderStatus;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.newCommitRequest;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.newRollbackRequest;
@@ -14,7 +15,6 @@ import static io.github.m4gshm.orders.service.OrdersServiceUtils.notFoundById;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.string;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toDelivery;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrder;
-import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderCreateResponse;
 import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderStatus;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static lombok.AccessLevel.PROTECTED;
@@ -42,6 +42,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.Orders;
+import orders.v1.Orders.OrderCreateRequest;
 import orders.v1.Orders.OrderCreateResponse;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentServiceGrpc;
@@ -67,12 +68,10 @@ public class OrdersServiceImpl implements OrdersService {
 
     static Mono<Integer> localRollback(DSLContext dsl, String orderId, Throwable result) {
         return result instanceof TwoPhaseTransaction.PrepareTransactionException
-                ? TwoPhaseTransaction.rollback(dsl,
-                        string(orderId))
-                : Mono.<Integer>empty()
-                        .doOnSubscribe(_ -> {
-                            log.debug("no local prepared transaction for rollback");
-                        });
+                ? TwoPhaseTransaction.rollback(dsl, string(orderId))
+                : Mono.<Integer>empty().doOnSubscribe(_ -> {
+                    log.debug("no local prepared transaction for rollback");
+                });
     }
 
     public static Order orderWithStatus(Order order, Order.Status status) {
@@ -83,16 +82,16 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public Mono<Orders.OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit) {
-        return updateOrderOp("approve", orderId, twoPhaseCommit, Set.of(created, insufficient), (payment, reserve) -> {
+        return updateOrderOp("approve", orderId, twoPhaseCommit, Set.of(CREATED, INSUFFICIENT), (payment, reserve) -> {
             return getOrderStatus(payment.getStatus(), reserve.getStatus());
         },
-                paymentId -> PaymentOuterClass.PaymentApproveRequest.newBuilder()
-                        .setId(paymentId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                order -> PaymentOuterClass.PaymentApproveRequest.newBuilder()
+                        .setId(order.paymentId())
+                        .setPreparedTransactionId(order.paymentTransactionId())
                         .build(),
-                reserveId -> ReserveOuterClass.ReserveApproveRequest.newBuilder()
-                        .setId(reserveId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                order -> ReserveOuterClass.ReserveApproveRequest.newBuilder()
+                        .setId(order.reserveId())
+                        .setPreparedTransactionId(order.reserveTransactionId())
                         .build(),
                 paymentsClient::approve,
                 reserveClient::approve,
@@ -109,15 +108,15 @@ public class OrdersServiceImpl implements OrdersService {
         return updateOrderOp("cancel",
                 orderId,
                 twoPhaseCommit,
-                Set.of(created, insufficient, approved),
-                (_, _) -> cancelled,
-                paymentId -> PaymentOuterClass.PaymentCancelRequest.newBuilder()
-                        .setId(paymentId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                Set.of(CREATED, INSUFFICIENT, APPROVED),
+                (_, _) -> CANCELLED,
+                order -> PaymentOuterClass.PaymentCancelRequest.newBuilder()
+                        .setId(order.paymentId())
+                        .setPreparedTransactionId(order.paymentTransactionId())
                         .build(),
-                reserveId -> ReserveOuterClass.ReserveCancelRequest.newBuilder()
-                        .setId(reserveId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                order -> ReserveOuterClass.ReserveCancelRequest.newBuilder()
+                        .setId(order.reserveId())
+                        .setPreparedTransactionId(order.reserveTransactionId())
                         .build(),
                 paymentsClient::cancel,
                 reserveClient::cancel,
@@ -129,61 +128,76 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     @Override
-    public Mono<OrderCreateResponse> create(Orders.OrderCreateRequest.OrderCreate createRequest,
-                                            boolean twoPhaseCommit) {
+    public Mono<OrderCreateResponse> create(OrderCreateRequest.OrderCreate createRequest, boolean twoPhaseCommit) {
         return fromSupplier(UUID::randomUUID).map(OrdersServiceUtils::string).flatMap(orderId -> {
             var itemsList = createRequest.getItemsList();
             var items = itemsList.stream().map(OrdersServiceUtils::toItem).toList();
 
-            var itemIds = itemsList.stream().map(Orders.OrderCreateRequest.OrderCreate.Item::getId).distinct().toList();
+            var orderBuilder = Order.builder()
+                    .id(string(orderId))
+                    .status(CREATING)
+                    .customerId(createRequest.getCustomerId())
+                    .delivery(toDelivery(createRequest.getDelivery()))
+                    .items(items);
 
-            var paymentRoutine = itemService.getSumCost(itemIds).map(cost -> {
-                return PaymentOuterClass.PaymentCreateRequest.newBuilder()
-                        .setTwoPhaseCommit(twoPhaseCommit)
-                        .setBody(PaymentOuterClass.PaymentCreateRequest.PaymentCreate.newBuilder()
+            final String paymentTransactionId;
+            final String reserveTransactionId;
+            if (twoPhaseCommit) {
+                paymentTransactionId = UUID.randomUUID().toString();
+                reserveTransactionId = UUID.randomUUID().toString();
+                orderBuilder
+                        .paymentTransactionId(paymentTransactionId)
+                        .reserveTransactionId(reserveTransactionId);
+            } else {
+                paymentTransactionId = null;
+                reserveTransactionId = null;
+            }
+            return orderRepository.save(orderBuilder.build()).flatMap(order -> {
+                var itemIds = itemsList.stream().map(OrderCreateRequest.OrderCreate.Item::getId).distinct().toList();
+
+                var paymentRoutine = itemService.getSumCost(itemIds).map(cost -> {
+                    return PaymentOuterClass.PaymentCreateRequest.newBuilder()
+                            .setPreparedTransactionId(order.paymentTransactionId())
+                            .setBody(PaymentOuterClass.PaymentCreateRequest.PaymentCreate.newBuilder()
+                                    .setExternalRef(orderId)
+                                    .setClientId(createRequest.getCustomerId())
+                                    .setAmount(cost)
+                                    .build())
+                            .build();
+                }).flatMap(paymentRequest -> {
+                    return toMono(paymentRequest, paymentsClient::create).onErrorResume(e -> {
+                        log.error("error on {}", "payment::create", e);
+                        return error(e);
+                    });
+                });
+
+                var reserveRequest = ReserveOuterClass.ReserveCreateRequest.newBuilder()
+                        .setPreparedTransactionId(order.reserveTransactionId())
+                        .setBody(ReserveOuterClass.ReserveCreateRequest.Reserve.newBuilder()
                                 .setExternalRef(orderId)
-                                .setClientId(createRequest.getCustomerId())
-                                .setAmount(cost)
+                                .addAllItems(items.stream()
+                                        .map(OrdersServiceUtils::toCreateReserveItem)
+                                        .toList())
                                 .build())
-                        .setTwoPhaseCommit(twoPhaseCommit)
                         .build();
-            }).flatMap(paymentRequest -> {
-                return toMono(paymentRequest, paymentsClient::create).onErrorResume(e -> {
-                    log.error("error on {}", "payment::create", e);
-                    return error(e);
+                var reserveRoutine = toMono(reserveRequest, reserveClient::create);
+
+                return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
+                    var paymentResponse = responses.getT1();
+                    var reserveResponse = responses.getT2();
+                    var paymentId = paymentResponse.getId();
+                    var reserveId = reserveResponse.getId();
+                    return saveAllAndCommit(twoPhaseCommit,
+                            order.toBuilder()
+                                    .status(CREATED)
+                                    .paymentId(paymentId)
+                                    .reserveId(reserveId)
+                                    .build(),
+                            paymentTransactionId,
+                            reserveTransactionId);
                 });
             });
-
-            var reserveRequest = ReserveOuterClass.ReserveCreateRequest.newBuilder()
-                    .setTwoPhaseCommit(twoPhaseCommit)
-                    .setBody(ReserveOuterClass.ReserveCreateRequest.Reserve.newBuilder()
-                            .setExternalRef(orderId)
-                            .addAllItems(items.stream()
-                                    .map(OrdersServiceUtils::toCreateReserveItem)
-                                    .toList())
-                            .build())
-                    .build();
-            var reserveRoutine = toMono(reserveRequest, reserveClient::create);
-
-            return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
-                var paymentResponse = responses.getT1();
-                var reserveResponse = responses.getT2();
-                var paymentId = paymentResponse.getId();
-                var reserveId = reserveResponse.getId();
-                var order = Order.builder()
-                        .id(string(orderId))
-                        .status(created)
-                        .paymentId(paymentId)
-                        .reserveId(reserveId)
-                        .customerId(createRequest.getCustomerId())
-                        .delivery(toDelivery(createRequest.getDelivery()))
-                        .items(items)
-                        .build();
-                return saveAllAndCommit(twoPhaseCommit, order, paymentId, reserveId);
-            });
-        }).map(order -> {
-            return toOrderCreateResponse(order);
-        });
+        }).map(OrdersServiceUtils::toOrderCreateResponse);
     }
 
     private <T> Mono<T> distributedCommit(DSLContext dsl,
@@ -280,16 +294,16 @@ public class OrdersServiceImpl implements OrdersService {
         return updateOrderOp("release",
                 orderId,
                 twoPhaseCommit,
-                Set.of(approved),
+                Set.of(APPROVED),
                 (_,
-                 _) -> released,
-                paymentId -> PaymentOuterClass.PaymentPayRequest.newBuilder()
-                        .setId(paymentId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                 _) -> RELEASED,
+                order -> PaymentOuterClass.PaymentPayRequest.newBuilder()
+                        .setId(order.paymentId())
+                        .setPreparedTransactionId(order.paymentTransactionId())
                         .build(),
-                reserveId -> ReserveOuterClass.ReserveReleaseRequest.newBuilder()
-                        .setId(reserveId)
-                        .setTwoPhaseCommit(twoPhaseCommit)
+                order -> ReserveOuterClass.ReserveReleaseRequest.newBuilder()
+                        .setId(order.reserveId())
+                        .setPreparedTransactionId(order.reserveTransactionId())
                         .build(),
                 paymentsClient::pay,
                 reserveClient::release,
@@ -317,9 +331,9 @@ public class OrdersServiceImpl implements OrdersService {
                                            String paymentTransactionId,
                                            String reserveTransactionId) {
         var orderId = order.id();
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             // run distributed transaction
-            return prepare(twoPhaseCommit, dsl, order.id(), orderRepository.save(order)).onErrorResume(throwable -> {
+            return prepare(dsl, orderId, orderRepository.save(order)).onErrorResume(throwable -> {
                 // rollback distributed transaction on error
                 log.error("error on transactional operation with orderId [{}]", orderId, throwable);
                 return !twoPhaseCommit
@@ -352,53 +366,49 @@ public class OrdersServiceImpl implements OrdersService {
                                                         boolean twoPhaseCommit,
                                                         Set<Order.Status> expected,
                                                         BiFunction<PO, RO, Order.Status> finalStatus,
-                                                        Function<String, PI> paymentRequest,
-                                                        Function<String, RI> reserveRequest,
+                                                        Function<Order, PI> paymentRequest,
+                                                        Function<Order, RI> reserveRequest,
                                                         BiConsumer<PI, StreamObserver<PO>> paymentOp,
                                                         BiConsumer<RI, StreamObserver<RO>> reserveOp,
                                                         Function<Order, T> responseBuilder) {
         return orderRepository.getById(orderId).flatMap(order -> {
             return checkStatus(order.status(), expected).then(defer(() -> {
-                var paymentId = order.paymentId();
-                var reserveId = order.reserveId();
-                var paymentProcessRequest = paymentRequest.apply(paymentId);
-                var reserveReleaseRequest = reserveRequest.apply(reserveId);
+                var paymentProcessRequest = paymentRequest.apply(order);
+                var reserveReleaseRequest = reserveRequest.apply(order);
+                var paymentTransactionId = order.paymentTransactionId();
+                var reserveTransactionId = order.reserveTransactionId();
                 return toMono(paymentProcessRequest, paymentOp).zipWith(toMono(reserveReleaseRequest, reserveOp),
-                        (po,
-                         ro) -> {
-                            log.debug("payment op '{}' result [{}] ",
-                                    name,
-                                    po);
-                            log.debug("reserve op '{}' result [{}] ",
-                                    name,
-                                    ro);
+                        (po, ro) -> {
+                            log.debug("payment op '{}' result [{}] ", name, po);
+                            log.debug("reserve op '{}' result [{}] ", name, ro);
                             log.info("order {} [{}]", name, orderId);
                             return finalStatus.apply(po, ro);
                         })
                         .onErrorResume(e -> {
-                            return twoPhaseCommit ? remoteRollback(paymentId,
-                                    reserveId).then(error(e))
+                            return twoPhaseCommit
+                                    ? remoteRollback(
+                                            paymentTransactionId,
+                                            reserveTransactionId
+                                    ).then(error(e))
                                     : error(e);
                         })
                         .flatMap(status -> {
                             var orderWithNewStatus = orderWithStatus(order,
                                     status);
-                            if (status == insufficient) {
-                                log.info("abort op '{}' on insufficient status of orderId [{}]",
-                                        name,
-                                        orderId);
-                                return orderRepository.save(orderWithNewStatus)
-                                        .flatMap(savedOrder -> {
-                                            return twoPhaseCommit ? remoteRollback(paymentId,
-                                                    reserveId)
+                            if (status == INSUFFICIENT) {
+                                log.info("abort op '{}' on insufficient status of orderId [{}]", name, orderId);
+                                return orderRepository.save(orderWithNewStatus).flatMap(savedOrder -> {
+                                    return twoPhaseCommit
+                                            ? remoteRollback(paymentTransactionId, reserveTransactionId)
                                                     .thenReturn(savedOrder)
-                                                    : just(savedOrder);
-                                        });
+                                            : just(savedOrder);
+                                });
                             } else {
                                 return saveAllAndCommit(twoPhaseCommit,
                                         orderWithNewStatus,
-                                        paymentId,
-                                        reserveId);
+                                        paymentTransactionId,
+                                        reserveTransactionId
+                                );
                             }
                         })
                         .map(responseBuilder);

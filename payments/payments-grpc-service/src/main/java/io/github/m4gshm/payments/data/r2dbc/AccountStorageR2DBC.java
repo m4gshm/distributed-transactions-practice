@@ -1,25 +1,5 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.model.Account;
-import jakarta.validation.constraints.Positive;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Record2;
-import org.jooq.SelectJoinStep;
-import org.jooq.UpdateResultStep;
-import org.springframework.stereotype.Service;
-import payments.data.access.jooq.tables.records.AccountRecord;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.List;
-
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.jooq.utils.Update.checkUpdateCount;
 import static io.github.m4gshm.jooq.utils.Update.notFound;
@@ -29,6 +9,27 @@ import static payments.data.access.jooq.Tables.ACCOUNT;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
+
+import java.util.List;
+
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Record2;
+import org.jooq.SelectJoinStep;
+import org.jooq.UpdateResultStep;
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.model.Account;
+import jakarta.validation.constraints.Positive;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import payments.data.access.jooq.tables.records.AccountRecord;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -63,7 +64,7 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     @Override
     public Mono<LockResult> addLock(String clientId, @Positive double amount) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return selectForUpdate(dsl, clientId).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
@@ -87,21 +88,21 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     @Override
     public Mono<List<Account>> findAll() {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Flux.from(selectAccounts(dsl)).map(AccountStorageR2DBC::toAccount).collectList();
         });
     }
 
     @Override
     public Mono<Account> findById(String id) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return from(selectAccounts(dsl).where(ACCOUNT.CLIENT_ID.eq(id))).map(AccountStorageR2DBC::toAccount);
         });
     }
 
     @Override
     public Mono<BalanceResult> topUp(String clientId, double replenishment) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             UpdateResultStep<AccountRecord> returning = dsl
                     .update(ACCOUNT)
                     .set(ACCOUNT.AMOUNT, ACCOUNT.AMOUNT.plus(replenishment))
@@ -116,7 +117,7 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     @Override
     public Mono<Void> unlock(String clientId, @Positive double amount) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return selectForUpdate(dsl, clientId).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double newLocked = locked - amount;
@@ -136,7 +137,7 @@ public class AccountStorageR2DBC implements AccountStorage {
 
     @Override
     public Mono<BalanceResult> writeOff(String clientId, @Positive double amount) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return selectForUpdate(dsl, clientId).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);

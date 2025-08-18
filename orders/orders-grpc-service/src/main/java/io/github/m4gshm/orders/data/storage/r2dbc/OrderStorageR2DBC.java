@@ -1,22 +1,5 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
-import io.github.m4gshm.EnumWithCode;
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.model.Order.Status;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
-
-import java.util.Collection;
-import java.util.List;
-
 import static io.github.m4gshm.EnumWithCodeUtils.getCode;
 import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperUtils.toOrder;
@@ -31,6 +14,24 @@ import static orders.data.access.jooq.Tables.ORDERS;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.from;
 
+import java.util.Collection;
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
+import io.github.m4gshm.EnumWithCode;
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.model.Order.Status;
+import io.github.m4gshm.orders.data.storage.OrderStorage;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
 @Slf4j
 @Service
 @Validated
@@ -43,7 +44,7 @@ public class OrderStorageR2DBC implements OrderStorage {
 
     @Override
     public Mono<List<Order>> findAll() {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Flux.from(selectOrdersJoinDelivery(dsl))
                     .map(record -> toOrder(record, record, List.of()))
                     .collectList();
@@ -52,7 +53,7 @@ public class OrderStorageR2DBC implements OrderStorage {
 
     @Override
     public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId)
                     .and(ORDERS.STATUS.in(statuses.stream()
                             .map(EnumWithCode::getCode)
@@ -73,7 +74,7 @@ public class OrderStorageR2DBC implements OrderStorage {
 
     @Override
     public Mono<Order> findById(String id) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.ID.eq(id));
             var selectItems = selectAllFrom(dsl, ITEMS).where(ITEMS.ORDER_ID.eq(id));
             return from(selectOrder).zipWith(Flux.from(selectItems).collectList(), (order, items) -> {
@@ -84,7 +85,7 @@ public class OrderStorageR2DBC implements OrderStorage {
 
     @Override
     public Mono<Order> save(Order order) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var orderStatus = getCode(order.status());
             var mergeOrder = from(dsl.insertInto(ORDERS)
                     .set(ORDERS.ID, order.id())
@@ -93,12 +94,12 @@ public class OrderStorageR2DBC implements OrderStorage {
                     .set(ORDERS.CUSTOMER_ID, order.customerId())
                     .set(ORDERS.RESERVE_ID, order.reserveId())
                     .set(ORDERS.PAYMENT_ID, order.paymentId())
+                    .set(ORDERS.PAYMENT_TRANSACTION_ID, order.paymentTransactionId())
+                    .set(ORDERS.RESERVE_TRANSACTION_ID, order.reserveTransactionId())
                     .onDuplicateKeyUpdate()
                     .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
-                    .set(ORDERS.CUSTOMER_ID, order.customerId())
-                    .set(ORDERS.RESERVE_ID, order.reserveId())
-                    .set(ORDERS.PAYMENT_ID, order.paymentId()));
+            );
 
             var delivery = order.delivery();
 

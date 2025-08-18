@@ -1,5 +1,14 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
+import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.selectPayments;
+import static lombok.AccessLevel.PRIVATE;
+import static payments.data.access.jooq.Tables.PAYMENT;
+
+import java.util.List;
+
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
+
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Payment;
@@ -8,16 +17,8 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
-
-import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.selectPayments;
-import static lombok.AccessLevel.PRIVATE;
-import static payments.data.access.jooq.Tables.PAYMENT;
 
 @Slf4j
 @Service
@@ -31,21 +32,21 @@ public class PaymentStorageR2DBC implements PaymentStorage {
 
     @Override
     public Mono<List<Payment>> findAll() {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Flux.from(selectPayments(dsl)).map(PaymentStorageR2DBCUtils::toPayment).collectList();
         });
     }
 
     @Override
     public Mono<Payment> findById(String id) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Mono.from(selectPayments(dsl).where(PAYMENT.ID.eq(id))).map(PaymentStorageR2DBCUtils::toPayment);
         });
     }
 
     @Override
     public Mono<Payment> save(@Valid Payment payment) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Mono.from(dsl.insertInto(PAYMENT)
                     .set(PAYMENT.ID, payment.id())
                     .set(PAYMENT.CREATED_AT, PaymentStorageR2DBCUtils.orNow(payment.createdAt()))

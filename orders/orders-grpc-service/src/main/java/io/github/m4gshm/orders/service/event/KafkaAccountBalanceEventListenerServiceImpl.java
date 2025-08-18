@@ -1,5 +1,17 @@
 package io.github.m4gshm.orders.service.event;
 
+import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
+import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.empty;
+
+import java.util.Set;
+
+import javax.annotation.PostConstruct;
+
+import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import org.springframework.stereotype.Service;
+
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.orders.service.OrdersService;
@@ -10,20 +22,10 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.Orders.OrderApproveResponse;
-import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
-import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
-
-import javax.annotation.PostConstruct;
-import java.util.Set;
-
-import static io.github.m4gshm.orders.data.model.Order.Status.insufficient;
-import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.empty;
 
 @Slf4j
 @Service
@@ -85,7 +87,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
                 .messageID(requestId)
                 .subscriberID("accountBalance")
                 .build())
-                .thenMany(orderStorage.findByClientIdAndStatuses(clientId, Set.of(insufficient))
+                .thenMany(orderStorage.findByClientIdAndStatuses(clientId, Set.of(INSUFFICIENT))
                         .doOnSuccess(orders -> {
                             if (log.isDebugEnabled()) {
                                 log.debug("found active orders for client {}, amount {}, ids {}",

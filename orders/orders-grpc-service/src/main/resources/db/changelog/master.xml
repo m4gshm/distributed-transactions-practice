@@ -27,6 +27,16 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="addColumn-payment_transaction_id" author="alex">
+        <addColumn tableName="orders">
+            <column name="payment_transaction_id" type="text"/>
+        </addColumn>
+    </changeSet>
+    <changeSet id="addColumn-reserve_transaction_id" author="alex">
+        <addColumn tableName="orders">
+            <column name="reserve_transaction_id" type="text"/>
+        </addColumn>
+    </changeSet>
     <changeSet id="createTable-items" author="alex">
         <createTable tableName="items">
             <column name="id" type="text">

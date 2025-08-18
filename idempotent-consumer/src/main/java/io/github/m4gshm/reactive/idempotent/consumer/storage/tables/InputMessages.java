@@ -41,32 +41,28 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
     /**
      * The column <code>input_messages.message_id</code>.
      */
-    public final TableField<InputMessagesRecord,
-            String> MESSAGE_ID = createField(DSL.name("message_id"),
-                    SQLDataType.CLOB.nullable(false),
-                    this,
-                    "");
+    public final TableField<InputMessagesRecord, String> MESSAGE_ID = createField(DSL.name("message_id"),
+            SQLDataType.CLOB.nullable(false),
+            this,
+            "");
 
     /**
      * The column <code>input_messages.subscriber_id</code>.
      */
-    public final TableField<InputMessagesRecord,
-            String> SUBSCRIBER_ID = createField(DSL.name("subscriber_id"),
-                    SQLDataType.CLOB.nullable(false),
-                    this,
-                    "");
+    public final TableField<InputMessagesRecord, String> SUBSCRIBER_ID = createField(DSL.name("subscriber_id"),
+            SQLDataType.CLOB.nullable(false),
+            this,
+            "");
 
     /**
      * The column <code>input_messages.created_at</code>.
      */
-    public final TableField<InputMessagesRecord,
-            OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"),
-                    SQLDataType.TIMESTAMPWITHTIMEZONE(6)
-                            .nullable(false)
-                            .defaultValue(DSL.field(DSL.raw("now()"),
-                                    SQLDataType.TIMESTAMPWITHTIMEZONE)),
-                    this,
-                    "");
+    public final TableField<InputMessagesRecord, OffsetDateTime> CREATED_AT = createField(DSL.name("created_at"),
+            SQLDataType.TIMESTAMPWITHTIMEZONE(6)
+                    .nullable(false)
+                    .defaultValue(DSL.field(DSL.raw("now()"), SQLDataType.TIMESTAMPWITHTIMEZONE)),
+            this,
+            "");
 
     /**
      * Create a <code>input_messages</code> table reference
@@ -82,15 +78,11 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
         this(alias, INPUT_MESSAGES);
     }
 
-    private InputMessages(Name alias,
-            Table<InputMessagesRecord> aliased) {
+    private InputMessages(Name alias, Table<InputMessagesRecord> aliased) {
         this(alias, aliased, (Field<?>[]) null, null);
     }
 
-    private InputMessages(Name alias,
-            Table<InputMessagesRecord> aliased,
-            Field<?>[] parameters,
-            Condition where) {
+    private InputMessages(Name alias, Table<InputMessagesRecord> aliased, Field<?>[] parameters, Condition where) {
         super(alias, null, aliased, parameters, DSL.comment(""), TableOptions.table(), where);
     }
 
@@ -120,8 +112,7 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
     public UniqueKey<InputMessagesRecord> getPrimaryKey() {
         return Internal.createUniqueKey(InputMessages.INPUT_MESSAGES,
                 DSL.name("input_messages_pkey"),
-                new TableField[] {
-                        InputMessages.INPUT_MESSAGES.MESSAGE_ID,
+                new TableField[] { InputMessages.INPUT_MESSAGES.MESSAGE_ID,
                         InputMessages.INPUT_MESSAGES.SUBSCRIBER_ID },
                 true);
     }

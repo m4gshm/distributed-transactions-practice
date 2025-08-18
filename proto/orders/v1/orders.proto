@@ -128,7 +128,8 @@ message Order {
         APPROVED = 1;
         RELEASED = 2;
         INSUFFICIENT = 3;
-        CANCELLED = 4;
+        CANCELLING = 4;
+        CANCELLED = 5;
     }
 
     message Delivery {

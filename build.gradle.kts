@@ -2,8 +2,8 @@ import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.5" apply false
     id("org.springframework.boot") version "3.5.4" apply false
+    id("com.google.protobuf") version "0.9.5" apply false
     id("com.diffplug.spotless") version "7.2.1" apply false
 }
 
@@ -15,7 +15,6 @@ subprojects {
     apply(plugin = "com.diffplug.spotless")
     apply(plugin = "java-library")
     apply(plugin = "checkstyle")
-
 
     the<CheckstyleExtension>().apply {
         this.toolVersion = "11.0.0"
@@ -60,11 +59,10 @@ subprojects {
         the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
             java {
                 target("src/*/java/**/*.java")
-//                removeUnusedImports()
+                removeUnusedImports()
                 cleanthat()
                     .version("2.23")
                     .sourceCompatibility("21")
-                    .addMutator("PMD")
                     .addMutator("SafeAndConsensual")
                     .addMutator("SafeButNotConsensual")
                     .addMutator("SafeButControversial")

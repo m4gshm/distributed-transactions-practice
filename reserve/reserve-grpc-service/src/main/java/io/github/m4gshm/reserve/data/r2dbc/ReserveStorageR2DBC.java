@@ -40,14 +40,14 @@ public class ReserveStorageR2DBC implements ReserveStorage {
 
     @Override
     public Mono<List<Reserve>> findAll() {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             return Flux.from(selectReserves(dsl)).map(record -> toReserve(record, List.of())).collectList();
         });
     }
 
     @Override
     public Mono<Reserve> findById(String id) {
-        return jooq.transactional(dsl -> {
+        return jooq.inTransaction(dsl -> {
             var selectReserves = from(selectReserves(dsl).where(RESERVE.ID.eq(id)));
             var selectItems = selectAllFrom(dsl, RESERVE_ITEM).where(RESERVE_ITEM.RESERVE_ID.eq(id));
             return from(selectReserves).zipWith(Flux.from(selectItems).collectList(), (reserve, items) -> {
@@ -58,7 +58,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
 
     @Override
     public Mono<Reserve> save(@Valid Reserve reserve) {
-        return jooq.transactional(dsl -> defer(() -> {
+        return jooq.inTransaction(dsl -> defer(() -> {
             var mergeReserve = from(dsl.insertInto(RESERVE)
                     .set(RESERVE.ID, reserve.id())
                     .set(RESERVE.CREATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.createdAt()))
@@ -82,7 +82,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
 
     @Override
     public Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items) {
-        return jooq.transactional(dsl -> mergeItems(dsl, reserveId, items)
+        return jooq.inTransaction(dsl -> mergeItems(dsl, reserveId, items)
                 .map(c -> List.copyOf(items))
                 .flatMap(l -> logTxId(dsl,
                         "saveReservedItems",
