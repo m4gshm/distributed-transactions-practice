@@ -4,7 +4,7 @@ plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("org.springframework.boot") version "3.5.4" apply false
     id("com.google.protobuf") version "0.9.5" apply false
-    id("com.diffplug.spotless") version "7.2.1" apply false
+    id("com.diffplug.spotless") version "7.2.1"
 }
 
 subprojects {
@@ -78,8 +78,17 @@ subprojects {
                     .configFile("$rootDir/config/codestyle.xml")
             }
         }
-
-        tasks.findByName("assemble")?.dependsOn("spotlessApply")
         tasks.findByName("checkstyleMain")?.dependsOn("spotlessApply")
+    }
+}
+
+allprojects {
+    tasks.findByName("assemble")?.dependsOn("spotlessApply")
+}
+
+the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+    protobuf {
+        target("$rootDir/proto/**/*.proto")
+        buf()
     }
 }

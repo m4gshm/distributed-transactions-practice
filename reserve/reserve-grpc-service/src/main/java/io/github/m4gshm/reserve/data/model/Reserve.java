@@ -1,17 +1,16 @@
 package io.github.m4gshm.reserve.data.model;
 
-import static java.util.stream.Collectors.toMap;
+import jakarta.validation.Valid;
+import jakarta.validation.constraints.Positive;
+import lombok.Builder;
+import org.springframework.validation.annotation.Validated;
 
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
-import org.springframework.validation.annotation.Validated;
-
-import jakarta.validation.Valid;
-import jakarta.validation.constraints.Positive;
-import lombok.Builder;
+import static java.util.stream.Collectors.toMap;
 
 @Validated
 @Valid
@@ -22,11 +21,13 @@ public record Reserve(
                       Status status,
                       OffsetDateTime createdAt,
                       OffsetDateTime updatedAt,
-                      @Valid List<Item> items) {
+                      @Valid List<Item> items
+) {
     public enum Status {
             CREATED,
             APPROVED,
             RELEASED,
+            INSUFFICIENT,
             CANCELLED,
             ;
 

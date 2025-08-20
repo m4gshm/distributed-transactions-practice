@@ -10,8 +10,9 @@ dependencies {
     testAnnotationProcessor("org.projectlombok:lombok")
 
     api(project(":tpc:tpc-grpc-api"))
+    api(project(":jooq-postgres-prepared-transaction"))
     api(project(":grpc-webflux"))
-    api(project(":jooq-utils"))
+    
 
     implementation("org.jooq:jooq:3.19.24")
     implementation("io.grpc:grpc-stub")

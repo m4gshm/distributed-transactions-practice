@@ -3,19 +3,20 @@ package io.github.m4gshm.payments.service;
 import io.github.m4gshm.payments.data.model.Payment;
 import lombok.experimental.UtilityClass;
 import payment.v1.PaymentOuterClass;
+import payment.v1.PaymentOuterClass.PaymentCreateRequest;
 
 @UtilityClass
 public class PaymentServiceUtils {
-    static PaymentOuterClass.Payment toProto(Payment payment) {
+    static PaymentOuterClass.Payment toPaymentProto(Payment payment) {
         return PaymentOuterClass.Payment.newBuilder()
                 .setClientId(payment.clientId())
                 .setAmount(payment.amount())
                 .setExternalRef(payment.externalRef())
-                .setStatus(toProtoStatus(payment.status()))
+                .setStatus(toStatusProto(payment.status()))
                 .build();
     }
 
-    private static PaymentOuterClass.Payment.Status toProtoStatus(Payment.Status status) {
+    public static PaymentOuterClass.Payment.Status toStatusProto(Payment.Status status) {
         return switch (status) {
             case CREATED -> PaymentOuterClass.Payment.Status.CREATED;
             case HOLD -> PaymentOuterClass.Payment.Status.HOLD;
@@ -25,7 +26,7 @@ public class PaymentServiceUtils {
         };
     }
 
-    static Payment toDataModel(String id, PaymentOuterClass.Payment payment, Payment.Status status) {
+    static Payment toPayment(String id, PaymentOuterClass.Payment payment, Payment.Status status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())
@@ -35,9 +36,7 @@ public class PaymentServiceUtils {
                 .build();
     }
 
-    static Payment toDataModel(String id,
-                               PaymentOuterClass.PaymentCreateRequest.PaymentCreate payment,
-                               Payment.Status status) {
+    static Payment toPayment(String id, PaymentCreateRequest.PaymentCreate payment, Payment.Status status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())

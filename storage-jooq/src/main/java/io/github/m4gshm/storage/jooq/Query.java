@@ -1,4 +1,4 @@
-package io.github.m4gshm.jooq.utils;
+package io.github.m4gshm.storage.jooq;
 
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;

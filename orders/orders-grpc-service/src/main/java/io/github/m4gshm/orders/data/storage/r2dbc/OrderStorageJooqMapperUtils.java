@@ -41,6 +41,8 @@ public class OrderStorageJooqMapperUtils {
                 .customerId(order.get(ORDERS.CUSTOMER_ID))
                 .reserveId(order.get(ORDERS.RESERVE_ID))
                 .paymentId(order.get(ORDERS.PAYMENT_ID))
+                .reserveTransactionId(order.get(ORDERS.RESERVE_TRANSACTION_ID))
+                .paymentTransactionId(order.get(ORDERS.PAYMENT_TRANSACTION_ID))
                 .delivery(toDelivery(delivery))
                 .items(items.stream().map(OrderStorageJooqMapperUtils::toItem).toList())
                 .build();

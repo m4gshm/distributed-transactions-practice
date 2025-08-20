@@ -34,6 +34,12 @@ service OrdersService {
           body: "*"
         };
     }
+    rpc Resume (OrderResumeRequest) returns (OrderResumeResponse) {
+        option (google.api.http) = {
+            post: "/api/v1/order/resume"
+            body: "*"
+        };
+    }
     rpc Get (OrderGetRequest) returns (OrderGetResponse) {
         option (google.api.http) = {
             get: "/api/v1/order/{id}"
@@ -103,6 +109,16 @@ message OrderCancelRequest {
 
 message OrderCancelResponse {
     string id = 1;
+}
+
+message OrderResumeRequest {
+    string id = 1 [(buf.validate.field).string.uuid = true];
+    bool two_phase_commit = 2;
+}
+
+message OrderResumeResponse {
+    string id = 1;
+    Order.Status status = 2;
 }
 
 message OrderListRequest {}

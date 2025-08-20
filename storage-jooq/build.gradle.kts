@@ -3,7 +3,8 @@ plugins {
 }
 
 dependencies {
-    implementation(project(":storage-api"))
+    api(project(":storage-api"))
+
     implementation("org.projectlombok:lombok")
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")

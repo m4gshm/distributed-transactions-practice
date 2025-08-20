@@ -1,6 +1,5 @@
-package io.github.m4gshm.jooq.utils;
+package io.github.m4gshm.storage.jooq;
 
-import io.github.m4gshm.storage.ReadStorage.NotFoundException;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -24,6 +23,6 @@ public class Update {
     }
 
     public static <ID, T> Mono<T> notFound(String entity, ID id) {
-        return error(new NotFoundException("zero updated count on " + entity + " " + id));
+        return error(new io.github.m4gshm.storage.NotFoundException("zero updated count on " + entity + " " + id));
     }
 }

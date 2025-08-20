@@ -1,12 +1,12 @@
-package io.github.m4gshm.jooq.utils;
+package io.github.m4gshm.postgres.prepared.transaction;
 
+import io.github.m4gshm.storage.jooq.Query;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Field;
 import reactor.core.publisher.Mono;
 
-import static io.github.m4gshm.jooq.utils.Query.select;
 import static org.jooq.impl.DSL.field;
 
 @Slf4j
@@ -23,11 +23,11 @@ public class Transaction {
     }
 
     public static Mono<String> getCurrentTxid(DSLContext dsl) {
-        return select(dsl, PG_CURRENT_XACT_ID);
+        return Query.select(dsl, PG_CURRENT_XACT_ID);
     }
 
     public static Mono<String> getCurrentTxidOrNull(DSLContext dsl, String noTxid) {
-        return select(dsl, PG_CURRENT_XACT_ID_IF_ASSIGNED).defaultIfEmpty(noTxid);
+        return Query.select(dsl, PG_CURRENT_XACT_ID_IF_ASSIGNED).defaultIfEmpty(noTxid);
     }
 
     public static <T> Mono<T> logTxId(DSLContext dsl, String label, T result) {

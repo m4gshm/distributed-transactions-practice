@@ -8,8 +8,8 @@ import org.jooq.SelectOnConditionStep;
 
 import java.time.OffsetDateTime;
 
+import static io.github.m4gshm.storage.jooq.Query.selectAll;
 import static java.util.Optional.ofNullable;
-import static io.github.m4gshm.jooq.utils.Query.selectAll;
 import static orders.data.access.jooq.Tables.DELIVERY;
 import static orders.data.access.jooq.Tables.ORDERS;
 import static org.jooq.JoinType.LEFT_OUTER_JOIN;

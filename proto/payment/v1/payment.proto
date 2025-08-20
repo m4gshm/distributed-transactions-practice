@@ -64,12 +64,8 @@ message PaymentApproveRequest {
 
 message PaymentApproveResponse {
   string id = 1;
-  Status status = 2;
+  Payment.Status status = 2;
   double insufficient_amount = 3;
-  enum Status {
-    APPROVED = 0;
-    INSUFFICIENT_AMOUNT = 1;
-  }
 }
 
 message PaymentCancelRequest {
@@ -79,7 +75,8 @@ message PaymentCancelRequest {
 }
 
 message PaymentCancelResponse {
-  string id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 1;
+  Payment.Status status = 2;
 }
 
 message PaymentPayRequest {
@@ -90,7 +87,8 @@ message PaymentPayRequest {
 
 message PaymentPayResponse {
   string id = 1;
-  double balance = 2;
+  Payment.Status status = 2;
+  double balance = 3;
 }
 
 message PaymentGetRequest {

@@ -28,7 +28,6 @@ dependencies {
     annotationProcessor("org.projectlombok:lombok")
     testAnnotationProcessor("org.projectlombok:lombok")
 
-    api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
 
 //    implementation("org.liquibase:liquibase-core:$liquibaseVer")

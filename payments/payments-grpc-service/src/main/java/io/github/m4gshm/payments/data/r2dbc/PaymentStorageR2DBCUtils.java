@@ -10,8 +10,8 @@ import io.github.m4gshm.payments.data.model.Payment.Status;
 
 import java.time.OffsetDateTime;
 
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static java.util.Optional.ofNullable;
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static payments.data.access.jooq.Tables.PAYMENT;
 
 @Slf4j

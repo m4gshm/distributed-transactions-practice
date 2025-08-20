@@ -7,6 +7,7 @@ import orders.v1.Orders.OrderCreateResponse;
 import orders.v1.Orders.OrderGetResponse;
 import orders.v1.Orders.OrderListResponse;
 import orders.v1.Orders.OrderReleaseResponse;
+import orders.v1.Orders.OrderResumeResponse;
 import reactor.core.publisher.Mono;
 
 public interface OrdersService {
@@ -21,4 +22,6 @@ public interface OrdersService {
     Mono<OrderListResponse> list();
 
     Mono<OrderReleaseResponse> release(String orderId, boolean twoPhaseCommit);
+
+    Mono<OrderResumeResponse> resume(String orderId, boolean twoPhaseCommit);
 }

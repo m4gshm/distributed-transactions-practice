@@ -5,6 +5,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders;
 import orders.v1.Orders.OrderApproveRequest;
 import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelRequest;
@@ -58,6 +59,11 @@ public class GrpcOrdersServiceImpl extends OrdersServiceGrpc.OrdersServiceImplBa
     @Override
     public void release(OrderReleaseRequest request, StreamObserver<OrderReleaseResponse> responseObserver) {
         grpc.subscribe(responseObserver, ordersService.release(request.getId(), request.getTwoPhaseCommit()));
+    }
+
+    @Override
+    public void resume(Orders.OrderResumeRequest request, StreamObserver<Orders.OrderResumeResponse> responseObserver) {
+        grpc.subscribe(responseObserver, ordersService.resume(request.getId(), request.getTwoPhaseCommit()));
     }
 
 }

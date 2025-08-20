@@ -1,9 +1,10 @@
 
+include(":storage-jooq")
 include(":storage-api")
 include(":grpc-webflux")
 include(":protobuf-utils")
-include(":jooq-utils")
 include(":jooq-r2dbc")
+include(":jooq-postgres-prepared-transaction")
 include(":tpc:tpc-grpc-api")
 include(":tpc:tpc-grpc-service")
 include(":orders:orders-grpc-api")

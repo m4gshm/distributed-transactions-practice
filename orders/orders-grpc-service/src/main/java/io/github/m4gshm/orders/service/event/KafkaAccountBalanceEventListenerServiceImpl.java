@@ -49,14 +49,13 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     }
 
     private Mono<OrderApproveResponse> approveIfEnoughBalance(Order order, double balance) {
-        return toMono(paymentGetRequest(order.paymentId()),
-                paymentServiceStub::get).map(response -> response.getPayment().getAmount())
+        return toMono("paymentService::get", paymentGetRequest(order.paymentId()), paymentServiceStub::get)
+                .map(response -> response.getPayment().getAmount())
                 .flatMap(paymentAmount -> {
                     if (paymentAmount < balance) {
                         return ordersService.approve(order.id(), twoPhaseCommit);
                     } else {
-                        log.info(
-                                "insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
+                        log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
                                 order.id(),
                                 paymentAmount,
                                 balance);

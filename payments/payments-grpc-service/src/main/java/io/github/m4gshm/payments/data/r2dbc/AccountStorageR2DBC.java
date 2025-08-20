@@ -1,35 +1,34 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
-import static io.github.m4gshm.jooq.utils.Update.checkUpdateCount;
-import static io.github.m4gshm.jooq.utils.Update.notFound;
-import static java.util.Optional.ofNullable;
-import static lombok.AccessLevel.PRIVATE;
-import static payments.data.access.jooq.Tables.ACCOUNT;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.from;
-import static reactor.core.publisher.Mono.just;
-
-import java.util.List;
-
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.model.Account;
+import io.github.m4gshm.utils.Jooq;
+import jakarta.validation.constraints.Positive;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.Record2;
 import org.jooq.SelectJoinStep;
 import org.jooq.UpdateResultStep;
 import org.springframework.stereotype.Service;
-
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.model.Account;
-import jakarta.validation.constraints.Positive;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 import payments.data.access.jooq.tables.records.AccountRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.List;
+
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
+import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
+import static io.github.m4gshm.storage.jooq.Update.notFound;
+import static java.util.Optional.ofNullable;
+import static lombok.AccessLevel.PRIVATE;
+import static payments.data.access.jooq.Tables.ACCOUNT;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.from;
+import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @Service
@@ -77,10 +76,11 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return from(dsl
                             .update(ACCOUNT)
                             .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.plus(amount))
-                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount(
+                                    "account",
                                     clientId,
-                                    () -> result.success(true)
-                                            .build()));
+                                    () -> result.success(true).build()
+                            ));
                 }
             });
         });
@@ -127,9 +127,11 @@ public class AccountStorageR2DBC implements AccountStorage {
                     return from(dsl
                             .update(ACCOUNT)
                             .set(ACCOUNT.LOCKED, ACCOUNT.LOCKED.minus(amount))
-                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount(
+                                    "account",
                                     clientId,
-                                    () -> null));
+                                    () -> null
+                            ));
                 }
             });
         });
@@ -150,13 +152,15 @@ public class AccountStorageR2DBC implements AccountStorage {
                             .update(ACCOUNT)
                             .set(ACCOUNT.LOCKED, newLocked)
                             .set(ACCOUNT.AMOUNT, newAmount)
-                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount("account",
+                            .where(ACCOUNT.CLIENT_ID.eq(clientId))).flatMap(checkUpdateCount(
+                                    "account",
                                     clientId,
                                     () -> {
                                         return BalanceResult.builder()
                                                 .balance(newAmount)
                                                 .build();
-                                    }));
+                                    }
+                            ));
                 }
             });
         });

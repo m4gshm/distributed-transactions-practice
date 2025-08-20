@@ -5,6 +5,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 import java.time.Clock;
 
+import io.github.m4gshm.utils.config.R2DBCJooqAutoConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
@@ -13,17 +14,17 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.context.properties.bind.DefaultValue;
 import org.springframework.context.annotation.Bean;
 
-import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageMaintenanceR2dbc;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageStorageR2dbc;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 
-@AutoConfiguration
 @RequiredArgsConstructor
 @ConditionalOnBean(Jooq.class)
 @FieldDefaults(makeFinal = true, level = PRIVATE)
+@AutoConfiguration(after = R2DBCJooqAutoConfiguration.class)
 @EnableConfigurationProperties(MessageStorageR2dbcImplAutoConfiguration.Properties.class)
 public class MessageStorageR2dbcImplAutoConfiguration {
 

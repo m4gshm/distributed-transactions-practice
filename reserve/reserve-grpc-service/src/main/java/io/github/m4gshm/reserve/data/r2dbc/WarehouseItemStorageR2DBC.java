@@ -1,8 +1,8 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
-import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
-import static io.github.m4gshm.jooq.utils.Update.checkUpdateCount;
+import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
+import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
 import static java.util.stream.Collectors.mapping;
@@ -22,7 +22,7 @@ import org.jooq.Record3;
 import org.jooq.SelectJoinStep;
 import org.springframework.stereotype.Service;
 
-import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
 import lombok.Getter;
@@ -153,10 +153,8 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
                                     id,
-                                    () -> {
-                                        return resultBuilder.reserved(true)
-                                                .build();
-                                    }));
+                                    () -> resultBuilder.reserved(true).build()
+                            ));
                 } else {
                     log.info("not enough item amount: item [{}], need [{}]", id, -remainder);
                     return just(resultBuilder.reserved(false).build());

@@ -37,6 +37,18 @@
             <column name="reserve_transaction_id" type="text"/>
         </addColumn>
     </changeSet>
+    <changeSet id="dropNotNullConstraint-orders-reserve_id" author="alex">
+        <dropNotNullConstraint tableName="orders" columnName="reserve_id"/>
+        <rollback>
+            <addNotNullConstraint tableName="orders" columnName="reserve_id"/>
+        </rollback>
+    </changeSet>
+    <changeSet id="dropNotNullConstraint-orders-payment_id" author="alex">
+        <dropNotNullConstraint tableName="orders" columnName="payment_id"/>
+        <rollback>
+            <addNotNullConstraint tableName="orders" columnName="payment_id"/>
+        </rollback>
+    </changeSet>
     <changeSet id="createTable-items" author="alex">
         <createTable tableName="items">
             <column name="id" type="text">

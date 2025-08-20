@@ -1,10 +1,10 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
 import static io.github.m4gshm.EnumWithCodeUtils.getCode;
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperUtils.toOrder;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.orNow;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.selectOrdersJoinDelivery;
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
 import static lombok.AccessLevel.PRIVATE;
@@ -21,7 +21,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import io.github.m4gshm.EnumWithCode;
-import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;

@@ -1,6 +1,6 @@
 package io.github.m4gshm.reactive;
 
-import io.github.m4gshm.InternalStatusException;
+import io.github.m4gshm.UnexpectedEntityStatusException;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -15,6 +15,11 @@ import java.util.function.BiConsumer;
 @Slf4j
 @UtilityClass
 public class ReactiveUtils {
+    public static <T, R> Mono<R> toMono(String operationName, T request, BiConsumer<T, StreamObserver<R>> call) {
+        return toMono(request, call).doOnError(e -> log.error("error on {}", operationName, e));
+    }
+
+    @Deprecated
     public static <T, R> Mono<R> toMono(T request, BiConsumer<T, StreamObserver<R>> call) {
         return Mono.create(sink -> call.accept(request, toStreamObserver(sink)));
     }
@@ -27,7 +32,7 @@ public class ReactiveUtils {
 
             @Override
             public void onError(Throwable t) {
-                if (t instanceof InternalStatusException statusException) {
+                if (t instanceof UnexpectedEntityStatusException statusException) {
                     sink.error(statusException.toGrpcRuntimeException());
                 } else {
                     if (t instanceof StatusException || t instanceof StatusRuntimeException) {

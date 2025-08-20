@@ -1,10 +1,10 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
-import static io.github.m4gshm.jooq.utils.Transaction.logTxId;
+import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.from;
@@ -17,7 +17,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import jakarta.validation.Valid;
@@ -84,8 +84,6 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     public Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items) {
         return jooq.inTransaction(dsl -> mergeItems(dsl, reserveId, items)
                 .map(c -> List.copyOf(items))
-                .flatMap(l -> logTxId(dsl,
-                        "saveReservedItems",
-                        l)));
+                .flatMap(l -> logTxId(dsl, "saveReservedItems", l)));
     }
 }

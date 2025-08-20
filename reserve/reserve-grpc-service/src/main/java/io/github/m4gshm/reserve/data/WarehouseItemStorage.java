@@ -1,14 +1,14 @@
 package io.github.m4gshm.reserve.data;
 
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
-import io.github.m4gshm.storage.ReadStorage;
+import io.github.m4gshm.storage.ReadOperations;
 import lombok.Builder;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
 import java.util.List;
 
-public interface WarehouseItemStorage extends ReadStorage<WarehouseItem, String> {
+public interface WarehouseItemStorage extends ReadOperations<WarehouseItem, String> {
 
     Mono<List<ItemOp.ReserveResult>> reserve(Collection<ItemOp> items);
 

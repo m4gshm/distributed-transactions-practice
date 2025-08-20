@@ -1,9 +1,10 @@
-package io.github.m4gshm.jooq.config;
+package io.github.m4gshm.utils.config;
 
 import static lombok.AccessLevel.PRIVATE;
 import static org.jooq.conf.ParamType.INLINED;
 import static org.jooq.conf.StatementType.STATIC_STATEMENT;
 import static org.jooq.tools.jdbc.JDBCUtils.dialect;
+import static org.springframework.transaction.TransactionDefinition.PROPAGATION_NEVER;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRED;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW;
 import static org.springframework.transaction.reactive.TransactionalOperator.create;
@@ -21,8 +22,8 @@ import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.jooq.JooqImpl;
+import io.github.m4gshm.utils.Jooq;
+import io.github.m4gshm.utils.JooqImpl;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -44,12 +45,14 @@ public class R2DBCJooqAutoConfiguration {
     }
 
     @Bean
+    @ConditionalOnMissingBean
     public Jooq jooq(ReactiveTransactionManager transactionManager,
                      ConnectionFactory connectionFactory,
                      Configuration configuration) {
         return new JooqImpl(
                 newOperator(transactionManager, PROPAGATION_REQUIRED),
                 newOperator(transactionManager, PROPAGATION_REQUIRES_NEW),
+                newOperator(transactionManager, PROPAGATION_NEVER),
                 connectionFactory,
                 configuration);
     }

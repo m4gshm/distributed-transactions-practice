@@ -31,8 +31,9 @@ dependencies {
     api(project(":storage-api"))
     api(project(":grpc-webflux"))
     api(project(":protobuf-utils"))
-    api(project(":jooq-utils"))
+    
     api(project(":jooq-r2dbc"))
+    api(project(":jooq-postgres-prepared-transaction"))
     api(project(":orders:orders-grpc-api"))
     api(project(":payments:payments-grpc-api"))
     api(project(":payments:payments-event-api"))
