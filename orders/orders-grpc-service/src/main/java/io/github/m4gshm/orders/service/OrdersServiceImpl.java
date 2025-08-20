@@ -98,10 +98,6 @@ public class OrdersServiceImpl implements OrdersService {
         return noTransaction;
     }
 
-    private static void logNoTransaction(String type, String transactionId) {
-        log.trace("not transaction for {} {}", type, transactionId);
-    }
-
     private static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
         return ofNullable(getErrorInfo(e)).map(ErrorInfo::metadata).map(metadata -> {
             var errorType = metadata.get(UnexpectedEntityStatusException.TYPE);
@@ -138,6 +134,10 @@ public class OrdersServiceImpl implements OrdersService {
                 : Mono.<Void>empty().doOnSubscribe(_ -> {
                     log.debug("no local prepared transaction for rollback");
                 });
+    }
+
+    private static void logNoTransaction(String type, String transactionId) {
+        log.trace("not transaction for {} {}", type, transactionId);
     }
 
     private static Tpc.TwoPhaseCommitRequest newCommitRequest(String paymentTransactionId) {
