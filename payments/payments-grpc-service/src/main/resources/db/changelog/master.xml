@@ -63,14 +63,4 @@
             <column name="client_id"/>
         </createIndex>
     </changeSet>
-    <changeSet id="addColumn-transaction_id" author="alex">
-        <addColumn tableName="payment">
-            <column name="transaction_id" type="text"/>
-        </addColumn>
-    </changeSet>
-    <changeSet id="createIndex-payment_transaction_id" author="alex">
-        <createIndex tableName="payment" indexName="payment_transaction_id">
-            <column name="transaction_id"/>
-        </createIndex>
-    </changeSet>
 </databaseChangeLog>

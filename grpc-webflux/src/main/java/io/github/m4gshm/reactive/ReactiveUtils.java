@@ -1,6 +1,9 @@
 package io.github.m4gshm.reactive;
 
-import io.github.m4gshm.UnexpectedEntityStatusException;
+import java.util.List;
+import java.util.function.BiConsumer;
+
+import io.github.m4gshm.InvalidStateException;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
@@ -8,9 +11,6 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
-
-import java.util.List;
-import java.util.function.BiConsumer;
 
 @Slf4j
 @UtilityClass
@@ -32,7 +32,7 @@ public class ReactiveUtils {
 
             @Override
             public void onError(Throwable t) {
-                if (t instanceof UnexpectedEntityStatusException statusException) {
+                if (t instanceof InvalidStateException statusException) {
                     sink.error(statusException.toGrpcRuntimeException());
                 } else {
                     if (t instanceof StatusException || t instanceof StatusRuntimeException) {

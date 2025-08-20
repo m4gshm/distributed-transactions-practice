@@ -65,14 +65,4 @@
             <column name="reserved" type="bool"/>
         </createTable>
     </changeSet>
-    <changeSet id="addColumn-transaction_id" author="alex">
-        <addColumn tableName="reserve">
-            <column name="transaction_id" type="text"/>
-        </addColumn>
-    </changeSet>
-    <changeSet id="createIndex-reserve_transaction_id" author="alex">
-        <createIndex tableName="reserve" indexName="reserve_transaction_id">
-            <column name="transaction_id"/>
-        </createIndex>
-    </changeSet>
 </databaseChangeLog>

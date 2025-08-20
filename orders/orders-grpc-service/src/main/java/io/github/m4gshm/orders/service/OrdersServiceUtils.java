@@ -1,5 +1,23 @@
 package io.github.m4gshm.orders.service;
 
+import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
+import static io.grpc.Status.NOT_FOUND;
+import static java.time.ZoneId.systemDefault;
+import static java.util.Optional.ofNullable;
+import static orders.v1.Orders.Order.Status.APPROVED;
+import static orders.v1.Orders.Order.Status.APPROVING;
+import static orders.v1.Orders.Order.Status.CANCELLED;
+import static orders.v1.Orders.Order.Status.CANCELLING;
+import static orders.v1.Orders.Order.Status.CREATED;
+import static orders.v1.Orders.Order.Status.CREATING;
+import static orders.v1.Orders.Order.Status.INSUFFICIENT;
+import static orders.v1.Orders.Order.Status.RELEASED;
+import static orders.v1.Orders.Order.Status.RELEASING;
+import static reactor.core.publisher.Mono.error;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.protobuf.TimestampUtils;
 import lombok.experimental.UtilityClass;
@@ -11,21 +29,6 @@ import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
 import reserve.v1.ReserveOuterClass.Reserve;
 import tpc.v1.Tpc;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-
-import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
-import static io.grpc.Status.NOT_FOUND;
-import static java.time.ZoneId.systemDefault;
-import static java.util.Optional.ofNullable;
-import static orders.v1.Orders.Order.Status.APPROVED;
-import static orders.v1.Orders.Order.Status.CANCELLED;
-import static orders.v1.Orders.Order.Status.CANCELLING;
-import static orders.v1.Orders.Order.Status.CREATED;
-import static orders.v1.Orders.Order.Status.INSUFFICIENT;
-import static orders.v1.Orders.Order.Status.RELEASED;
-import static reactor.core.publisher.Mono.error;
 
 @Slf4j
 @UtilityClass
@@ -52,24 +55,24 @@ public class OrdersServiceUtils {
                 .setCreatedAt(toTimestamp(order.createdAt()))
                 .setUpdatedAt(toTimestamp(order.updatedAt()))
                 .setCustomerId(order.customerId())
-                .setPaymentId(order.paymentId())
-                .setReserveId(order.reserveId())
                 .mergeDelivery(toDeliveryGrpc(order.delivery()))
                 .addAllItems(items != null ? items : List.of());
 
         ofNullable(toOrderStatusGrpc(order.status())).ifPresent(builder::setStatus);
         ofNullable(paymentStatus).ifPresent(builder::setPaymentStatus);
+        ofNullable(order.paymentId()).ifPresent(builder::setPaymentId);
+        ofNullable(order.reserveId()).ifPresent(builder::setReserveId);
 
         return builder.build();
     }
 
     public static Orders.Order.Status toOrderStatusGrpc(Order.Status status) {
         return status == null ? null : switch (status) {
-            case CREATING -> null;
+            case CREATING -> CREATING;
             case CREATED -> CREATED;
-            case APPROVING -> CREATED;
+            case APPROVING -> APPROVING;
             case APPROVED -> APPROVED;
-            case RELEASING -> APPROVED;
+            case RELEASING -> RELEASING;
             case RELEASED -> RELEASED;
             case INSUFFICIENT -> INSUFFICIENT;
             case CANCELLING -> CANCELLING;

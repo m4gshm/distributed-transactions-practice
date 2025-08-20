@@ -1,19 +1,20 @@
 package io.github.m4gshm.reactive;
 
+import static lombok.AccessLevel.PRIVATE;
+
+import java.util.List;
+
+import org.reactivestreams.Subscription;
+
 import grpcstarter.server.feature.exceptionhandling.GrpcExceptionResolver;
-import io.grpc.Metadata;
+import io.github.m4gshm.GrpcConvertible;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
-
-import java.util.List;
-
-import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -25,25 +26,22 @@ public class GrpcReactiveImpl implements GrpcReactive {
     List<GrpcExceptionResolver> grpcExceptionResolvers;
 
     private Throwable handle(Throwable throwable) {
-        final boolean grpcException;
-        final Metadata metadata;
-        if (throwable instanceof StatusRuntimeException statusRuntimeException) {
-            grpcException = true;
-            metadata = statusRuntimeException.getTrailers();
+        if (throwable instanceof GrpcConvertible grpcConvertible) {
+            return grpcConvertible.toGrpcRuntimeException();
+        } else if (throwable instanceof StatusRuntimeException statusRuntimeException) {
+            return statusRuntimeException;
         } else if (throwable instanceof StatusException statusException) {
-            grpcException = true;
-            metadata = statusException.getTrailers();
-        } else {
-            grpcException = false;
-            metadata = metadataFactory.newMetadata(throwable);
+            return statusException;
         }
+
+        final var metadata = metadataFactory.newMetadata(throwable);
         for (var resolver : grpcExceptionResolvers) {
             var sre = resolver.resolve(throwable, null, metadata);
             if (sre != null) {
                 return sre;
             }
         }
-        return grpcException ? throwable : new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
+        return new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
     }
 
     @Override

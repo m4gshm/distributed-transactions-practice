@@ -1,49 +1,5 @@
 package io.github.m4gshm.orders.service;
 
-import io.github.m4gshm.UnexpectedEntityStatusException;
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
-import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
-import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.PrepareTransactionException;
-import io.github.m4gshm.utils.Jooq;
-import io.grpc.Metadata;
-import io.grpc.Status;
-import io.grpc.StatusException;
-import io.grpc.StatusRuntimeException;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders.OrderApproveResponse;
-import orders.v1.Orders.OrderCancelResponse;
-import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.Orders.OrderCreateResponse;
-import orders.v1.Orders.OrderGetResponse;
-import orders.v1.Orders.OrderListResponse;
-import orders.v1.Orders.OrderReleaseResponse;
-import orders.v1.Orders.OrderResumeResponse;
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentOuterClass.Payment;
-import payment.v1.PaymentOuterClass.PaymentApproveRequest;
-import payment.v1.PaymentOuterClass.PaymentApproveResponse;
-import payment.v1.PaymentServiceGrpc;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass;
-import reserve.v1.ReserveOuterClass.Reserve;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveServiceGrpc;
-import tpc.v1.Tpc;
-import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-import java.util.function.Function;
-
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.orders.data.model.Order.Status.APPROVED;
 import static io.github.m4gshm.orders.data.model.Order.Status.APPROVING;
@@ -60,6 +16,7 @@ import static io.github.m4gshm.orders.service.OrdersServiceUtils.toOrderStatusGr
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.rollback;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
+import static io.grpc.Status.NOT_FOUND;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
@@ -69,6 +26,52 @@ import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+import java.util.function.Function;
+
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.UnexpectedEntityStatusException;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
+import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
+import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.PrepareTransactionException;
+import io.github.m4gshm.storage.NotFoundException;
+import io.github.m4gshm.utils.Jooq;
+import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders.OrderApproveResponse;
+import orders.v1.Orders.OrderCancelResponse;
+import orders.v1.Orders.OrderCreateRequest;
+import orders.v1.Orders.OrderCreateResponse;
+import orders.v1.Orders.OrderGetResponse;
+import orders.v1.Orders.OrderListResponse;
+import orders.v1.Orders.OrderReleaseResponse;
+import orders.v1.Orders.OrderResumeResponse;
+import payment.v1.PaymentOuterClass;
+import payment.v1.PaymentOuterClass.Payment;
+import payment.v1.PaymentOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentServiceGrpc;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveOuterClass;
+import reserve.v1.ReserveOuterClass.Reserve;
+import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
+import reserve.v1.ReserveServiceGrpc;
+import tpc.v1.Tpc;
+import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 @Slf4j
 @Service
@@ -87,11 +90,16 @@ public class OrdersServiceImpl implements OrdersService {
     Jooq jooq;
 
     private static boolean completeIfNoTransaction(String type, Throwable e, String transactionId) {
-        var noTransaction = Status.NOT_FOUND == getStatus(e);
+        var status = getStatus(e);
+        var noTransaction = status != null && status.getCode().equals(NOT_FOUND.getCode());
         if (noTransaction) {
-            log.trace("not transaction for {} {}", type, transactionId);
+            logNoTransaction(type, transactionId);
         }
         return noTransaction;
+    }
+
+    private static void logNoTransaction(String type, String transactionId) {
+        log.trace("not transaction for {} {}", type, transactionId);
     }
 
     private static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
@@ -153,9 +161,6 @@ public class OrdersServiceImpl implements OrdersService {
             }
             return error(e);
         };
-    }
-
-    public record ErrorInfo(Status status, Metadata metadata) {
     }
 
     @Override
@@ -550,9 +555,17 @@ public class OrdersServiceImpl implements OrdersService {
                     var paymentTransactionId = requireNonNull(order.paymentTransactionId(), "paymentTransactionId");
                     var reserveTransactionId = requireNonNull(order.reserveTransactionId(), "reserveTransactionId");
                     commit = commitPayment(paymentTransactionId).zipWith(commitReserve(reserveTransactionId))
-                            .then(localPreparedTransactions.commit(order.id()).doOnError(e -> {
-                                log.error("order commit error {}", order.id(), e);
-                            }))
+                            .then(localPreparedTransactions.commit(order.id())
+                                    .onErrorComplete(e -> {
+                                        var noTransaction = e instanceof NotFoundException;
+                                        if (noTransaction) {
+                                            logNoTransaction("order", order.id());
+                                        }
+                                        return noTransaction;
+                                    })
+                                    .doOnError(e -> {
+                                        log.error("order commit error {}", order.id(), e);
+                                    }))
                             .then();
                 }
                 return commit.then(defer(() -> {
@@ -616,6 +629,9 @@ public class OrdersServiceImpl implements OrdersService {
                         .map(responseBuilder);
             })));
         });
+    }
+
+    public record ErrorInfo(Status status, Metadata metadata) {
     }
 
 }

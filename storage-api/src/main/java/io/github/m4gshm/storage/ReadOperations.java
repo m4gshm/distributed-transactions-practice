@@ -1,10 +1,10 @@
 package io.github.m4gshm.storage;
 
-import reactor.core.publisher.Mono;
+import static reactor.core.publisher.Mono.error;
 
 import java.util.List;
 
-import static reactor.core.publisher.Mono.error;
+import reactor.core.publisher.Mono;
 
 public interface ReadOperations<T, ID> {
     Mono<List<T>> findAll();
@@ -13,7 +13,7 @@ public interface ReadOperations<T, ID> {
 
     default Mono<T> getById(ID id) {
         return findById(id).switchIfEmpty(error(() -> {
-            return new NotFoundException(getEntityClass(), id);
+            return NotFoundException.newNotFoundException(getEntityClass(), id);
         }));
     }
 

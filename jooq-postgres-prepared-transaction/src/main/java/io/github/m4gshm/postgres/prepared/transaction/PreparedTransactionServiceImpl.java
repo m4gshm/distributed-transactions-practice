@@ -1,5 +1,7 @@
 package io.github.m4gshm.postgres.prepared.transaction;
 
+import java.util.List;
+
 import io.github.m4gshm.storage.NotFoundException;
 import io.github.m4gshm.utils.Jooq;
 import io.r2dbc.postgresql.api.PostgresqlException;
@@ -7,8 +9,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
-
-import java.util.List;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -36,7 +36,7 @@ public class PreparedTransactionServiceImpl implements PreparedTransactionServic
         // var message = e.getMessage();
         // var notFound = message.endsWith(format("prepared transaction with identifier
         // \"%s\" does not exist", id));
-        return notFound ? new NotFoundException(e, PreparedTransaction.class, id) : e;
+        return notFound ? NotFoundException.newNotFoundException(e, PreparedTransaction.class, id) : e;
     }
 
     private static <T> Mono<T> notFoundable(Object id, Mono<T> mono) {

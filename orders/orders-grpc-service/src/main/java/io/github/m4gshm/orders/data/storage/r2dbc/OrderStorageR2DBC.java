@@ -11,6 +11,8 @@ import static lombok.AccessLevel.PRIVATE;
 import static orders.data.access.jooq.Tables.DELIVERY;
 import static orders.data.access.jooq.Tables.ITEMS;
 import static orders.data.access.jooq.Tables.ORDERS;
+import static org.jooq.impl.DSL.coalesce;
+import static org.jooq.impl.DSL.value;
 import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.from;
 
@@ -21,10 +23,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import io.github.m4gshm.EnumWithCode;
-import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.github.m4gshm.utils.Jooq;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -99,6 +101,8 @@ public class OrderStorageR2DBC implements OrderStorage {
                     .onDuplicateKeyUpdate()
                     .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
+                    .set(ORDERS.RESERVE_ID, coalesce(value(order.reserveId()), ORDERS.RESERVE_ID))
+                    .set(ORDERS.PAYMENT_ID, coalesce(value(order.paymentId()), ORDERS.PAYMENT_ID))
             );
 
             var delivery = order.delivery();
