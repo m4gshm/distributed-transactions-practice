@@ -163,6 +163,9 @@ public class OrdersServiceImpl implements OrdersService {
         };
     }
 
+    public record ErrorInfo(Status status, Metadata metadata) {
+    }
+
     @Override
     public Mono<OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit) {
         return updateOrderOp(
@@ -629,9 +632,6 @@ public class OrdersServiceImpl implements OrdersService {
                         .map(responseBuilder);
             })));
         });
-    }
-
-    public record ErrorInfo(Status status, Metadata metadata) {
     }
 
 }
