@@ -60,9 +60,11 @@ subprojects {
             java {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
+                endWithNewline()
+
                 cleanthat()
                     .version("2.23")
-                    .sourceCompatibility("21")
+                    .sourceCompatibility("24")
                     .addMutator("SafeAndConsensual")
                     .addMutator("SafeButNotConsensual")
                     .addMutator("SafeButControversial")

@@ -1,6 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.ExceptionUtils.newStatusException;
 import static io.github.m4gshm.orders.data.model.Order.Status.APPROVED;
 import static io.github.m4gshm.orders.data.model.Order.Status.APPROVING;
 import static io.github.m4gshm.orders.data.model.Order.Status.CANCELLING;
@@ -51,6 +52,7 @@ import io.grpc.StatusRuntimeException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders;
 import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelResponse;
 import orders.v1.Orders.OrderCreateRequest;
@@ -163,7 +165,12 @@ public class OrdersServiceImpl implements OrdersService {
         };
     }
 
-    public record ErrorInfo(Status status, Metadata metadata) {
+    private static OrderResumeResponse newOrderResumeResponse(String o, Orders.Order.Status o1) {
+        return OrderResumeResponse
+                .newBuilder()
+                .setId(o)
+                .setStatus(o1)
+                .build();
     }
 
     @Override
@@ -326,8 +333,10 @@ public class OrdersServiceImpl implements OrdersService {
                                           String reserveTransactionId,
                                           T result
     ) {
-        return toMono(OrdersServiceUtils.newCommitRequest(reserveTransactionId), reserveClientTcp::commit)
-                .zipWith(toMono(
+        return toMono("reserveClientTcp::commit",
+                OrdersServiceUtils.newCommitRequest(reserveTransactionId),
+                reserveClientTcp::commit)
+                .zipWith(toMono("paymentsClientTcp::commit",
                         OrdersServiceUtils.newCommitRequest(paymentTransactionId),
                         paymentsClientTcp::commit
                 ))
@@ -390,7 +399,7 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     private Mono<List<Reserve.Item>> getItems(String reserveId) {
-        return toMono(
+        return toMono("reserveClient::get",
                 ReserveOuterClass.ReserveGetRequest.newBuilder()
                         .setId(reserveId)
                         .build(),
@@ -401,7 +410,7 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     private Mono<Payment.Status> getPaymentStatus(String paymentId) {
-        return toMono(
+        return toMono("paymentsClient::get",
                 PaymentOuterClass.PaymentGetRequest.newBuilder()
                         .setId(paymentId)
                         .build(),
@@ -458,8 +467,12 @@ public class OrdersServiceImpl implements OrdersService {
     }
 
     protected Mono<Void> remoteRollback(String paymentTransactionId, String reserveTransactionId) {
-        return toMono(newRollbackRequest(reserveTransactionId), reserveClientTcp::rollback)
-                .zipWith(toMono(newRollbackRequest(paymentTransactionId), paymentsClientTcp::rollback))
+        return toMono("reserveClientTcp::rollback",
+                newRollbackRequest(reserveTransactionId),
+                reserveClientTcp::rollback)
+                .zipWith(toMono("paymentsClientTcp::rollback",
+                        newRollbackRequest(paymentTransactionId),
+                        paymentsClientTcp::rollback))
                 .onErrorComplete(e -> {
                     log.warn("remote rollback error", e);
                     return true;
@@ -469,29 +482,25 @@ public class OrdersServiceImpl implements OrdersService {
 
     @Override
     public Mono<OrderResumeResponse> resume(String orderId, boolean twoPhaseCommit) {
-        return empty();
-        // return orderStorage.getById(orderId).flatMap(order -> {
-        // return switch (order.status()) {
-        // case CREATING -> create(order, twoPhaseCommit).map(o ->
-        // OrderResumeResponse.newBuilder()
-        // .setId(o.id())
-        // .setStatus(toOrderStatusGrpc(o.status()))
-        // .build());
-        // case APPROVING -> this.approve(order.id(), twoPhaseCommit);
-        //
-        // case RELEASING -> {
-        // }
-        //
-        // case INSUFFICIENT -> {
-        // }
-        // case CANCELLING -> {
-        // }
-        //
-        // }
-        // return just(OrderResumeResponse.newBuilder()
-        // .setStatus(toOrderStatusGrpc(order.status()))
-        // .build());
-        // });
+        return orderStorage.getById(orderId).flatMap(order -> {
+            var status = order.status();
+            return switch (status) {
+                case CREATED, APPROVED, RELEASED, CANCELLED -> Mono.error(newStatusException(status.getCode(),
+                        "already committed status"));
+                case CREATING -> create(order, twoPhaseCommit).map(o -> newOrderResumeResponse(
+                        o.id(),
+                        toOrderStatusGrpc(o.status())));
+                case INSUFFICIENT, APPROVING -> approve(order.id(), twoPhaseCommit).map(o -> newOrderResumeResponse(
+                        o.getId(),
+                        o.getStatus()));
+                case RELEASING -> release(order.id(), twoPhaseCommit).map(o -> newOrderResumeResponse(
+                        o.getId(),
+                        o.getStatus()));
+                case CANCELLING -> cancel(order.id(), twoPhaseCommit).map(o -> newOrderResumeResponse(
+                        o.getId(),
+                        o.getStatus()));
+            };
+        });
     }
 
     protected Mono<Order> saveAllAndCommit(
@@ -632,6 +641,9 @@ public class OrdersServiceImpl implements OrdersService {
                         .map(responseBuilder);
             })));
         });
+    }
+
+    public record ErrorInfo(Status status, Metadata metadata) {
     }
 
 }

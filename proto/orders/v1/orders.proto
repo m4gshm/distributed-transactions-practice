@@ -109,6 +109,7 @@ message OrderCancelRequest {
 
 message OrderCancelResponse {
     string id = 1;
+    optional Order.Status status = 2;
 }
 
 message OrderResumeRequest {

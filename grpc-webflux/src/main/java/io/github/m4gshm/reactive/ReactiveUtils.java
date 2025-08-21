@@ -16,12 +16,8 @@ import reactor.core.publisher.MonoSink;
 @UtilityClass
 public class ReactiveUtils {
     public static <T, R> Mono<R> toMono(String operationName, T request, BiConsumer<T, StreamObserver<R>> call) {
-        return toMono(request, call).doOnError(e -> log.error("error on {}", operationName, e));
-    }
-
-    @Deprecated
-    public static <T, R> Mono<R> toMono(T request, BiConsumer<T, StreamObserver<R>> call) {
-        return Mono.create(sink -> call.accept(request, toStreamObserver(sink)));
+        return Mono.<R>create(sink -> call.accept(request, toStreamObserver(sink)))
+                .doOnError(e -> log.error("error on {}", operationName, e));
     }
 
     public static <T> StreamObserver<T> toStreamObserver(MonoSink<T> sink) {
