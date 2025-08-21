@@ -485,7 +485,7 @@ public class OrdersServiceImpl implements OrdersService {
         return orderStorage.getById(orderId).flatMap(order -> {
             var status = order.status();
             return switch (status) {
-                case CREATED, APPROVED, RELEASED, CANCELLED -> Mono.error(newStatusException(status.getCode(),
+                case CREATED, APPROVED, RELEASED, CANCELLED -> error(newStatusException(status.getCode(),
                         "already committed status"));
                 case CREATING -> create(order, twoPhaseCommit).map(o -> newOrderResumeResponse(
                         o.id(),
