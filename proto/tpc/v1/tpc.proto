@@ -1,6 +1,7 @@
 syntax = "proto3";
 package tpc.v1;
 
+import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
@@ -29,7 +30,7 @@ message TwoPhaseListActivesRequest {}
 message TwoPhaseListActivesResponse {
   repeated Transaction transactions = 1;
   message Transaction {
-    string id = 1;
+    string id = 1 [(buf.validate.field).string.min_len = 1];
   }
 }
 

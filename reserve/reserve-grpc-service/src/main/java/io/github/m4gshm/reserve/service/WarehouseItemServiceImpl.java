@@ -15,6 +15,8 @@ import warehouse.v1.Warehouse;
 import warehouse.v1.Warehouse.GetItemCostResponse;
 import warehouse.v1.Warehouse.ItemListRequest;
 import warehouse.v1.Warehouse.ItemListResponse;
+import warehouse.v1.Warehouse.ItemTopUpRequest;
+import warehouse.v1.Warehouse.ItemTopUpResponse;
 import warehouse.v1.WarehouseItemServiceGrpc;
 
 @Service
@@ -50,6 +52,18 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
                                     .build())
                             .toList())
                     .build();
+        }));
+    }
+
+    @Override
+    public void topUp(ItemTopUpRequest request, StreamObserver<ItemTopUpResponse> responseObserver) {
+        grpc.subscribe(responseObserver, defer(() -> {
+            var topUp = request.getTopUp();
+            var id = topUp.getId();
+            int amount = topUp.getAmount();
+            return warehouseItemStorage.topUp(id, amount).map(item -> {
+                return ItemTopUpResponse.newBuilder().setAmount(item.remainder()).build();
+            });
         }));
     }
 }

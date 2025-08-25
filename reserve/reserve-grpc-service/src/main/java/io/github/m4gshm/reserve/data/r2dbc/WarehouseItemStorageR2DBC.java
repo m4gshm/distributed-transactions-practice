@@ -22,9 +22,10 @@ import org.jooq.Record3;
 import org.jooq.SelectJoinStep;
 import org.springframework.stereotype.Service;
 
-import io.github.m4gshm.utils.Jooq;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
+import io.github.m4gshm.utils.Jooq;
+import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -42,12 +43,25 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
     private final Jooq jooq;
 
-    private static Flux<Record3<String, Integer, Integer>> selectForUpdate(DSLContext dsl, Collection<String> ids) {
-        return Flux.from(dsl
-                .select(WAREHOUSE_ITEM.ID, WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.RESERVED)
-                .from(WAREHOUSE_ITEM)
+    private static SelectJoinStep<Record3<String, Integer, Integer>> selectAmount(DSLContext dsl) {
+        return dsl.select(WAREHOUSE_ITEM.ID, WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.RESERVED).from(WAREHOUSE_ITEM);
+    }
+
+    private static Flux<Record3<String, Integer, Integer>> selectAmountForUpdate(DSLContext dsl,
+                                                                                 Collection<String> ids) {
+        return Flux.from(selectAmount(dsl)
                 .where(WAREHOUSE_ITEM.ID.in(ids))
                 .forUpdate());
+    }
+
+    private static Mono<Record3<String, Integer, Integer>> selectAmountForUpdate(DSLContext dsl, String id) {
+        return Mono.from(selectAmount(dsl)
+                .where(WAREHOUSE_ITEM.ID.eq(id))
+                .forUpdate());
+    }
+
+    private static SelectJoinStep<Record> selectItems(DSLContext dsl) {
+        return selectAllFrom(dsl, WAREHOUSE_ITEM);
     }
 
     @Override
@@ -58,7 +72,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
             var reserveIds = amountPerId.keySet();
 
-            return selectForUpdate(dsl, reserveIds).flatMap(record -> {
+            return selectAmountForUpdate(dsl, reserveIds).flatMap(record -> {
                 var id = record.get(WAREHOUSE_ITEM.ID);
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
@@ -70,7 +84,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 if (newReserved >= 0) {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForReserve))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item", id, () -> {
+                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item", id, () -> {
                                 return resultBuilder.remainder(remainder)
                                         .build();
                             }));
@@ -104,7 +118,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
         var amountPerId = items.stream().collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
         var reserveIds = amountPerId.keySet();
         return jooq.inTransaction(dsl -> {
-            return selectForUpdate(dsl, reserveIds).flatMap(record -> {
+            return selectAmountForUpdate(dsl, reserveIds).flatMap(record -> {
                 var id = record.get(WAREHOUSE_ITEM.ID);
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
@@ -116,9 +130,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return error(new ReleaseItemException(id, -reserved, -newTotalAmount));
                 } else {
                     return from(dsl.update(WAREHOUSE_ITEM)
-                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
                             .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
+                            .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
+                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item",
                                     id,
                                     () -> {
                                         return ItemOp.Result.builder()
@@ -139,7 +153,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
 
             var reserveIds = amountPerId.keySet();
 
-            return selectForUpdate(dsl, reserveIds).flatMap(record -> {
+            return selectAmountForUpdate(dsl, reserveIds).flatMap(record -> {
                 var id = record.get(WAREHOUSE_ITEM.ID);
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
@@ -151,7 +165,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 if (remainder >= 0) {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
-                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("reserve item",
+                            .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item",
                                     id,
                                     () -> resultBuilder.reserved(true).build()
                             ));
@@ -163,8 +177,20 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
         });
     }
 
-    private SelectJoinStep<Record> selectItems(DSLContext dsl) {
-        return selectAllFrom(dsl, WAREHOUSE_ITEM);
+    @Override
+    public Mono<ItemOp.Result> topUp(String id, @Min(1) int amount) {
+        return jooq.inTransaction(dsl -> {
+            var resultBuilder = ItemOp.Result.builder().id(id);
+            return selectAmountForUpdate(dsl, id).flatMap(record -> {
+                var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
+                var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
+                var newTotalAmount = totalAmount + amount;
+                var available = newTotalAmount - alreadyReserved;
+                return from(dsl.update(WAREHOUSE_ITEM)
+                        .set(WAREHOUSE_ITEM.AMOUNT, newTotalAmount))
+                        .flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
+            });
+        });
     }
 
 }

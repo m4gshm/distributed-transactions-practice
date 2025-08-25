@@ -20,6 +20,7 @@ import java.util.List;
 
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.protobuf.TimestampUtils;
+import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.Orders;
@@ -33,17 +34,6 @@ import tpc.v1.Tpc;
 @Slf4j
 @UtilityClass
 public class OrdersServiceUtils {
-
-    // static Orders.Order toOrder(Order order) {
-    // var paymentStatus = toPaymentStatus(order.paymentStatus());
-    // return toOrder(order, paymentStatus);
-    // }
-    //
-    // static Orders.Order toOrder(Order order, Payment.Status paymentStatus) {
-    // var items =
-    // order.items().stream().map(OrdersServiceUtils::toOrderItem).toList();
-    // return toOrder(order, paymentStatus, items);
-    // }
 
     static Orders.Order toOrderGrpc(
                                     Order order,
@@ -144,8 +134,11 @@ public class OrdersServiceUtils {
                 .build();
     }
 
-    static Tpc.TwoPhaseCommitRequest newCommitRequest(String id) {
-        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(id).build();
+    static Tpc.TwoPhaseCommitRequest newCommitRequest(@NonNull String transactionId) {
+        if (transactionId.isBlank()) {
+            throw new IllegalArgumentException("transactionId cannot be blank");
+        }
+        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(transactionId).build();
     }
 
     static Tpc.TwoPhaseRollbackRequest newRollbackRequest(String reserveResponse) {

@@ -1,16 +1,17 @@
 package io.github.m4gshm.orders.service.client.config;
 
-import lombok.RequiredArgsConstructor;
-import io.github.m4gshm.orders.service.client.ClientProperties;
+import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import io.github.m4gshm.grpc.client.ClientProperties;
+import lombok.RequiredArgsConstructor;
 import reserve.v1.ReserveServiceGrpc;
 import reserve.v1.ReserveServiceGrpc.ReserveServiceStub;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
-
-import static io.github.m4gshm.orders.service.client.ClientProperties.newManagedChannelBuilder;
 
 @Configuration
 @RequiredArgsConstructor

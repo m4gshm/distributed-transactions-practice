@@ -1,6 +1,4 @@
-package io.github.m4gshm.orders.service.client;
-
-import static io.grpc.ManagedChannelBuilder.forTarget;
+package io.github.m4gshm.grpc.client;
 
 import io.grpc.ManagedChannelBuilder;
 import lombok.Data;
@@ -10,13 +8,12 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class ClientProperties {
     private String address;
-
     private boolean secure;
 
     public static ManagedChannelBuilder<? extends ManagedChannelBuilder<?>>
-           newManagedChannelBuilder(ClientProperties paymentsClientProperties) {
-        var builder = forTarget(paymentsClientProperties.getAddress());
-        if (!paymentsClientProperties.isSecure()) {
+           newManagedChannelBuilder(ClientProperties clientProperties) {
+        var builder = ManagedChannelBuilder.forTarget(clientProperties.getAddress());
+        if (!clientProperties.isSecure()) {
             builder.usePlaintext();
         }
         return builder;

@@ -1,6 +1,7 @@
 package io.github.m4gshm.postgres.prepared.transaction;
 
 import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
+import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
@@ -18,8 +19,14 @@ import reactor.core.publisher.Mono;
 @UtilityClass
 public class TwoPhaseTransaction {
 
-    public static Mono<Void> commit(DSLContext dsl, @NonNull String id) {
-        return from(dsl.query("COMMIT PREPARED '" + id + "'")).then();
+    private static Mono<Void> checkTransactionId(String transactionId, Mono<Void> operation) {
+        return defer(() -> transactionId.isBlank()
+                ? error(new IllegalArgumentException("transactionId cannot be blank"))
+                : operation);
+    }
+
+    public static Mono<Void> commit(DSLContext dsl, @NonNull String transactionId) {
+        return checkTransactionId(transactionId, from(dsl.query("COMMIT PREPARED '" + transactionId + "'")).then());
     }
 
     public static Mono<PreparedTransaction> getPreparedById(DSLContext dsl, String transactionId) {
@@ -45,8 +52,8 @@ public class TwoPhaseTransaction {
                 .build();
     }
 
-    public static Mono<Void> prepare(DSLContext dsl, @NonNull String id) {
-        return from(dsl.query("PREPARE TRANSACTION '" + id + "'")).then();
+    public static Mono<Void> prepare(DSLContext dsl, @NonNull String transactionId) {
+        return checkTransactionId(transactionId, from(dsl.query("PREPARE TRANSACTION '" + transactionId + "'")).then());
     }
 
     public static <T> Mono<T> prepare(DSLContext dsl, String id, Mono<T> routine) {
@@ -59,8 +66,8 @@ public class TwoPhaseTransaction {
         }) : routine;
     }
 
-    public static Mono<Void> rollback(DSLContext dsl, @NonNull String id) {
-        return from(dsl.query("ROLLBACK PREPARED '" + id + "'")).then();
+    public static Mono<Void> rollback(DSLContext dsl, @NonNull String transactionId) {
+        return checkTransactionId(transactionId, from(dsl.query("ROLLBACK PREPARED '" + transactionId + "'")).then());
     }
 
     public static class PrepareTransactionException extends RuntimeException {

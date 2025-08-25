@@ -1,0 +1,14 @@
+debug: true
+logging:
+  level:
+    root: trace
+service:
+  orders:
+    address: localhost:9080
+  reserve:
+    address: localhost:9081
+  warehouse:
+    address: localhost:9081
+  payments:
+    address: localhost:9082
+

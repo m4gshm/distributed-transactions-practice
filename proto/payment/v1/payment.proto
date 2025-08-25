@@ -44,7 +44,7 @@ service PaymentService {
 message PaymentCreateRequest {
   PaymentCreate body = 1;
 //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
   message PaymentCreate {
     string external_ref = 1 [(buf.validate.field).string.uuid = true];
     string client_id = 2 [(buf.validate.field).string.uuid = true];
@@ -59,7 +59,7 @@ message PaymentCreateResponse {
 message PaymentApproveRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
 //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message PaymentApproveResponse {
@@ -71,7 +71,7 @@ message PaymentApproveResponse {
 message PaymentCancelRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
 //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message PaymentCancelResponse {
@@ -82,7 +82,7 @@ message PaymentCancelResponse {
 message PaymentPayRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
 //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message PaymentPayResponse {

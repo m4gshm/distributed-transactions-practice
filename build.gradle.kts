@@ -17,7 +17,16 @@ subprojects {
     apply(plugin = "checkstyle")
 
     the<CheckstyleExtension>().apply {
-        this.toolVersion = "11.0.0"
+        toolVersion = "11.0.0"
+    }
+
+    dependencies {
+        listOf("implementation", "annotationProcessor", "testAnnotationProcessor").forEach {
+            add(
+                it,
+                "org.projectlombok:lombok"
+            )
+        }
     }
 
     the<DependencyManagementExtension>().apply {

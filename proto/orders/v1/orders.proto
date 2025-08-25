@@ -10,155 +10,154 @@ import "payment/v1/payment.proto";
 import "reserve/v1/reserve.proto";
 
 service OrdersService {
-    rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/order"
-            body: "*"
-        };
-    }
-    rpc Approve (OrderApproveRequest) returns (OrderApproveResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/order/approve"
-            body: "*"
-        };
-    }
-    rpc Release (OrderReleaseRequest) returns (OrderReleaseResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/order/release"
-            body: "*"
-        };
-    }
-    rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
-        option (google.api.http) = {
-          post: "/api/v1/order/cancel"
-          body: "*"
-        };
-    }
-    rpc Resume (OrderResumeRequest) returns (OrderResumeResponse) {
-        option (google.api.http) = {
-            post: "/api/v1/order/resume"
-            body: "*"
-        };
-    }
-    rpc Get (OrderGetRequest) returns (OrderGetResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/order/{id}"
-            response_body: "order"
-        };
-    }
-    rpc List (OrderListRequest) returns (OrderListResponse) {
-        option (google.api.http) = {
-            get: "/api/v1/order"
-            response_body: "orders"
-        };
-    }
+  rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order"
+      body: "*"
+    };
+  }
+  rpc Approve (OrderApproveRequest) returns (OrderApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order/approve"
+      body: "*"
+    };
+  }
+  rpc Release (OrderReleaseRequest) returns (OrderReleaseResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order/release"
+      body: "*"
+    };
+  }
+  rpc Cancel (OrderCancelRequest) returns (OrderCancelResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order/cancel"
+      body: "*"
+    };
+  }
+  rpc Resume (OrderResumeRequest) returns (OrderResumeResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/order/resume"
+      body: "*"
+    };
+  }
+  rpc Get (OrderGetRequest) returns (OrderGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/order/{id}"
+      response_body: "order"
+    };
+  }
+  rpc List (OrderListRequest) returns (OrderListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/order"
+      response_body: "orders"
+    };
+  }
 }
 
 message OrderCreateRequest {
-    OrderCreate body = 1;
-    bool two_phase_commit = 2;
-    message OrderCreate {
-        repeated Item items = 1;
-        string customer_id = 2 [(buf.validate.field).string.uuid = true];
-        Order.Delivery delivery = 3;
+  OrderCreate body = 1 [(buf.validate.field).required = true];
+  bool two_phase_commit = 2;
+  message OrderCreate {
+    repeated Item items = 1 [(buf.validate.field).repeated.min_items = 1];
+    string customer_id = 2 [(buf.validate.field).string.uuid = true];
+    Order.Delivery delivery = 3 [(buf.validate.field).required = true];;
 
-        message Item {
-            string id = 1 [(buf.validate.field).string.uuid = true];
-            int32 amount = 2;
-        }
+    message Item {
+      string id = 1 [(buf.validate.field).string.uuid = true];
+      int32 amount = 2 [(buf.validate.field).int32.gt = 0];
     }
+  }
 }
 
 message OrderCreateResponse {
-    string id = 1;
+  string id = 1;
 }
 
 message OrderApproveRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
-    bool two_phase_commit = 2;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bool two_phase_commit = 2;
 }
 
 message OrderApproveResponse {
-    string id = 1;
-    optional Order.Status status = 2;
+  string id = 1;
+  optional Order.Status status = 2;
 }
 
 message OrderReleaseRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
-    bool two_phase_commit = 2;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bool two_phase_commit = 2;
 }
 
 message OrderReleaseResponse {
-    string id = 1;
-    optional Order.Status status = 2;
-
+  string id = 1;
+  optional Order.Status status = 2;
 }
 
 message OrderGetRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
+  string id = 1 [(buf.validate.field).string.uuid = true];
 }
 
 message OrderGetResponse {
-    Order order = 1;
+  Order order = 1;
 }
 
 message OrderCancelRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
-    bool two_phase_commit = 2;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bool two_phase_commit = 2;
 }
 
 message OrderCancelResponse {
-    string id = 1;
-    optional Order.Status status = 2;
+  string id = 1;
+  optional Order.Status status = 2;
 }
 
 message OrderResumeRequest {
-    string id = 1 [(buf.validate.field).string.uuid = true];
-    bool two_phase_commit = 2;
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  bool two_phase_commit = 2;
 }
 
 message OrderResumeResponse {
-    string id = 1;
-    Order.Status status = 2;
+  string id = 1;
+  Order.Status status = 2;
 }
 
 message OrderListRequest {}
 
 message OrderListResponse {
-    repeated Order orders = 1;
+  repeated Order orders = 1;
 }
 
 message Order {
-    string id = 1;
-    google.protobuf.Timestamp created_at = 2;
-    google.protobuf.Timestamp updated_at = 3;
-    string customer_id = 4;
-    optional string payment_id = 5;
-    optional string reserve_id = 6;
-    optional Status status = 7;
-    optional payment.v1.Payment.Status payment_status = 8;
-    Delivery delivery = 9;
-    repeated reserve.v1.Reserve.Item items = 10;
+  string id = 1;
+  google.protobuf.Timestamp created_at = 2;
+  google.protobuf.Timestamp updated_at = 3;
+  string customer_id = 4;
+  optional string payment_id = 5;
+  optional string reserve_id = 6;
+  Status status = 7;
+  optional payment.v1.Payment.Status payment_status = 8;
+  optional Delivery delivery = 9;
+  repeated reserve.v1.Reserve.Item items = 10;
 
-    enum Status {
-        CREATING = 0;
-        CREATED = 1;
-        APPROVING = 2;
-        APPROVED = 3;
-        RELEASING = 4;
-        RELEASED = 5;
-        INSUFFICIENT = 6;
-        CANCELLING = 7;
-        CANCELLED = 8;
-    }
+  enum Status {
+    CREATING = 0;
+    CREATED = 1;
+    APPROVING = 2;
+    APPROVED = 3;
+    RELEASING = 4;
+    RELEASED = 5;
+    INSUFFICIENT = 6;
+    CANCELLING = 7;
+    CANCELLED = 8;
+  }
 
-    message Delivery {
-        google.protobuf.Timestamp date_time = 1;
-        string address = 2;
-        Type type = 3;
-        enum Type {
-            PICKUP = 0;
-            COURIER = 1;
-        }
+  message Delivery {
+    optional google.protobuf.Timestamp date_time = 1;
+    string address = 2;
+    Type type = 3;
+    enum Type {
+      PICKUP = 0;
+      COURIER = 1;
     }
+  }
 }

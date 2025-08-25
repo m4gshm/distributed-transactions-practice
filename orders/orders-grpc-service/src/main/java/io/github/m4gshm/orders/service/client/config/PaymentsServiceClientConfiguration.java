@@ -1,16 +1,17 @@
 package io.github.m4gshm.orders.service.client.config;
 
-import lombok.RequiredArgsConstructor;
-import io.github.m4gshm.orders.service.client.ClientProperties;
+import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
+import static payment.v1.PaymentServiceGrpc.newStub;
+
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+
+import io.github.m4gshm.grpc.client.ClientProperties;
+import lombok.RequiredArgsConstructor;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
-
-import static io.github.m4gshm.orders.service.client.ClientProperties.newManagedChannelBuilder;
-import static payment.v1.PaymentServiceGrpc.newStub;
 
 @Configuration
 @RequiredArgsConstructor

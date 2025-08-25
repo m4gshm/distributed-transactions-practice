@@ -26,10 +26,7 @@ logging:
       rmi: INFO
     javax:
       management: INFO
-#spring:
-#  grpc:
-#    server:
-#      port: 9090
+
 server:
   port: 7080
   error:
@@ -38,11 +35,11 @@ grpc:
   server:
     port: 9080
     channelz:
-      enabled: false
+      enabled: true
     health:
-      enabled: false #conflict with spring.grpc.server.health.enabled
+      enabled: true #conflict with spring.grpc.server.health.enabled
     reflection:
-      enabled: false
+      enabled: true
     exception-handling:
       default-exception-advice-enabled: true
 springdoc:
@@ -66,13 +63,10 @@ spring:
   liquibase:
     enabled: true
   kafka:
-#    bootstrap-servers:
-#      - localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
-
       group-id: orders
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer

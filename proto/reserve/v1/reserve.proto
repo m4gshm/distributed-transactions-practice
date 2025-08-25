@@ -44,7 +44,7 @@ service ReserveService {
 message ReserveCreateRequest {
   Reserve body = 1;
   //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
   message Reserve {
     string external_ref = 1 [(buf.validate.field).string.uuid = true];
     repeated Item items = 2;
@@ -62,7 +62,7 @@ message ReserveCreateResponse {
 message ReserveApproveRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
   //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveApproveResponse {
@@ -79,7 +79,7 @@ message ReserveApproveResponse {
 message ReserveReleaseRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
   //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveReleaseResponse {
@@ -90,7 +90,7 @@ message ReserveReleaseResponse {
 message ReserveCancelRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
   //  bool two_phase_commit = 2;
-  string prepared_transaction_id = 3;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveCancelResponse {

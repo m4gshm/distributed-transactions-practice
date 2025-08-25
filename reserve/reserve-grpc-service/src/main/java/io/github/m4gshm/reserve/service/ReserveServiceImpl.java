@@ -3,6 +3,7 @@ package io.github.m4gshm.reserve.service;
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newValidateException;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
+import static io.github.m4gshm.protobuf.Utils.getOrNull;
 import static io.github.m4gshm.reserve.data.model.Reserve.Item;
 import static io.github.m4gshm.reserve.data.model.Reserve.Status.APPROVED;
 import static io.github.m4gshm.reserve.data.model.Reserve.Status.CANCELLED;
@@ -23,11 +24,12 @@ import java.util.function.BiFunction;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
-import io.github.m4gshm.utils.Jooq;
+import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
+import io.github.m4gshm.utils.Jooq;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -66,7 +68,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     @Override
     public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
         var reserveId = request.getId();
-        reserveInStatus(responseObserver, reserveId, Set.of(CREATED), (dsl, reserve) -> {
+        reserveInStatus("release", responseObserver, reserveId, Set.of(CREATED), (dsl, reserve) -> {
             var items = reserve.items();
             var notReservedItems = items.stream().filter(item -> !item.reserved()).toList();
 
@@ -77,7 +79,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
             var notReservedItemPerId = notReservedItems.stream().collect(toMap(Item::id, r -> r));
 
             return prepare(dsl,
-                    request.getPreparedTransactionId(),
+                    getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                     warehouseItemStorage.reserve(toItemOps(notReservedItems)).flatMap(reserveResults -> {
                         var items1 = reserveResults.stream()
                                 .map(itemReserveResult -> {
@@ -113,10 +115,10 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     @Override
     public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         var reserveId = request.getId();
-        reserveInStatus(responseObserver, reserveId, Set.of(CREATED, APPROVED), (dsl, reserve) -> {
+        reserveInStatus("cancel", responseObserver, reserveId, Set.of(CREATED, APPROVED), (dsl, reserve) -> {
             var items = toItemOps(reserve.items());
             return prepare(dsl,
-                    request.getPreparedTransactionId(),
+                    getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                     warehouseItemStorage.cancelReserve(items)
                             .zipWith(reserveStorage.save(witStatus(reserve, CANCELLED)), (i, r) -> {
                                 log.debug("reserve cancelled: id [{}], items: [{}]",
@@ -150,7 +152,9 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                     .build();
             var routine = reserveStorage.save(reserve)
                     .thenReturn(ReserveCreateResponse.newBuilder().setId(paymentId).build());
-            return prepare(dsl, request.getPreparedTransactionId(), routine);
+            return prepare(dsl,
+                    getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
+                    routine);
         }));
     }
 
@@ -170,13 +174,17 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         }));
     }
 
+    private <T> Mono<T> log(String category, Mono<T> mono) {
+        return LogUtils.log(getClass(), category, mono);
+    }
+
     @Override
     public void release(ReserveReleaseRequest request, StreamObserver<ReserveReleaseResponse> responseObserver) {
         var reserveId = request.getId();
-        reserveInStatus(responseObserver, reserveId, Set.of(APPROVED), (dsl, reserve) -> {
+        reserveInStatus("release", responseObserver, reserveId, Set.of(APPROVED), (dsl, reserve) -> {
             var items = toItemOps(reserve.items());
             return prepare(dsl,
-                    request.getPreparedTransactionId(),
+                    getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                     warehouseItemStorage.release(items)
                             .zipWith(reserveStorage.save(witStatus(reserve, RELEASED)),
                                     (i, r) -> {
@@ -191,12 +199,14 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
         });
     }
 
-    private <T> void reserveInStatus(StreamObserver<T> responseObserver,
+    private <T> void reserveInStatus(String opName,
+                                     StreamObserver<T> responseObserver,
                                      String id,
                                      Set<Reserve.Status> expected,
                                      BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
-        grpc.subscribe(responseObserver, jooq.inTransaction(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
-            return checkStatus(reserve.status(), expected, null).then(routine.apply(dsl, reserve));
-        })));
+        grpc.subscribe(responseObserver,
+                log(opName, jooq.inTransaction(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
+                    return checkStatus(opName, reserve.status(), expected, null).then(routine.apply(dsl, reserve));
+                }))));
     }
 }

@@ -3,10 +3,6 @@ plugins {
 }
 
 dependencies {
-    implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-
     implementation("org.slf4j:slf4j-api")
     implementation("com.google.protobuf:protobuf-java")
 }

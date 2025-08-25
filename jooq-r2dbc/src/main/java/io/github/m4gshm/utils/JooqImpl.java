@@ -1,25 +1,26 @@
 package io.github.m4gshm.utils;
 
-import io.r2dbc.spi.Connection;
-import io.r2dbc.spi.ConnectionFactory;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.defer;
+import static reactor.core.publisher.Mono.deferContextual;
+
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.r2dbc.connection.ConnectionHolder;
 import org.springframework.transaction.reactive.TransactionContext;
 import org.springframework.transaction.reactive.TransactionalOperator;
+
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
-
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.deferContextual;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -67,6 +68,8 @@ public class JooqImpl implements Jooq {
                 return context.put(DSLContextHolder.class, new DSLContextHolder());
             }
             return context;
+        }).doOnError(e -> {
+            log.error("transactional error", e);
         });
     }
 

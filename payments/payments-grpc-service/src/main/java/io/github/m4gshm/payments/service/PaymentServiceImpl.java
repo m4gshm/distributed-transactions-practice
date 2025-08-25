@@ -1,5 +1,27 @@
 package io.github.m4gshm.payments.service;
 
+import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.payments.data.model.Payment.Status.CANCELLED;
+import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
+import static io.github.m4gshm.payments.data.model.Payment.Status.HOLD;
+import static io.github.m4gshm.payments.data.model.Payment.Status.INSUFFICIENT;
+import static io.github.m4gshm.payments.data.model.Payment.Status.PAID;
+import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPayment;
+import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPaymentProto;
+import static io.github.m4gshm.payments.service.PaymentServiceUtils.toStatusProto;
+import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
+import static io.github.m4gshm.protobuf.Utils.getOrNull;
+import static lombok.AccessLevel.PRIVATE;
+import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
+import static reactor.core.publisher.Mono.defer;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
+import org.springframework.stereotype.Service;
+
+import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
@@ -9,7 +31,6 @@ import io.github.m4gshm.utils.Jooq;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass.PaymentApproveRequest;
 import payment.v1.PaymentOuterClass.PaymentApproveResponse;
 import payment.v1.PaymentOuterClass.PaymentCancelRequest;
@@ -23,24 +44,6 @@ import payment.v1.PaymentOuterClass.PaymentListResponse;
 import payment.v1.PaymentOuterClass.PaymentPayRequest;
 import payment.v1.PaymentOuterClass.PaymentPayResponse;
 import reactor.core.publisher.Mono;
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
-import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.payments.data.model.Payment.Status.CANCELLED;
-import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
-import static io.github.m4gshm.payments.data.model.Payment.Status.HOLD;
-import static io.github.m4gshm.payments.data.model.Payment.Status.INSUFFICIENT;
-import static io.github.m4gshm.payments.data.model.Payment.Status.PAID;
-import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPayment;
-import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPaymentProto;
-import static io.github.m4gshm.payments.service.PaymentServiceUtils.toStatusProto;
-import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
-import static lombok.AccessLevel.PRIVATE;
-import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
-import static reactor.core.publisher.Mono.defer;
 
 @Service
 @RequiredArgsConstructor
@@ -58,11 +61,10 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
-        var preparedTransactionId = request.getPreparedTransactionId();
         var expected = Set.of(CREATED, INSUFFICIENT);
-        paymentAccount(
+        paymentAccount("approve",
                 responseObserver,
-                preparedTransactionId,
+                getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                 request.getId(),
                 expected,
                 (payment, account) -> {
@@ -84,9 +86,9 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void cancel(PaymentCancelRequest request, StreamObserver<PaymentCancelResponse> responseObserver) {
-        paymentAccount(
+        paymentAccount("cancel",
                 responseObserver,
-                request.getPreparedTransactionId(),
+                getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                 request.getId(),
                 Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment, account) -> {
@@ -113,7 +115,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                             .build();
                     return jooq.inTransaction(dsl -> prepare(
                             dsl,
-                            request.getPreparedTransactionId(),
+                            getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                             paymentStorage.save(payment)
                                     .thenReturn(response)
                     ));
@@ -145,11 +147,15 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         );
     }
 
+    private <T> Mono<T> log(String category, Mono<T> mono) {
+        return LogUtils.log(getClass(), category, mono);
+    }
+
     @Override
     public void pay(PaymentPayRequest request, StreamObserver<PaymentPayResponse> responseObserver) {
-        paymentAccount(
+        paymentAccount("pay",
                 responseObserver,
-                request.getPreparedTransactionId(),
+                getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                 request.getId(),
                 Set.of(HOLD),
                 (payment, account) -> {
@@ -166,7 +172,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         );
     }
 
-    private <T> void paymentAccount(
+    private <T> void paymentAccount(String opName,
                                     StreamObserver<T> responseObserver,
                                     String preparedTransactionId,
                                     String paymentId,
@@ -175,18 +181,18 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     ) {
         grpc.subscribe(
                 responseObserver,
-                jooq.inTransaction(dsl -> {
+                log(opName, jooq.inTransaction(dsl -> {
                     return prepare(
                             dsl,
                             preparedTransactionId,
                             paymentStorage.getById(paymentId).flatMap(payment -> {
-                                return checkStatus(payment.status(), expected, null).then(defer(() -> {
+                                return checkStatus(opName, payment.status(), expected, null).then(defer(() -> {
                                     return accountStorage.getById(payment.clientId())
                                             .flatMap(account -> routine.apply(payment, account));
                                 }));
                             })
                     );
                 })
-        );
+                ));
     }
 }

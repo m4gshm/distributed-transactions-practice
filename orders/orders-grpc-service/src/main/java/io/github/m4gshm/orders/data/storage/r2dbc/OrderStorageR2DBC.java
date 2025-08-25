@@ -23,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
 import io.github.m4gshm.EnumWithCode;
+import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
@@ -85,6 +86,10 @@ public class OrderStorageR2DBC implements OrderStorage {
         });
     }
 
+    private <T> Mono<T> log(String category, Mono<T> mono) {
+        return LogUtils.log(getClass(), category, mono);
+    }
+
     @Override
     public Mono<Order> save(Order order) {
         return jooq.inTransaction(dsl -> {
@@ -111,35 +116,35 @@ public class OrderStorageR2DBC implements OrderStorage {
             if (delivery == null) {
                 mergeDelivery = Mono.empty();
             } else {
+                var deliveryType = getCode(delivery.type());
                 mergeDelivery = from(dsl.insertInto(DELIVERY)
                         .set(DELIVERY.ORDER_ID, order.id())
                         .set(DELIVERY.ADDRESS, delivery.address())
-                        .set(DELIVERY.TYPE, getCode(delivery.type()))
+                        .set(DELIVERY.TYPE, deliveryType)
                         .onDuplicateKeyUpdate()
                         .set(DELIVERY.ADDRESS, delivery.address())
-                        .set(DELIVERY.TYPE, getCode(delivery.type())));
+                        .set(DELIVERY.TYPE, deliveryType));
             }
             var mergeAllItems = fromIterable(ofNullable(order.items())
                     .orElse(List.of())
                     .stream()
-                    .map(item -> {
-                        return dsl.insertInto(ITEMS)
-                                .set(ITEMS.ORDER_ID, order.id())
-                                .set(ITEMS.ID, item.id())
-                                .set(ITEMS.AMOUNT, item.amount())
-                                .onDuplicateKeyUpdate()
-                                .set(ITEMS.AMOUNT, item.amount());
-                    })
+                    .map(item -> dsl.insertInto(ITEMS)
+                            .set(ITEMS.ORDER_ID, order.id())
+                            .set(ITEMS.ID, item.id())
+                            .set(ITEMS.AMOUNT, item.amount())
+                            .onDuplicateKeyUpdate()
+                            .set(ITEMS.AMOUNT, item.amount()))
                     .map(Mono::from)
-                    .toList()).flatMap(i1 -> i1).reduce(Integer::sum);
+                    .toList()).flatMap(i1 -> i1)
+                    .reduce(Integer::sum);
 
             return mergeOrder.flatMap(count -> {
                 log.debug("stored order rows {}", count);
-                return mergeDelivery.zipWith(mergeAllItems, (deliveryRows, itemRows) -> {
+                return log("mergeDelivery", mergeDelivery.doOnSuccess(deliveryRows -> {
                     log.debug("stored delivery rows {}", deliveryRows);
+                })).zipWith(log("mergeAllItems", mergeAllItems.doOnSuccess(itemRows -> {
                     log.debug("stored item rows {}", itemRows);
-                    return order;
-                });
+                })), (deliveryRows, itemRows) -> order).thenReturn(order);
             });
         });
     }

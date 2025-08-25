@@ -24,12 +24,9 @@ sourceSets {
 dependencies {
     val liquibaseVer = "4.33.0"
 
-    implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-
     api(project(":storage-api"))
     api(project(":grpc-webflux"))
+    api(project(":grpc-client"))
     api(project(":protobuf-utils"))
     
     api(project(":jooq-r2dbc"))
@@ -122,10 +119,6 @@ jooq {
             }
         }
     }
-//    configurations {
-//        create("main") {
-//        }
-//    }
 }
 
 fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)

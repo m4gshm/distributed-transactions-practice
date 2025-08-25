@@ -24,10 +24,6 @@ sourceSets {
 dependencies {
     val liquibaseVer = "4.33.0"
 
-    implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-
     api(project(":storage-api"))
     api(project(":grpc-webflux"))
     api(project(":protobuf-utils"))
@@ -69,10 +65,6 @@ dependencies {
 
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
-//    implementation("org.springframework.cloud:spring-cloud-stream-binder-kafka-reactive:4.3.0")
-//    implementation("org.springframework.cloud:spring-cloud-starter-stream-kafka:4.3.0")
-
-//    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 
     modules {
         module("io.grpc:grpc-netty") {
