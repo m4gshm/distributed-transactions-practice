@@ -11,4 +11,3 @@ public interface EnumWithCode<T extends java.lang.Enum<T>> extends Constable {
     String name();
 
 }
-

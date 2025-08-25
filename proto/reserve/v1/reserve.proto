@@ -6,34 +6,34 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 
 service ReserveService {
-  rpc Create(ReserveCreateRequest) returns (ReserveCreateResponse) {
+  rpc Create (ReserveCreateRequest) returns (ReserveCreateResponse) {
     option (google.api.http) = {
       post: "/api/v1/reserve"
       body: "*"
     };
   }
-  rpc Approve(ReserveApproveRequest) returns (ReserveApproveResponse) {
+  rpc Approve (ReserveApproveRequest) returns (ReserveApproveResponse) {
     option (google.api.http) = {
       post: "/api/v1/reserve/approve"
       body: "*"
     };
   }
-  rpc Release(ReserveReleaseRequest) returns (ReserveReleaseResponse) {
+  rpc Release (ReserveReleaseRequest) returns (ReserveReleaseResponse) {
     option (google.api.http) = {
       post: "/api/v1/reserve/release"
       body: "*"
     };
   }
-  rpc Cancel(ReserveCancelRequest) returns (ReserveCancelResponse) {
+  rpc Cancel (ReserveCancelRequest) returns (ReserveCancelResponse) {
     option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
   }
-  rpc Get(ReserveGetRequest) returns (ReserveGetResponse) {
+  rpc Get (ReserveGetRequest) returns (ReserveGetResponse) {
     option (google.api.http) = {
       get: "/api/v1/reserve/{id}"
       response_body: "reserve"
     };
   }
-  rpc List(ReserveListRequest) returns (ReserveListResponse) {
+  rpc List (ReserveListRequest) returns (ReserveListResponse) {
     option (google.api.http) = {
       get: "/api/v1/reserve"
       response_body: "reserves"
@@ -43,7 +43,8 @@ service ReserveService {
 
 message ReserveCreateRequest {
   Reserve body = 1;
-  bool two_phase_commit = 2;
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
   message Reserve {
     string external_ref = 1 [(buf.validate.field).string.uuid = true];
     repeated Item items = 2;
@@ -60,52 +61,60 @@ message ReserveCreateResponse {
 
 message ReserveApproveRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
-  bool two_phase_commit = 2;
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveApproveResponse {
   string id = 1;
-  repeated Item items = 2;
-  Status status = 3;
+  Reserve.Status status = 2;
+  repeated Item items = 3;
   message Item {
     string id = 1;
     int32 insufficient_quantity = 2;
     bool reserved = 3;
   }
-  enum Status {
-    APPROVED = 0;
-    RELEASED = 1;
-    INSUFFICIENT_QUANTITY = 2;
-  }
 }
 
 message ReserveReleaseRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
-  bool two_phase_commit = 2;
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveReleaseResponse {
   string id = 1;
+  Reserve.Status status = 2;
 }
 
 message ReserveCancelRequest {
   string id = 1 [(buf.validate.field).string.uuid = true];
-  bool two_phase_commit = 2;
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
 }
 
 message ReserveCancelResponse {
   string id = 1;
+  Reserve.Status status = 2;
 }
 
 message Reserve {
   string id = 1;
   string external_ref = 2;
-  repeated Item items = 3;
+  Status status = 3;
+  repeated Item items = 4;
   message Item {
     string id = 1;
     int32 amount = 2;
     optional int32 insufficient = 3;
     bool reserved = 4;
+  }
+  enum Status {
+    CREATED = 0;
+    INSUFFICIENT = 1;
+    APPROVED = 2;
+    RELEASED = 3;
+    CANCELLED = 4;
   }
 }
 

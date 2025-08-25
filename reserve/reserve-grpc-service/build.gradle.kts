@@ -24,14 +24,10 @@ sourceSets {
 dependencies {
     val liquibaseVer = "4.33.0"
 
-    implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-
     api(project(":storage-api"))
     api(project(":grpc-webflux"))
     api(project(":protobuf-utils"))
-    api(project(":jooq-utils"))
+    
     api(project(":jooq-r2dbc"))
     api(project(":reserve:reserve-grpc-api"))
     api(project(":tpc:tpc-grpc-service"))

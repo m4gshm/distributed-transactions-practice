@@ -18,7 +18,8 @@ public class KafkaConfiguration {
 
     @Bean
     public ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate() {
-        return new ReactiveKafkaConsumerTemplate<>(ReceiverOptions.<String, AccountBalanceEvent>create(kafkaProperties.buildConsumerProperties())
+        return new ReactiveKafkaConsumerTemplate<>(ReceiverOptions.<String,
+                AccountBalanceEvent>create(kafkaProperties.buildConsumerProperties())
                 .subscription(List.of("payments")));
     }
 

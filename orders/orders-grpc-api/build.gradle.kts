@@ -19,16 +19,16 @@ protobuf {
         artifact = "com.google.protobuf:protoc"
     }
     plugins {
-        this.create("grpc") {
+        create("grpc") {
             artifact = "io.grpc:protoc-gen-grpc-java"
         }
     }
     generateProtoTasks {
-        all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask?> {
-            this.plugins {
-                this.create("grpc") {}
+        all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask> {
+            plugins {
+                create("grpc") {}
             }
-            this.builtins {
+            builtins {
                 "java".apply {}
             }
         })

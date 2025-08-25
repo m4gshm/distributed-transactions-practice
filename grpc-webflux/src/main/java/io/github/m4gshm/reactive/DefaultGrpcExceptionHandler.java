@@ -21,8 +21,9 @@ public class DefaultGrpcExceptionHandler {
     MetadataFactory metadataFactory;
     StatusExtractor statusExtractor;
 
-    private StatusRuntimeException newStatusRuntimeException(Status status, Throwable e) {
-        return status.withDescription(e.getMessage()).asRuntimeException(metadataFactory.newMetadata(e));
+    @GrpcExceptionHandler(Exception.class)
+    public StatusRuntimeException handle(Exception e) {
+        return newStatusRuntimeException(statusExtractor.getStatus(e), e);
     }
 
     @GrpcExceptionHandler(IntegrityConstraintViolationException.class)
@@ -30,8 +31,7 @@ public class DefaultGrpcExceptionHandler {
         return newStatusRuntimeException(INVALID_ARGUMENT, e);
     }
 
-    @GrpcExceptionHandler(Exception.class)
-    public StatusRuntimeException handle(Exception e) {
-        return newStatusRuntimeException(statusExtractor.getStatus(e), e);
+    private StatusRuntimeException newStatusRuntimeException(Status status, Throwable e) {
+        return status.withDescription(e.getMessage()).asRuntimeException(metadataFactory.newMetadata(e));
     }
 }

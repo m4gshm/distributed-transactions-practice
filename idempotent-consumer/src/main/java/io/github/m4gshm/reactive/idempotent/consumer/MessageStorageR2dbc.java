@@ -21,10 +21,18 @@ import static reactor.core.publisher.Mono.from;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
     MessageMaintenanceService maintenanceService;
+
     DslEnv dslEnv;
     InputMessages table;
     Clock clock;
     boolean createTable;
+
+    @Override
+    public void afterPropertiesSet() {
+        if (createTable) {
+            maintenanceService.createTable().block();
+        }
+    }
 
     @Override
     public Mono<Void> storeUnique(Message message) {
@@ -32,21 +40,13 @@ public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
                 .set(table.MESSAGE_ID, message.getMessageID())
                 .set(table.SUBSCRIBER_ID, message.getSubscriberID())
                 .set(table.CREATED_AT, OffsetDateTime.now(clock))
-                .onDuplicateKeyIgnore()
-        ).flatMap(count -> {
-            if (count == 1) {
-                return Mono.empty();
-            } else {
-                return error(new MessageAlreadyProcessedException(message.getMessageID()));
-            }
-        }));
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        if (createTable) {
-            maintenanceService.createTable().block();
-        }
+                .onDuplicateKeyIgnore()).flatMap(count -> {
+                    if (count == 1) {
+                        return Mono.empty();
+                    } else {
+                        return error(new MessageAlreadyProcessedException(message.getMessageID()));
+                    }
+                }));
     }
 
     @FunctionalInterface

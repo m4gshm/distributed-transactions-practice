@@ -17,6 +17,13 @@ service WarehouseItemService {
   rpc ItemList(ItemListRequest) returns (ItemListResponse) {
     option (google.api.http) = {get: "/api/v1/warehouse/item"};
   }
+
+  rpc TopUp(ItemTopUpRequest) returns (ItemTopUpResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/warehouse/item"
+      body: "*"
+    };
+  }
 }
 
 message Item {
@@ -38,4 +45,16 @@ message GetItemCostRequest {
 
 message GetItemCostResponse {
   double cost = 1;
+}
+
+message ItemTopUpRequest {
+  TopUp top_up = 1;
+  message TopUp {
+    string id = 1;
+    int32 amount = 2;
+  }
+}
+
+message ItemTopUpResponse {
+  int32 amount = 1;
 }

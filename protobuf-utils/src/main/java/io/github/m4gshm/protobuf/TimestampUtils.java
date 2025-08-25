@@ -14,11 +14,11 @@ public class TimestampUtils {
         return Instant.ofEpochSecond(dateTime.getSeconds(), dateTime.getNanos());
     }
 
-    public static Timestamp toTimestamp(OffsetDateTime offsetDateTime) {
-        return ofNullable(offsetDateTime).map(OffsetDateTime::toInstant).map(TimestampUtils::toTimestamp).orElse(null);
-    }
-
     public static Timestamp toTimestamp(Instant instant) {
         return Timestamp.newBuilder().setSeconds(instant.getEpochSecond()).setNanos(instant.getNano()).build();
+    }
+
+    public static Timestamp toTimestamp(OffsetDateTime offsetDateTime) {
+        return ofNullable(offsetDateTime).map(OffsetDateTime::toInstant).map(TimestampUtils::toTimestamp).orElse(null);
     }
 }

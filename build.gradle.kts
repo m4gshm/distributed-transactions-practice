@@ -1,22 +1,34 @@
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
-import org.gradle.kotlin.dsl.the
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
-    id("com.google.protobuf") version "0.9.5" apply false
     id("org.springframework.boot") version "3.5.4" apply false
+    id("com.google.protobuf") version "0.9.5" apply false
+    id("com.diffplug.spotless") version "7.2.1"
 }
 
-allprojects {
-    apply(plugin = "io.spring.dependency-management")
+subprojects {
     repositories {
         mavenCentral()
     }
-    buildscript {
-        repositories {
-            mavenCentral()
+    apply(plugin = "io.spring.dependency-management")
+    apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "java-library")
+    apply(plugin = "checkstyle")
+
+    the<CheckstyleExtension>().apply {
+        toolVersion = "11.0.0"
+    }
+
+    dependencies {
+        listOf("implementation", "annotationProcessor", "testAnnotationProcessor").forEach {
+            add(
+                it,
+                "org.projectlombok:lombok"
+            )
         }
     }
+
     the<DependencyManagementExtension>().apply {
         imports {
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
@@ -24,7 +36,7 @@ allprojects {
             mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
         }
 
-        dependencies{
+        dependencies {
             dependency("org.projectlombok:lombok:1.18.38")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
@@ -53,5 +65,41 @@ allprojects {
 
             dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
         }
+        the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+            java {
+                target("src/*/java/**/*.java")
+                removeUnusedImports()
+                endWithNewline()
+
+                cleanthat()
+                    .version("2.23")
+                    .sourceCompatibility("24")
+                    .addMutator("SafeAndConsensual")
+                    .addMutator("SafeButNotConsensual")
+                    .addMutator("SafeButControversial")
+                    .excludeMutator("AvoidInlineConditionals")
+                    .includeDraft(false)
+
+                eclipse()
+                    .sortMembersEnabled(true)
+                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
+//                    .sortMembersDoNotSortFields(false)
+//                    .sortMembersVisibilityOrderEnabled(true)
+//                    .sortMembersVisibilityOrder("B,R,D,V")
+                    .configFile("$rootDir/config/codestyle.xml")
+            }
+        }
+        tasks.findByName("checkstyleMain")?.dependsOn("spotlessApply")
+    }
+}
+
+allprojects {
+    tasks.findByName("assemble")?.dependsOn("spotlessApply")
+}
+
+the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+    protobuf {
+        target("$rootDir/proto/**/*.proto")
+        buf()
     }
 }

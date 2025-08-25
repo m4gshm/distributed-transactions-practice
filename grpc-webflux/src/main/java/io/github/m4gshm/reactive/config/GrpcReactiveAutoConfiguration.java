@@ -20,7 +20,7 @@ public class GrpcReactiveAutoConfiguration {
     public GrpcReactive grpcCoreSubscriberFactory(MetadataFactory metadataFactory,
                                                   StatusExtractor statusExtractor,
                                                   List<GrpcExceptionResolver> grpcExceptionResolvers) {
-        return new GrpcReactiveImpl(metadataFactory,statusExtractor, grpcExceptionResolvers);
+        return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers);
     }
 
     @Bean

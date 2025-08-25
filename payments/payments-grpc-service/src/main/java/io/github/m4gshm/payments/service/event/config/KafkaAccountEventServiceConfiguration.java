@@ -46,10 +46,9 @@ public class KafkaAccountEventServiceConfiguration {
     @ConfigurationProperties("service.kafka.account")
     public record Properties(@DefaultValue Topic topic) {
         public record Topic(
-                @DefaultValue("payments") String name,
-                @DefaultValue("1") Integer partitions,
-                @DefaultValue("1") Integer replicas
-        ) {
+                            @DefaultValue("payments") String name,
+                            @DefaultValue("1") Integer partitions,
+                            @DefaultValue("1") Integer replicas) {
         }
     }
 }

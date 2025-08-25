@@ -10,8 +10,8 @@ import io.github.m4gshm.payments.data.model.Payment.Status;
 
 import java.time.OffsetDateTime;
 
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static java.util.Optional.ofNullable;
-import static io.github.m4gshm.jooq.utils.Query.selectAllFrom;
 import static payments.data.access.jooq.Tables.PAYMENT;
 
 @Slf4j
@@ -19,6 +19,10 @@ import static payments.data.access.jooq.Tables.PAYMENT;
 public class PaymentStorageR2DBCUtils {
     public static OffsetDateTime orNow(OffsetDateTime value) {
         return ofNullable(value).orElseGet(OffsetDateTime::now);
+    }
+
+    public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {
+        return selectAllFrom(dsl, PAYMENT);
     }
 
     public static Payment toPayment(Record record) {
@@ -31,9 +35,5 @@ public class PaymentStorageR2DBCUtils {
                 .createdAt(record.get(PAYMENT.CREATED_AT))
                 .updatedAt(record.get(PAYMENT.UPDATED_AT))
                 .build();
-    }
-
-    public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {
-        return selectAllFrom(dsl, PAYMENT);
     }
 }
