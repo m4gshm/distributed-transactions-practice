@@ -1,3 +1,4 @@
+import org.gradle.kotlin.dsl.project
 
 include(":storage-jooq")
 include(":storage-api")
@@ -10,10 +11,13 @@ include(":tpc:tpc-grpc-api")
 include(":tpc:tpc-grpc-service")
 include(":orders:orders-grpc-api")
 include(":orders:orders-grpc-service")
+include(":orders:orders-storage-r2dbc")
 include(":reserve:reserve-grpc-api")
 include(":reserve:reserve-grpc-service")
 include(":payments:payments-event-api")
 include(":payments:payments-grpc-api")
 include(":payments:payments-grpc-service")
+include(":payments:payments-storage-r2dbc")
 include(":idempotent-consumer")
 include(":integration-test:orders")
+include(":reactive-utils")

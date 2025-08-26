@@ -13,7 +13,7 @@ public interface AccountStorage extends ReadOperations<Account, String> {
 
     Mono<BalanceResult> writeOff(String clientId, @Positive double amount);
 
-    Mono<BalanceResult> topUp(String clientId, @Positive double replenishment);
+    Mono<BalanceResult> addAmount(String clientId, @Positive double replenishment);
 
     @Builder
     record LockResult(boolean success, double insufficientAmount) {

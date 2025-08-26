@@ -1,5 +1,6 @@
 package io.github.m4gshm.orders.service;
 
+import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.rollback;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
@@ -14,17 +15,29 @@ import static orders.v1.Orders.Order.Status.INSUFFICIENT;
 import static orders.v1.Orders.Order.Status.RELEASED;
 import static orders.v1.Orders.Order.Status.RELEASING;
 import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.just;
 
 import java.time.OffsetDateTime;
 import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
 
+import org.jooq.DSLContext;
+
+import io.github.m4gshm.UnexpectedEntityStatusException;
 import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
 import io.github.m4gshm.protobuf.TimestampUtils;
+import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.Orders;
 import orders.v1.Orders.OrderCreateRequest.OrderCreate;
+import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentOuterClass.Payment;
 import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass;
@@ -162,4 +175,169 @@ public class OrdersServiceUtils {
         return status;
     }
 
+    static boolean completeIfNoTransaction(String type, Throwable e, String transactionId) {
+        var status = getStatus(e);
+        var noTransaction = status != null && status.getCode().equals(NOT_FOUND.getCode());
+        if (noTransaction) {
+            logNoTransaction(type, transactionId);
+        }
+        return noTransaction;
+    }
+
+    private static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
+        return ofNullable(getErrorInfo(e)).map(ErrorInfo::metadata).map(metadata -> {
+            var errorType = metadata.get(UnexpectedEntityStatusException.TYPE);
+            return UnexpectedEntityStatusException.class.getSimpleName()
+                    .equals(errorType) ? converter.apply(metadata.get(
+                            UnexpectedEntityStatusException.STATUS)) : null;
+        }).orElse(null);
+    }
+
+    private static ErrorInfo getErrorInfo(Throwable e) {
+        final Status status;
+        final Metadata metadata;
+        if (e instanceof StatusRuntimeException exception) {
+            status = exception.getStatus();
+            metadata = exception.getTrailers();
+        } else if (e instanceof StatusException exception) {
+            status = exception.getStatus();
+            metadata = exception.getTrailers();
+        } else {
+            status = null;
+            metadata = null;
+        }
+        return status != null ? new ErrorInfo(status, metadata) : null;
+    }
+
+    private static Status getStatus(Throwable e) {
+        var errorInfo = getErrorInfo(e);
+        return errorInfo != null ? errorInfo.status() : null;
+    }
+
+    static Mono<Void> localRollback(DSLContext dsl, String orderTransactionId, Throwable result) {
+        return result instanceof TwoPhaseTransaction.PrepareTransactionException
+                ? rollback(dsl, orderTransactionId)
+                : Mono.<Void>empty().doOnSubscribe(_ -> {
+                    log.debug("no local prepared transaction for rollback");
+                });
+    }
+
+    static void logNoTransaction(String type, String transactionId) {
+        log.trace("not transaction for {} {}", type, transactionId);
+    }
+
+    public static Order orderWithStatus(Order order, Order.Status status) {
+        return order.toBuilder()
+                .status(status)
+                .build();
+    }
+
+    static <T> Function<Throwable, Mono<T>> statusError(Function<String, T> converter) {
+        return e -> {
+            var status = getCurrentStatusFromError(converter, e);
+            if (status != null) {
+                log.debug("already in status {}", status);
+                return just(status);
+            }
+            return error(e);
+        };
+    }
+
+    static Orders.OrderResumeResponse newOrderResumeResponse(String o, Orders.Order.Status o1) {
+        return Orders.OrderResumeResponse
+                .newBuilder()
+                .setId(o)
+                .setStatus(o1)
+                .build();
+    }
+
+    private static <B, T> T newRequest(boolean twoPhaseCommit,
+                                       String id,
+                                       String transactionId,
+                                       B builder,
+                                       BiConsumer<B, String> setId,
+                                       BiConsumer<B, String> setPreparedTransactionId,
+                                       Function<B, T> build
+    ) {
+        setId.accept(builder, id);
+        if (twoPhaseCommit) {
+            setPreparedTransactionId.accept(builder, transactionId);
+        }
+        return build.apply(builder);
+    }
+
+    static ReserveOuterClass.ReserveApproveRequest newReserveApproveRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveApproveRequest.newBuilder(),
+                ReserveOuterClass.ReserveApproveRequest.Builder::setId,
+                ReserveOuterClass.ReserveApproveRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveApproveRequest.Builder::build
+        );
+    }
+
+    static ReserveOuterClass.ReserveCancelRequest newReserveCancelRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveCancelRequest.newBuilder(),
+                ReserveOuterClass.ReserveCancelRequest.Builder::setId,
+                ReserveOuterClass.ReserveCancelRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveCancelRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentCancelRequest newPaymentCancelRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentCancelRequest.newBuilder(),
+                PaymentOuterClass.PaymentCancelRequest.Builder::setId,
+                PaymentOuterClass.PaymentCancelRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentCancelRequest.Builder::build
+        );
+    }
+
+    static ReserveOuterClass.ReserveReleaseRequest newReserveReleaseRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveReleaseRequest.newBuilder(),
+                ReserveOuterClass.ReserveReleaseRequest.Builder::setId,
+                ReserveOuterClass.ReserveReleaseRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveReleaseRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentPayRequest newPaymentPayRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentPayRequest.newBuilder(),
+                PaymentOuterClass.PaymentPayRequest.Builder::setId,
+                PaymentOuterClass.PaymentPayRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentPayRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentApproveRequest newPaymentApproveRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentApproveRequest.newBuilder(),
+                PaymentOuterClass.PaymentApproveRequest.Builder::setId,
+                PaymentOuterClass.PaymentApproveRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentApproveRequest.Builder::build
+        );
+    }
+
+    public record ErrorInfo(Status status, Metadata metadata) {
+    }
 }

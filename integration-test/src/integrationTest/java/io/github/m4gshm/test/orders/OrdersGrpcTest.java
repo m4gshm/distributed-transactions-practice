@@ -1,5 +1,8 @@
 package io.github.m4gshm.test.orders;
 
+import static orders.v1.Orders.Order.Status.APPROVED;
+import static orders.v1.Orders.Order.Status.INSUFFICIENT;
+import static orders.v1.Orders.Order.Status.RELEASED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.util.Map;
@@ -7,12 +10,14 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ActiveProfiles;
 
 import com.google.protobuf.util.Timestamps;
 
+import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
@@ -33,6 +38,7 @@ import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
         OrderServiceConfig.class,
         WarehouseItemServiceConfig.class,
 })
+@EnableAutoConfiguration
 public class OrdersGrpcTest {
 
     @Autowired
@@ -41,6 +47,17 @@ public class OrdersGrpcTest {
     OrdersServiceBlockingStub ordersService;
     @Autowired
     WarehouseItemServiceBlockingStub warehouseItemService;
+    @Autowired
+    AccountStorage accountStorage;
+
+    private static Map<String, Integer> getOrderItems() {
+        return Map.of(
+                "f7c36185-f570-4e6b-b1b2-f3f0f9c46135",
+                1,
+                "374fabf8-dd31-4912-93b1-57d177b9f6c6",
+                3
+        );
+    }
 
     private static Orders.OrderApproveRequest newApproveRequest(String orderId, boolean twoPhaseCommit) {
         return Orders.OrderApproveRequest.newBuilder()
@@ -83,34 +100,13 @@ public class OrdersGrpcTest {
                 .build();
     }
 
-    private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
-        var items = Map.of(
-                "f7c36185-f570-4e6b-b1b2-f3f0f9c46135",
-                1,
-                "374fabf8-dd31-4912-93b1-57d177b9f6c6",
-                3
-        );
+    private static Orders.OrderGetRequest orderGetRequest(Orders.OrderApproveResponse orderApproveResponse) {
+        return Orders.OrderGetRequest.newBuilder()
+                .setId(orderApproveResponse.getId())
+                .build();
+    }
 
-        // populate warehouse
-        items.forEach((itemId, amount) -> warehouseItemService.topUp(ItemTopUpRequest.newBuilder()
-                .setTopUp(ItemTopUpRequest.TopUp.newBuilder()
-                        .setId(itemId)
-                        .setAmount(amount)
-                        .build())
-                .build()));
-
-        var sumCost = items.entrySet().stream().mapToDouble(e -> {
-            var cost = warehouseItemService.getItemCost(
-                    Warehouse.GetItemCostRequest.newBuilder()
-                            .setId(e.getKey())
-                            .build())
-                    .getCost();
-            return cost * (double) e.getValue();
-        }).sum();
-
-        var customerId = "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2";
-
-        // populate account
+    private void accountTopUp(String customerId, double sumCost) {
         accountService.topUp(AccountOuterClass.AccountTopUpRequest.newBuilder()
                 .setTopUp(AccountOuterClass.AccountTopUpRequest.TopUp
                         .newBuilder()
@@ -118,6 +114,20 @@ public class OrdersGrpcTest {
                         .setAmount(sumCost)
                         .build())
                 .build());
+    }
+
+    private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
+        var items = getOrderItems();
+
+        // populate warehouse
+        populateWarehouse(items);
+
+        var sumCost = getSumCost(items);
+
+        var customerId = "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2";
+
+        // populate account
+        accountTopUp(customerId, sumCost);
 
         var orderCreateResponse = ordersService.create(newCreateRequest(items, customerId, twoPhaseCommit));
         var orderId = orderCreateResponse.getId();
@@ -126,17 +136,77 @@ public class OrdersGrpcTest {
         assertEquals(Status.APPROVED, orderApproveResponse.getStatus());
 
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
-        assertEquals(Status.RELEASED, orderReleaseResponse.getStatus());
+        assertEquals(RELEASED, orderReleaseResponse.getStatus());
+    }
+
+    private double getSumCost(Map<String, Integer> items) {
+        return items.entrySet().stream().mapToDouble(e -> {
+            var cost = warehouseItemService.getItemCost(
+                    Warehouse.GetItemCostRequest.newBuilder()
+                            .setId(e.getKey())
+                            .build())
+                    .getCost();
+            return cost * (double) e.getValue();
+        }).sum();
+    }
+
+    private void populateWarehouse(Map<String, Integer> items) {
+        items.forEach((itemId, amount) -> warehouseItemService.topUp(ItemTopUpRequest.newBuilder()
+                .setTopUp(ItemTopUpRequest.TopUp.newBuilder()
+                        .setId(itemId)
+                        .setAmount(amount)
+                        .build())
+                .build()));
     }
 
     @Test
-    public void createApproveReleaseOrderSuccessWithTPC() {
+    public void processOrderSuccessWithTPC() {
         createApproveReleaseOrderSuccess(true);
     }
 
     @Test
-    public void createApproveReleaseOrderSuccessWithoutTPC() {
+    public void processOrderSuccessWithoutTPC() {
         createApproveReleaseOrderSuccess(false);
+    }
+
+    @Test
+    public void processOrderWithInsufficientMoneyAccountButWithDelayTopUp() throws InterruptedException {
+        var items = getOrderItems();
+
+        // populate warehouse
+        populateWarehouse(items);
+
+        var sumCost = getSumCost(items);
+
+        var customerId = "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2";
+
+        // reset account
+        accountStorage.getById(customerId).flatMap(account -> {
+            return accountStorage.addAmount(customerId, -account.amount() + account.locked());
+        }).block();
+
+        var twoPhaseCommit = true;
+        var orderCreateResponse = ordersService.create(newCreateRequest(items, customerId, twoPhaseCommit));
+        var orderId = orderCreateResponse.getId();
+
+        var orderApproveResponse = ordersService.approve(newApproveRequest(orderId, twoPhaseCommit));
+        assertEquals(INSUFFICIENT, orderApproveResponse.getStatus());
+
+        accountTopUp(customerId, sumCost);
+
+        for (int i = 1; i <= 5; i++) {
+            var status = ordersService.get(orderGetRequest(orderApproveResponse)).getOrder().getStatus();
+            if (status != INSUFFICIENT) {
+                break;
+            }
+            Thread.sleep(i * 500);
+        }
+
+        var status = ordersService.get(orderGetRequest(orderApproveResponse)).getOrder().getStatus();
+        assertEquals(APPROVED, status);
+
+        var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
+        assertEquals(RELEASED, orderReleaseResponse.getStatus());
     }
 
     @SpringBootConfiguration

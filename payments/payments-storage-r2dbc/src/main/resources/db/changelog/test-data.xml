@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="loadUpdateData-account-1" author="alex">
-        <loadUpdateData tableName="account" file="./account.csv" primaryKey="client_id" relativeToChangelogFile="true"/>
+        <loadUpdateData tableName="account" file="account.csv" primaryKey="client_id" relativeToChangelogFile="true"/>
         <rollback>
             <delete tableName="payment">
                 <where>

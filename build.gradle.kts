@@ -49,8 +49,11 @@ subprojects {
 
             dependency("org.springframework:spring-web:6.2.8")
             dependency("org.springframework:spring-webflux:6.2.8")
-            dependency("org.springframework:spring-r2dbc:6.2.8")
             dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+
+            dependency("org.springframework:spring-r2dbc:6.2.8")
+            dependency("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+
 
             dependency("io.grpc:grpc-core:1.74.0")
             dependency("io.grpc:grpc-stub:1.74.0")
@@ -64,6 +67,9 @@ subprojects {
             dependency("build.buf:protovalidate:0.2.1")
 
             dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
+
+            val liquibaseVer = "4.33.0"
+            dependency("org.liquibase:liquibase-core:${liquibaseVer}")
         }
         the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
             java {

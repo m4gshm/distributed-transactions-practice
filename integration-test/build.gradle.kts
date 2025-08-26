@@ -20,6 +20,7 @@ testing {
                 implementation(project(":orders:orders-grpc-api"))
                 implementation(project(":reserve:reserve-grpc-api"))
                 implementation(project(":payments:payments-grpc-api"))
+                implementation(project(":payments:payments-storage-r2dbc"))
                 implementation(project(":grpc-client"))
             }
         }

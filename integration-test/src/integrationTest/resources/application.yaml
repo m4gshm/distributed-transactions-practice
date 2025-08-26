@@ -2,6 +2,11 @@ debug: true
 logging:
   level:
     root: trace
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/payments
+    username: postgres
+    password: postgres
 service:
   orders:
     address: localhost:9080

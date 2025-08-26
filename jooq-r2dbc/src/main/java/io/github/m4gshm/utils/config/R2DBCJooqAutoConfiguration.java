@@ -15,7 +15,10 @@ import org.jooq.conf.Settings;
 import org.jooq.impl.DSL;
 import org.jooq.impl.DefaultConfiguration;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcAutoConfiguration;
+import org.springframework.boot.autoconfigure.r2dbc.R2dbcTransactionManagerAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.r2dbc.connection.TransactionAwareConnectionFactoryProxy;
 import org.springframework.transaction.ReactiveTransactionManager;
@@ -30,9 +33,10 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-@AutoConfiguration
 @RequiredArgsConstructor
+@ConditionalOnBean(ConnectionFactory.class)
 @FieldDefaults(makeFinal = true, level = PRIVATE)
+@AutoConfiguration(after = { R2dbcAutoConfiguration.class, R2dbcTransactionManagerAutoConfiguration.class })
 public class R2DBCJooqAutoConfiguration {
 
     static TransactionalOperator newOperator(ReactiveTransactionManager transactionManager, int propagationBehavior) {
