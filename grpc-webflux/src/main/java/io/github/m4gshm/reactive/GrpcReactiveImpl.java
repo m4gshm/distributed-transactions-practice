@@ -1,19 +1,20 @@
 package io.github.m4gshm.reactive;
 
+import static lombok.AccessLevel.PRIVATE;
+
+import java.util.List;
+
+import org.reactivestreams.Subscription;
+
 import grpcstarter.server.feature.exceptionhandling.GrpcExceptionResolver;
-import io.grpc.Metadata;
+import io.github.m4gshm.GrpcConvertible;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
-
-import java.util.List;
-
-import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -24,6 +25,25 @@ public class GrpcReactiveImpl implements GrpcReactive {
     StatusExtractor statusExtractor;
     List<GrpcExceptionResolver> grpcExceptionResolvers;
 
+    private Throwable handle(Throwable throwable) {
+        if (throwable instanceof GrpcConvertible grpcConvertible) {
+            return grpcConvertible.toGrpcRuntimeException();
+        } else if (throwable instanceof StatusRuntimeException statusRuntimeException) {
+            return statusRuntimeException;
+        } else if (throwable instanceof StatusException statusException) {
+            return statusException;
+        }
+
+        final var metadata = metadataFactory.newMetadata(throwable);
+        for (var resolver : grpcExceptionResolvers) {
+            var sre = resolver.resolve(throwable, null, metadata);
+            if (sre != null) {
+                return sre;
+            }
+        }
+        return new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
+    }
+
     @Override
     public <T> CoreSubscriber<T> newSubscriber(StreamObserver<T> observer) {
         return new CoreSubscriber<>() {
@@ -31,13 +51,10 @@ public class GrpcReactiveImpl implements GrpcReactive {
             volatile Throwable error;
 
             @Override
-            public void onSubscribe(Subscription s) {
-                s.request(1);
-            }
-
-            @Override
-            public void onNext(T t) {
-                observer.onNext(t);
+            public void onComplete() {
+                if (error == null) {
+                    observer.onCompleted();
+                }
             }
 
             @Override
@@ -48,35 +65,15 @@ public class GrpcReactiveImpl implements GrpcReactive {
             }
 
             @Override
-            public void onComplete() {
-                if (error == null) {
-                    observer.onCompleted();
-                }
+            public void onNext(T t) {
+                observer.onNext(t);
+            }
+
+            @Override
+            public void onSubscribe(Subscription s) {
+                s.request(1);
             }
         };
-    }
-
-    private Throwable handle(Throwable throwable) {
-        final boolean grpcException;
-        final Metadata metadata;
-        if (throwable instanceof StatusRuntimeException statusRuntimeException) {
-            grpcException = true;
-            metadata = statusRuntimeException.getTrailers();
-        } else if (throwable instanceof StatusException statusException) {
-            grpcException = true;
-            metadata = statusException.getTrailers();
-        } else {
-            grpcException = false;
-            ;
-            metadata = metadataFactory.newMetadata(throwable);
-        }
-        for (var resolver : grpcExceptionResolvers) {
-            var sre = resolver.resolve(throwable, null, metadata);
-            if (sre != null) {
-                return sre;
-            }
-        }
-        return grpcException ? throwable : new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
     }
 
 }

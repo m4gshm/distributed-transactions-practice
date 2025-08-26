@@ -1,74 +1,115 @@
 package io.github.m4gshm.orders.service;
 
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.protobuf.TimestampUtils;
-import lombok.experimental.UtilityClass;
-import orders.v1.Orders;
-import orders.v1.Orders.OrderCreateRequest.OrderCreate;
-import payment.v1.PaymentOuterClass.Payment;
-import payment.v1.PaymentOuterClass.PaymentApproveResponse;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import tpc.v1.Tpc;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-
+import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.rollback;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
-import static orders.v1.Orders.Order.Status.*;
+import static orders.v1.Orders.Order.Status.APPROVED;
+import static orders.v1.Orders.Order.Status.APPROVING;
+import static orders.v1.Orders.Order.Status.CANCELLED;
+import static orders.v1.Orders.Order.Status.CANCELLING;
+import static orders.v1.Orders.Order.Status.CREATED;
+import static orders.v1.Orders.Order.Status.CREATING;
+import static orders.v1.Orders.Order.Status.INSUFFICIENT;
+import static orders.v1.Orders.Order.Status.RELEASED;
+import static orders.v1.Orders.Order.Status.RELEASING;
 import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.just;
 
+import java.time.OffsetDateTime;
+import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.Function;
+
+import org.jooq.DSLContext;
+
+import io.github.m4gshm.UnexpectedEntityStatusException;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
+import io.github.m4gshm.protobuf.TimestampUtils;
+import io.grpc.Metadata;
+import io.grpc.Status;
+import io.grpc.StatusException;
+import io.grpc.StatusRuntimeException;
+import lombok.NonNull;
+import lombok.experimental.UtilityClass;
+import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders;
+import orders.v1.Orders.OrderCreateRequest.OrderCreate;
+import payment.v1.PaymentOuterClass;
+import payment.v1.PaymentOuterClass.Payment;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveOuterClass;
+import reserve.v1.ReserveOuterClass.Reserve;
+import tpc.v1.Tpc;
+
+@Slf4j
 @UtilityClass
 public class OrdersServiceUtils {
 
-//    static Orders.Order toOrder(Order order) {
-//        var paymentStatus = toPaymentStatus(order.paymentStatus());
-//        return toOrder(order, paymentStatus);
-//    }
-//
-//    static Orders.Order toOrder(Order order, Payment.Status paymentStatus) {
-//        var items = order.items().stream().map(OrdersServiceUtils::toOrderItem).toList();
-//        return toOrder(order, paymentStatus, items);
-//    }
-
-    static Orders.Order toOrder(Order order, Payment.Status paymentStatus,
-                                List<ReserveOuterClass.Reserve.Item> items) {
+    static Orders.Order toOrderGrpc(
+                                    Order order,
+                                    Payment.Status paymentStatus,
+                                    List<Reserve.Item> items
+    ) {
         var builder = Orders.Order.newBuilder()
                 .setId(order.id())
                 .setCreatedAt(toTimestamp(order.createdAt()))
                 .setUpdatedAt(toTimestamp(order.updatedAt()))
                 .setCustomerId(order.customerId())
-                .setPaymentId(order.paymentId())
-                .setReserveId(order.reserveId())
-                .mergeDelivery(toDelivery(order.delivery()))
+                .mergeDelivery(toDeliveryGrpc(order.delivery()))
                 .addAllItems(items != null ? items : List.of());
 
-        ofNullable(toOrderStatus(order.status())).ifPresent(builder::setStatus);
+        ofNullable(toOrderStatusGrpc(order.status())).ifPresent(builder::setStatus);
         ofNullable(paymentStatus).ifPresent(builder::setPaymentStatus);
+        ofNullable(order.paymentId()).ifPresent(builder::setPaymentId);
+        ofNullable(order.reserveId()).ifPresent(builder::setReserveId);
 
         return builder.build();
     }
 
-    public static Orders.Order.Status toOrderStatus(Order.Status status) {
+    public static Orders.Order.Status toOrderStatusGrpc(Order.Status status) {
         return status == null ? null : switch (status) {
-            case created -> CREATED;
-            case approved -> APPROVED;
-            case released -> RELEASED;
-            case insufficient -> INSUFFICIENT;
-            case cancelled -> CANCELLED;
+            case CREATING -> CREATING;
+            case CREATED -> CREATED;
+            case APPROVING -> APPROVING;
+            case APPROVED -> APPROVED;
+            case RELEASING -> RELEASING;
+            case RELEASED -> RELEASED;
+            case INSUFFICIENT -> INSUFFICIENT;
+            case CANCELLING -> CANCELLING;
+            case CANCELLED -> CANCELLED;
         };
     }
 
-    private static Orders.Order.Delivery toDelivery(Order.Delivery delivery) {
-        return delivery == null ? null : Orders.Order.Delivery.newBuilder()
-                .setAddress(delivery.address())
-                .mergeDateTime(toTimestamp(delivery.dateTime()))
-                .setType(toType(delivery.type()))
-                .build();
+    private static Orders.Order.Delivery toDeliveryGrpc(Order.Delivery delivery) {
+        return delivery == null ? null
+                : Orders.Order.Delivery.newBuilder()
+                        .setAddress(delivery.address())
+                        .mergeDateTime(toTimestamp(delivery.dateTime()))
+                        .setType(toType(delivery.type()))
+                        .build();
+    }
+
+    static Order.Delivery toDelivery(Orders.Order.Delivery delivery) {
+        return delivery == null ? null
+                : Order.Delivery.builder()
+                        .address(delivery.getAddress())
+                        .dateTime(OffsetDateTime.ofInstant(
+                                TimestampUtils.toInstant(delivery.getDateTime()),
+                                systemDefault()
+                        ))
+                        .type(toDeliveryType(delivery.getType()))
+                        .build();
+    }
+
+    static Order.Delivery.Type toDeliveryType(Orders.Order.Delivery.Type type) {
+        return type == null ? null : switch (type) {
+            case PICKUP -> Order.Delivery.Type.pickup;
+            case COURIER -> Order.Delivery.Type.courier;
+            case UNRECOGNIZED -> null;
+        };
     }
 
     private static Orders.Order.Delivery.Type toType(Order.Delivery.Type type) {
@@ -82,25 +123,8 @@ public class OrdersServiceUtils {
         return error(() -> NOT_FOUND.withDescription(String.valueOf(id)).asRuntimeException());
     }
 
-    public static String string(Object orderId) {
-        return orderId == null ? null : orderId.toString();
-    }
-
-
-    static Order.Delivery toDelivery(Orders.Order.Delivery delivery) {
-        return delivery == null ? null : Order.Delivery.builder()
-                .address(delivery.getAddress())
-                .dateTime(OffsetDateTime.ofInstant(TimestampUtils.toInstant(delivery.getDateTime()), systemDefault()))
-                .type(toDeliveryType(delivery.getType()))
-                .build();
-    }
-
-    static Order.Delivery.Type toDeliveryType(Orders.Order.Delivery.Type type) {
-        return type == null ? null : switch (type) {
-            case PICKUP -> Order.Delivery.Type.pickup;
-            case COURIER -> Order.Delivery.Type.courier;
-            case UNRECOGNIZED -> null;
-        };
+    public static String string(Object any) {
+        return any == null ? null : any.toString();
     }
 
     static Order.Item toItem(OrderCreate.Item item) {
@@ -119,31 +143,201 @@ public class OrdersServiceUtils {
 
     static Orders.OrderCreateResponse toOrderCreateResponse(Order order) {
         return Orders.OrderCreateResponse.newBuilder()
-                .setId(string(order.id()))
+                .setId(order.id())
                 .build();
     }
 
-    static Tpc.TwoPhaseCommitRequest newCommitRequest(String id) {
-        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(string(id)).build();
+    static Tpc.TwoPhaseCommitRequest newCommitRequest(@NonNull String transactionId) {
+        if (transactionId.isBlank()) {
+            throw new IllegalArgumentException("transactionId cannot be blank");
+        }
+        return Tpc.TwoPhaseCommitRequest.newBuilder().setId(transactionId).build();
     }
 
     static Tpc.TwoPhaseRollbackRequest newRollbackRequest(String reserveResponse) {
         return Tpc.TwoPhaseRollbackRequest.newBuilder()
-                .setId(string(reserveResponse))
+                .setId(reserveResponse)
                 .build();
     }
 
-    static Order.Status getOrderStatus(PaymentApproveResponse.Status paymentStatus,
-                                       ReserveApproveResponse.Status reserveStatus) {
-        if (paymentStatus == PaymentApproveResponse.Status.APPROVED
-                && reserveStatus == ReserveApproveResponse.Status.APPROVED) {
-            return Order.Status.approved;
-        } else if (paymentStatus == PaymentApproveResponse.Status.INSUFFICIENT_AMOUNT
-                || reserveStatus == ReserveApproveResponse.Status.INSUFFICIENT_QUANTITY) {
-            return Order.Status.insufficient;
+    static Order.Status getOrderStatus(Payment.Status paymentStatus, Reserve.Status reserveStatus) {
+        final Order.Status status;
+        if (paymentStatus == Payment.Status.HOLD && reserveStatus == Reserve.Status.APPROVED) {
+            status = Order.Status.APPROVED;
+        } else if (paymentStatus == Payment.Status.INSUFFICIENT || reserveStatus == Reserve.Status.INSUFFICIENT) {
+            status = Order.Status.INSUFFICIENT;
+        } else if (paymentStatus == Payment.Status.PAID && reserveStatus == Reserve.Status.RELEASED) {
+            status = Order.Status.RELEASED;
         } else {
-            throw new IllegalStateException("unexpected payment and reserve statuses: '" + paymentStatus + "','" + reserveStatus + "'");
+            status = null;
         }
+        log.info("calc order status {} by payment {} and reserve {}", status, paymentStatus, reserveStatus);
+        return status;
     }
 
+    static boolean completeIfNoTransaction(String type, Throwable e, String transactionId) {
+        var status = getStatus(e);
+        var noTransaction = status != null && status.getCode().equals(NOT_FOUND.getCode());
+        if (noTransaction) {
+            logNoTransaction(type, transactionId);
+        }
+        return noTransaction;
+    }
+
+    private static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
+        return ofNullable(getErrorInfo(e)).map(ErrorInfo::metadata).map(metadata -> {
+            var errorType = metadata.get(UnexpectedEntityStatusException.TYPE);
+            return UnexpectedEntityStatusException.class.getSimpleName()
+                    .equals(errorType) ? converter.apply(metadata.get(
+                            UnexpectedEntityStatusException.STATUS)) : null;
+        }).orElse(null);
+    }
+
+    private static ErrorInfo getErrorInfo(Throwable e) {
+        final Status status;
+        final Metadata metadata;
+        if (e instanceof StatusRuntimeException exception) {
+            status = exception.getStatus();
+            metadata = exception.getTrailers();
+        } else if (e instanceof StatusException exception) {
+            status = exception.getStatus();
+            metadata = exception.getTrailers();
+        } else {
+            status = null;
+            metadata = null;
+        }
+        return status != null ? new ErrorInfo(status, metadata) : null;
+    }
+
+    private static Status getStatus(Throwable e) {
+        var errorInfo = getErrorInfo(e);
+        return errorInfo != null ? errorInfo.status() : null;
+    }
+
+    static Mono<Void> localRollback(DSLContext dsl, String orderTransactionId, Throwable result) {
+        return result instanceof TwoPhaseTransaction.PrepareTransactionException
+                ? rollback(dsl, orderTransactionId)
+                : Mono.<Void>empty().doOnSubscribe(_ -> {
+                    log.debug("no local prepared transaction for rollback");
+                });
+    }
+
+    static void logNoTransaction(String type, String transactionId) {
+        log.trace("not transaction for {} {}", type, transactionId);
+    }
+
+    public static Order orderWithStatus(Order order, Order.Status status) {
+        return order.toBuilder()
+                .status(status)
+                .build();
+    }
+
+    static <T> Function<Throwable, Mono<T>> statusError(Function<String, T> converter) {
+        return e -> {
+            var status = getCurrentStatusFromError(converter, e);
+            if (status != null) {
+                log.debug("already in status {}", status);
+                return just(status);
+            }
+            return error(e);
+        };
+    }
+
+    static Orders.OrderResumeResponse newOrderResumeResponse(String o, Orders.Order.Status o1) {
+        return Orders.OrderResumeResponse
+                .newBuilder()
+                .setId(o)
+                .setStatus(o1)
+                .build();
+    }
+
+    private static <B, T> T newRequest(boolean twoPhaseCommit,
+                                       String id,
+                                       String transactionId,
+                                       B builder,
+                                       BiConsumer<B, String> setId,
+                                       BiConsumer<B, String> setPreparedTransactionId,
+                                       Function<B, T> build
+    ) {
+        setId.accept(builder, id);
+        if (twoPhaseCommit) {
+            setPreparedTransactionId.accept(builder, transactionId);
+        }
+        return build.apply(builder);
+    }
+
+    static ReserveOuterClass.ReserveApproveRequest newReserveApproveRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveApproveRequest.newBuilder(),
+                ReserveOuterClass.ReserveApproveRequest.Builder::setId,
+                ReserveOuterClass.ReserveApproveRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveApproveRequest.Builder::build
+        );
+    }
+
+    static ReserveOuterClass.ReserveCancelRequest newReserveCancelRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveCancelRequest.newBuilder(),
+                ReserveOuterClass.ReserveCancelRequest.Builder::setId,
+                ReserveOuterClass.ReserveCancelRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveCancelRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentCancelRequest newPaymentCancelRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentCancelRequest.newBuilder(),
+                PaymentOuterClass.PaymentCancelRequest.Builder::setId,
+                PaymentOuterClass.PaymentCancelRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentCancelRequest.Builder::build
+        );
+    }
+
+    static ReserveOuterClass.ReserveReleaseRequest newReserveReleaseRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.reserveId(),
+                order.reserveTransactionId(),
+                ReserveOuterClass.ReserveReleaseRequest.newBuilder(),
+                ReserveOuterClass.ReserveReleaseRequest.Builder::setId,
+                ReserveOuterClass.ReserveReleaseRequest.Builder::setPreparedTransactionId,
+                ReserveOuterClass.ReserveReleaseRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentPayRequest newPaymentPayRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentPayRequest.newBuilder(),
+                PaymentOuterClass.PaymentPayRequest.Builder::setId,
+                PaymentOuterClass.PaymentPayRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentPayRequest.Builder::build
+        );
+    }
+
+    static PaymentOuterClass.PaymentApproveRequest newPaymentApproveRequest(Order order, boolean twoPhaseCommit) {
+        return newRequest(
+                twoPhaseCommit,
+                order.paymentId(),
+                order.paymentTransactionId(),
+                PaymentOuterClass.PaymentApproveRequest.newBuilder(),
+                PaymentOuterClass.PaymentApproveRequest.Builder::setId,
+                PaymentOuterClass.PaymentApproveRequest.Builder::setPreparedTransactionId,
+                PaymentOuterClass.PaymentApproveRequest.Builder::build
+        );
+    }
+
+    public record ErrorInfo(Status status, Metadata metadata) {
+    }
 }

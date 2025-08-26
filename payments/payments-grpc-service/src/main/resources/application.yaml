@@ -15,10 +15,7 @@ logging:
       rmi: INFO
     javax:
       management: INFO
-#spring:
-#  grpc:
-#    server:
-#      port: 9090
+
 server:
   port: 7082
   error:
@@ -27,11 +24,11 @@ grpc:
   server:
     port: 9082
     channelz:
-      enabled: false
+      enabled: true
     health:
-      enabled: false #conflict with spring.grpc.server.health.enabled
+      enabled: true #conflict with spring.grpc.server.health.enabled
     reflection:
-      enabled: false
+      enabled: true
 springdoc:
   api-docs:
     enabled: true

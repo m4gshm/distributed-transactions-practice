@@ -13,22 +13,9 @@ buildscript {
     }
 }
 
-//sourceSets {
-//    main {
-//        java {
-//            srcDirs("$projectDir/src/main")
-//        }
-//    }
-//}
-
 dependencies {
     val liquibaseVer = "4.33.0"
 
-    implementation("org.projectlombok:lombok")
-    annotationProcessor("org.projectlombok:lombok")
-    testAnnotationProcessor("org.projectlombok:lombok")
-
-    api(project(":jooq-utils"))
     api(project(":jooq-r2dbc"))
 
 //    implementation("org.liquibase:liquibase-core:$liquibaseVer")

@@ -3,3 +3,9 @@
 !.idea/protoeditor.xml
 .gradle
 **/build/*
+/build/
+**/bin/*
+.classpath
+**/.gitignore
+.project
+.settings

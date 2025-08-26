@@ -1,5 +1,10 @@
 package io.github.m4gshm.payments.service;
 
+import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
+import static lombok.AccessLevel.PRIVATE;
+
+import org.springframework.stereotype.Service;
+
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.service.event.AccountEventService;
 import io.github.m4gshm.reactive.GrpcReactive;
@@ -7,7 +12,6 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.stereotype.Service;
 import payment.v1.AccountOuterClass;
 import payment.v1.AccountOuterClass.AccountListRequest;
 import payment.v1.AccountOuterClass.AccountListResponse;
@@ -15,9 +19,6 @@ import payment.v1.AccountOuterClass.AccountTopUpRequest;
 import payment.v1.AccountOuterClass.AccountTopUpResponse;
 import payment.v1.AccountServiceGrpc;
 import reactor.core.publisher.Mono;
-
-import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
-import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @Service
@@ -49,12 +50,10 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
             var topUp = request.getTopUp();
             var plus = topUp.getAmount();
             var clientId = topUp.getClientId();
-            return accountStorage.topUp(clientId, plus).flatMap(result -> {
+            return accountStorage.addAmount(clientId, plus).flatMap(result -> {
                 return accountEventService.sendAccountBalanceEvent(clientId, result.balance()).doOnError(e -> {
                     log.error("event send error", e);
-                }).thenReturn(AccountTopUpResponse.newBuilder()
-                        .setBalance(result.balance())
-                        .build());
+                }).thenReturn(AccountTopUpResponse.newBuilder().setBalance(result.balance()).build());
             });
         }));
     }

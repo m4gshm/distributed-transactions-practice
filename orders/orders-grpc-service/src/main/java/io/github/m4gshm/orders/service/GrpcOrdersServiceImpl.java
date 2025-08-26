@@ -5,6 +5,7 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import orders.v1.Orders;
 import orders.v1.Orders.OrderApproveRequest;
 import orders.v1.Orders.OrderApproveResponse;
 import orders.v1.Orders.OrderCancelRequest;
@@ -31,23 +32,18 @@ public class GrpcOrdersServiceImpl extends OrdersServiceGrpc.OrdersServiceImplBa
     OrdersService ordersService;
 
     @Override
-    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
-        grpc.subscribe(responseObserver, ordersService.create(request.getBody(), request.getTwoPhaseCommit()));
-    }
-
-    @Override
     public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {
         grpc.subscribe(responseObserver, ordersService.approve(request.getId(), request.getTwoPhaseCommit()));
     }
 
     @Override
-    public void release(OrderReleaseRequest request, StreamObserver<OrderReleaseResponse> responseObserver) {
-        grpc.subscribe(responseObserver, ordersService.release(request.getId(), request.getTwoPhaseCommit()));
+    public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
+        grpc.subscribe(responseObserver, ordersService.cancel(request.getId(), request.getTwoPhaseCommit()));
     }
 
     @Override
-    public void cancel(OrderCancelRequest request, StreamObserver<OrderCancelResponse> responseObserver) {
-        grpc.subscribe(responseObserver, ordersService.cancel(request.getId(), request.getTwoPhaseCommit()));
+    public void create(OrderCreateRequest request, StreamObserver<OrderCreateResponse> responseObserver) {
+        grpc.subscribe(responseObserver, ordersService.create(request.getBody(), request.getTwoPhaseCommit()));
     }
 
     @Override
@@ -58,6 +54,16 @@ public class GrpcOrdersServiceImpl extends OrdersServiceGrpc.OrdersServiceImplBa
     @Override
     public void list(OrderListRequest request, StreamObserver<OrderListResponse> responseObserver) {
         grpc.subscribe(responseObserver, ordersService.list());
+    }
+
+    @Override
+    public void release(OrderReleaseRequest request, StreamObserver<OrderReleaseResponse> responseObserver) {
+        grpc.subscribe(responseObserver, ordersService.release(request.getId(), request.getTwoPhaseCommit()));
+    }
+
+    @Override
+    public void resume(Orders.OrderResumeRequest request, StreamObserver<Orders.OrderResumeResponse> responseObserver) {
+        grpc.subscribe(responseObserver, ordersService.resume(request.getId(), request.getTwoPhaseCommit()));
     }
 
 }

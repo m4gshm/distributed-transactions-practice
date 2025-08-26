@@ -1,7 +1,9 @@
 debug: true
 logging:
+#  file:
+#    path: log/reserve
   level:
-    root: INFO
+    root: TRACE
     org:
       springframework:
         r2dbc:
@@ -39,10 +41,7 @@ logging:
     javax:
       management: INFO
 
-#spring:
-#  grpc:
-#    server:
-#      port: 9090
+
 server:
   port: 7081
   error:
@@ -51,11 +50,11 @@ grpc:
   server:
     port: 9081
     channelz:
-      enabled: false
+      enabled: true
     health:
-      enabled: false #conflict with spring.grpc.server.health.enabled
+      enabled: true #conflict with spring.grpc.server.health.enabled
     reflection:
-      enabled: false
+      enabled: true
 springdoc:
   api-docs:
     enabled: true
