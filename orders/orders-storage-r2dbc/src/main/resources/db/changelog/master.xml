@@ -19,35 +19,11 @@
             <column name="customer_id" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="reserve_id" type="text">
-                <constraints nullable="false"/>
-            </column>
-            <column name="payment_id" type="text">
-                <constraints nullable="false"/>
-            </column>
-        </createTable>
-    </changeSet>
-    <changeSet id="addColumn-payment_transaction_id" author="alex">
-        <addColumn tableName="orders">
+            <column name="reserve_id" type="text"/>
+            <column name="payment_id" type="text"/>
             <column name="payment_transaction_id" type="text"/>
-        </addColumn>
-    </changeSet>
-    <changeSet id="addColumn-reserve_transaction_id" author="alex">
-        <addColumn tableName="orders">
             <column name="reserve_transaction_id" type="text"/>
-        </addColumn>
-    </changeSet>
-    <changeSet id="dropNotNullConstraint-orders-reserve_id" author="alex">
-        <dropNotNullConstraint tableName="orders" columnName="reserve_id"/>
-        <rollback>
-            <addNotNullConstraint tableName="orders" columnName="reserve_id"/>
-        </rollback>
-    </changeSet>
-    <changeSet id="dropNotNullConstraint-orders-payment_id" author="alex">
-        <dropNotNullConstraint tableName="orders" columnName="payment_id"/>
-        <rollback>
-            <addNotNullConstraint tableName="orders" columnName="payment_id"/>
-        </rollback>
+        </createTable>
     </changeSet>
     <changeSet id="createTable-items" author="alex">
         <createTable tableName="items">

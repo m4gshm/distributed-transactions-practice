@@ -5,15 +5,13 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    val liquibaseVer = "4.33.0"
-
     api(project(":storage-api"))
     api(project(":grpc-webflux"))
-    api(project(":grpc-client"))
     api(project(":protobuf-utils"))
-    
-    api(project(":orders:orders-grpc-api"))
+    api(project(":grpc-client"))
+
     api(project(":orders:orders-storage-r2dbc"))
+    api(project(":orders:orders-grpc-api"))
     api(project(":payments:payments-grpc-api"))
     api(project(":payments:payments-event-api"))
     api(project(":reserve:reserve-grpc-api"))
@@ -39,8 +37,6 @@ dependencies {
 
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
-
-//    implementation(platform("org.springframework.grpc:spring-grpc-dependencies:0.9.0"))
 
     modules {
         module("io.grpc:grpc-netty") {
