@@ -7,7 +7,7 @@ import io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessage
 
 import java.time.OffsetDateTime;
 
-import org.jooq.Record2;
+import org.jooq.Record3;
 import org.jooq.impl.UpdatableRecordImpl;
 
 /**
@@ -59,8 +59,8 @@ public class InputMessagesRecord extends UpdatableRecordImpl<InputMessagesRecord
     }
 
     @Override
-    public Record2<String, String> key() {
-        return (Record2) super.key();
+    public Record3<String, String, OffsetDateTime> key() {
+        return (Record3) super.key();
     }
 
     // -------------------------------------------------------------------------

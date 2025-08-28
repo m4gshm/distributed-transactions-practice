@@ -113,7 +113,8 @@ public class InputMessages extends TableImpl<InputMessagesRecord> {
         return Internal.createUniqueKey(InputMessages.INPUT_MESSAGES,
                 DSL.name("input_messages_pkey"),
                 new TableField[] { InputMessages.INPUT_MESSAGES.MESSAGE_ID,
-                        InputMessages.INPUT_MESSAGES.SUBSCRIBER_ID },
+                        InputMessages.INPUT_MESSAGES.SUBSCRIBER_ID,
+                        InputMessages.INPUT_MESSAGES.CREATED_AT },
                 true);
     }
 

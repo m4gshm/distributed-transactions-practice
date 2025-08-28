@@ -1,16 +1,9 @@
 plugins {
     `java-library`
-    id("org.liquibase.gradle") version "3.0.2"
-    id("org.jooq.jooq-codegen-gradle") version "3.19.24"
+    id("org.liquibase.gradle")
+    id("org.jooq.jooq-codegen-gradle")
 }
 apply(plugin = "io.spring.dependency-management")
-
-buildscript {
-    val liquibaseVer = "4.33.0"
-    dependencies {
-        classpath("org.liquibase:liquibase-core:$liquibaseVer")
-    }
-}
 
 sourceSets {
     main {
@@ -34,7 +27,7 @@ dependencies {
     api("org.postgresql:r2dbc-postgresql")
 
     liquibaseRuntime("org.liquibase:liquibase-core")
-    liquibaseRuntime("info.picocli:picocli:4.7.7")
+    liquibaseRuntime("info.picocli:picocli")
     liquibaseRuntime("org.postgresql:postgresql")
 
     jooqCodegen("org.postgresql:postgresql")

@@ -1,20 +1,24 @@
 package io.github.m4gshm.reactive.idempotent.consumer;
 
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageMaintenanceService.Partition.CURRENT;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageMaintenanceService.Partition.NEXT;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.from;
+
+import java.time.Clock;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.util.function.Function;
+
+import org.jooq.DSLContext;
+import org.springframework.beans.factory.InitializingBean;
+
 import io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessages;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
-import org.springframework.beans.factory.InitializingBean;
 import reactor.core.publisher.Mono;
-
-import java.time.Clock;
-import java.time.OffsetDateTime;
-import java.util.function.Function;
-
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -26,12 +30,20 @@ public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
     InputMessages table;
     Clock clock;
     boolean createTable;
+    boolean createCurrentPartition;
+    boolean createNextPartition;
 
     @Override
     public void afterPropertiesSet() {
-        if (createTable) {
-            maintenanceService.createTable().block();
+        var createTableRoutine = createTable ? maintenanceService.createTable(true) : Mono.<Void>empty();
+        var now = LocalDate.now();
+        if (createCurrentPartition) {
+            createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(now, CURRENT));
         }
+        if (createNextPartition) {
+            createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(now, NEXT));
+        }
+        createTableRoutine.block();
     }
 
     @Override

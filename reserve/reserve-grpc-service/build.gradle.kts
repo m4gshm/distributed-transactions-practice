@@ -5,8 +5,6 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    val liquibaseVer = "4.33.0"
-
     api(project(":reactive-utils"))
     api(project(":storage-api"))
     api(project(":grpc-webflux"))

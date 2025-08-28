@@ -1,29 +1,18 @@
 plugins {
     `java-library`
-//    id("org.springframework.boot")
-    id("org.liquibase.gradle") version "3.0.2"
-    id("org.jooq.jooq-codegen-gradle") version "3.19.24"
+    id("org.liquibase.gradle")
+    id("org.jooq.jooq-codegen-gradle")
 }
 apply(plugin = "io.spring.dependency-management")
 
-buildscript {
-    val liquibaseVer = "4.33.0"
-    dependencies {
-        classpath("org.liquibase:liquibase-core:$liquibaseVer")
-    }
-}
-
 dependencies {
-    val liquibaseVer = "4.33.0"
-
     api(project(":jooq-r2dbc"))
 
-//    implementation("org.liquibase:liquibase-core:$liquibaseVer")
     implementation("org.postgresql:postgresql")
-    implementation("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+    implementation("org.postgresql:r2dbc-postgresql")
 
-    liquibaseRuntime("org.liquibase:liquibase-core:$liquibaseVer")
-    liquibaseRuntime("info.picocli:picocli:4.7.7")
+    liquibaseRuntime("org.liquibase:liquibase-core")
+    liquibaseRuntime("info.picocli:picocli")
     liquibaseRuntime("org.postgresql:postgresql")
 
     jooqCodegen("org.postgresql:postgresql")
@@ -31,6 +20,9 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
+
+    implementation("org.jooq:jooq")
+    implementation("org.jooq:jooq-postgres-extensions")
 }
 
 val dbSchema = "public"
