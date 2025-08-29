@@ -30,17 +30,17 @@ public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
     InputMessages table;
     Clock clock;
     boolean createTable;
-    boolean createCurrentPartition;
-    boolean createNextPartition;
+    boolean initCurrentPartition;
+    boolean initNextPartition;
 
     @Override
     public void afterPropertiesSet() {
         var createTableRoutine = createTable ? maintenanceService.createTable(true) : Mono.<Void>empty();
         var now = LocalDate.now();
-        if (createCurrentPartition) {
+        if (initCurrentPartition) {
             createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(now, CURRENT));
         }
-        if (createNextPartition) {
+        if (initNextPartition) {
             createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(now, NEXT));
         }
         createTableRoutine.block();
