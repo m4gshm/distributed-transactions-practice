@@ -20,11 +20,11 @@ import org.springframework.validation.annotation.Validated;
 
 import io.github.m4gshm.EnumWithCode;
 import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.access.jooq.Tables;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.github.m4gshm.utils.Jooq;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

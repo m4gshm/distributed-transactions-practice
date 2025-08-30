@@ -22,12 +22,12 @@ import java.util.function.BiFunction;
 import org.springframework.stereotype.Service;
 
 import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.payments.data.model.Payment;
 import io.github.m4gshm.reactive.GrpcReactive;
-import io.github.m4gshm.utils.Jooq;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

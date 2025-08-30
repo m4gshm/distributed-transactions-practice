@@ -7,6 +7,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":jooq-r2dbc"))
+    api(project(":r2dbc-postgres"))
 
     implementation("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql")

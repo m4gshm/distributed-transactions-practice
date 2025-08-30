@@ -25,11 +25,11 @@ import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
 import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
-import io.github.m4gshm.utils.Jooq;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;

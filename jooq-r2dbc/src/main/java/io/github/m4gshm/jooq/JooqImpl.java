@@ -1,4 +1,4 @@
-package io.github.m4gshm.utils;
+package io.github.m4gshm.jooq;
 
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.defer;
@@ -75,8 +75,8 @@ public class JooqImpl implements Jooq {
 
     private Connection getConnection(ContextView context) {
         var transactionContext = context.get(TransactionContext.class);
-        var o = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
-        return o != null ? o.getConnection() : null;
+        var connectionHolder = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
+        return connectionHolder != null ? connectionHolder.getConnection() : null;
     }
 
     @Override

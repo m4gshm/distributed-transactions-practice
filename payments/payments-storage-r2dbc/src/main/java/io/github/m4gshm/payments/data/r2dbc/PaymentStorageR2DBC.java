@@ -8,9 +8,9 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Payment;
-import io.github.m4gshm.utils.Jooq;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

@@ -34,12 +34,12 @@ import java.util.function.Function;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
 import io.github.m4gshm.storage.NotFoundException;
-import io.github.m4gshm.utils.Jooq;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;

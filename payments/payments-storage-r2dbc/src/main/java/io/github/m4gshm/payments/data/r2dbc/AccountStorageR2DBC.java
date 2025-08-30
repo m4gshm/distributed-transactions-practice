@@ -14,11 +14,11 @@ import org.jooq.SelectJoinStep;
 import org.jooq.UpdateResultStep;
 import org.springframework.stereotype.Service;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.storage.jooq.Query;
 import io.github.m4gshm.storage.jooq.Update;
-import io.github.m4gshm.utils.Jooq;
 import jakarta.validation.constraints.Positive;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
