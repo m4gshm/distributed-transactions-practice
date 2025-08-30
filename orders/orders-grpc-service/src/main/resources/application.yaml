@@ -95,3 +95,6 @@ service:
     address: localhost:9081
   payments:
     address: localhost:9082
+
+idempotent-consumer:
+  create-partition-scheduler: "0 */30 * * * *"

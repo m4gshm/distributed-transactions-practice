@@ -1,9 +1,11 @@
 package io.github.m4gshm.reactive.idempotent.consumer;
 
-import static io.github.m4gshm.reactive.idempotent.consumer.MessageMaintenanceService.Partition.NEXT;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.Partition.CURRENT;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.Partition.NEXT;
 import static io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessages.INPUT_MESSAGES;
 import static java.time.format.DateTimeFormatter.ISO_DATE;
 import static java.time.format.DateTimeFormatter.ofPattern;
+import static org.springframework.scheduling.annotation.Scheduled.CRON_DISABLED;
 import static reactor.core.publisher.Mono.from;
 
 import java.time.LocalDate;
@@ -13,6 +15,7 @@ import java.util.List;
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
 import org.jooq.impl.Internal;
+import org.springframework.scheduling.annotation.Scheduled;
 
 import io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessages;
 import lombok.NonNull;
@@ -22,7 +25,7 @@ import reactor.core.publisher.Mono;
 
 @Slf4j
 @RequiredArgsConstructor
-public class MessageMaintenanceR2dbc implements MessageMaintenanceService {
+public class MessageStorageMaintenanceR2Dbc implements MessageStorageMaintenanceService {
     private final MessageStorageR2dbc.DslEnv dslFactory;
     private final InputMessages table;
     private final String partitionSuffixPattern;
@@ -90,5 +93,12 @@ public class MessageMaintenanceR2dbc implements MessageMaintenanceService {
         }).doOnSuccess(_ -> {
             log.trace("createTable success: {} {}", table.getQualifiedName(), usePartition ? "partitioned" : "");
         });
+    }
+
+    @Scheduled(cron = "${idempotent-consumer.create-partition-scheduler:" + CRON_DISABLED + "}")
+    public void scheduledCreatePartition() {
+        log.info("starting scheduled create partition");
+        var now = LocalDate.now();
+        addPartition(now, CURRENT).then(addPartition(now, NEXT)).block();
     }
 }
