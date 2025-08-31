@@ -98,3 +98,11 @@ service:
 
 idempotent-consumer:
   create-partition-scheduler: "0 */30 * * * *"
+
+management:
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: http://localhost:4318/v1/traces

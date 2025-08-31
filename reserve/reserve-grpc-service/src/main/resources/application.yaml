@@ -3,7 +3,7 @@ logging:
 #  file:
 #    path: log/reserve
   level:
-    root: TRACE
+    root: INFO
     org:
       springframework:
         r2dbc:

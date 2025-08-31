@@ -10,7 +10,6 @@ plugins {
     id("com.diffplug.spotless") version "7.2.1"
 }
 
-
 buildscript {
     val liquibaseVer: String by extra { "4.33.0" }
 
@@ -39,13 +38,51 @@ subprojects {
                 "org.projectlombok:lombok"
             )
         }
+        if (project.path in setOf(
+                ":orders:orders-grpc-service",
+                ":payments:payments-grpc-service",
+                ":reserve:reserve-grpc-service"
+            )
+        ) {
+            add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
+            add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+
+            add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
+            add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
+
+            add("implementation", "org.springframework.boot:spring-boot-starter-actuator")
+            add("implementation", "org.springframework.boot:spring-boot-starter-webflux")
+            add("implementation", "org.springframework:spring-webflux")
+            add("implementation", "org.springdoc:springdoc-openapi-starter-webflux-ui")
+
+            add("implementation", "io.github.danielliu1123:grpc-server-boot-starter")
+            add("implementation", "io.github.danielliu1123:grpc-starter-protovalidate")
+            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding")
+            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+
+            add("implementation", "org.springframework.boot:spring-boot-autoconfigure")
+
+
+            add("implementation", "io.grpc:grpc-netty-shaded")
+            modules {
+                module("io.grpc:grpc-netty") {
+                    replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")
+                }
+            }
+            add("implementation", "io.projectreactor.kafka:reactor-kafka")
+            add("implementation", "org.springframework.kafka:spring-kafka")
+        }
     }
+
 
     the<DependencyManagementExtension>().apply {
         imports {
+            mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
+
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
             mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
+            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.15.0")
         }
 
         dependencies {
