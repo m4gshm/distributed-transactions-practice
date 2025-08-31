@@ -1,10 +1,22 @@
+import com.diffplug.gradle.spotless.SpotlessExtension
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
     id("org.springframework.boot") version "3.5.4" apply false
     id("com.google.protobuf") version "0.9.5" apply false
+    id("org.liquibase.gradle") version "3.0.2" apply false
+    id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
     id("com.diffplug.spotless") version "7.2.1"
+}
+
+
+buildscript {
+    val liquibaseVer: String by extra { "4.33.0" }
+
+    dependencies {
+        classpath("org.liquibase:liquibase-core:$liquibaseVer")
+    }
 }
 
 subprojects {
@@ -54,7 +66,6 @@ subprojects {
             dependency("org.springframework:spring-r2dbc:6.2.8")
             dependency("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
 
-
             dependency("io.grpc:grpc-core:1.74.0")
             dependency("io.grpc:grpc-stub:1.74.0")
             dependency("io.grpc:grpc-protobuf:1.74.0")
@@ -68,10 +79,14 @@ subprojects {
 
             dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
 
-            val liquibaseVer = "4.33.0"
+            val liquibaseVer: String by rootProject.extra
             dependency("org.liquibase:liquibase-core:${liquibaseVer}")
+            dependency("info.picocli:picocli:4.7.7")
+
+            dependency("org.jooq:jooq:3.20.6")
+            dependency("org.jooq:jooq-postgres-extensions:3.20.6")
         }
-        the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+        the<SpotlessExtension>().apply {
             java {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
@@ -103,7 +118,7 @@ allprojects {
     tasks.findByName("assemble")?.dependsOn("spotlessApply")
 }
 
-the<com.diffplug.gradle.spotless.SpotlessExtension>().apply {
+the<SpotlessExtension>().apply {
     protobuf {
         target("$rootDir/proto/**/*.proto")
         buf()

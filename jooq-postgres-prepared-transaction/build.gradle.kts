@@ -5,7 +5,8 @@ plugins {
 dependencies {
     api(project(":storage-jooq"))
     api(project(":jooq-r2dbc"))
-    
+    api(project(":r2dbc-postgres"))
+
     implementation("org.slf4j:slf4j-api")
     implementation("org.jooq:jooq")
     implementation("io.projectreactor:reactor-core")

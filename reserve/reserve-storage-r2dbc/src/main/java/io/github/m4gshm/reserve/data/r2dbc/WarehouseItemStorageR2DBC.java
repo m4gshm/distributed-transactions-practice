@@ -22,9 +22,9 @@ import org.jooq.Record3;
 import org.jooq.SelectJoinStep;
 import org.springframework.stereotype.Service;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
-import io.github.m4gshm.utils.Jooq;
 import jakarta.validation.constraints.Min;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

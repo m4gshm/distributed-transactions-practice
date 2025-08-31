@@ -1,10 +1,11 @@
 package io.github.m4gshm.postgres.prepared.transaction;
 
+import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
+
 import java.util.List;
 
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.storage.NotFoundException;
-import io.github.m4gshm.utils.Jooq;
-import io.r2dbc.postgresql.api.PostgresqlException;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,17 +19,6 @@ public class PreparedTransactionServiceImpl implements PreparedTransactionServic
 
     @Getter
     private final Class<PreparedTransaction> entityClass = PreparedTransaction.class;
-
-    private static PostgresqlException getPostgresqlException(Throwable e) {
-        if (e instanceof PostgresqlException postgresqlException) {
-            return postgresqlException;
-        } else if (e != null) {
-            var cause = e.getCause();
-            return cause == null || e == cause ? null : getPostgresqlException(cause);
-        } else {
-            return null;
-        }
-    }
 
     private static Throwable ifNotExist(Object id, Throwable e) {
         var postgresqlException = getPostgresqlException(e);

@@ -1,4 +1,4 @@
-package io.github.m4gshm.utils;
+package io.github.m4gshm.jooq;
 
 import java.util.function.Function;
 

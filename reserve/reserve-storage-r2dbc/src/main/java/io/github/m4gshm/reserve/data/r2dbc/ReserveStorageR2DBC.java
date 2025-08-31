@@ -17,7 +17,7 @@ import java.util.List;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
-import io.github.m4gshm.utils.Jooq;
+import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import jakarta.validation.Valid;

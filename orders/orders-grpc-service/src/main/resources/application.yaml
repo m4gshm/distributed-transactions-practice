@@ -2,7 +2,13 @@ debug: true
 logging:
   level:
     root: INFO
+
     org:
+      springframework:
+        r2dbc:
+          connection: TRACE # log sql
+        transaction:
+          reactive: TRACE # log sql
       apache:
         kafka:
           clients:
@@ -18,6 +24,7 @@ logging:
         m4gshm: TRACE
       r2dbc:
         postgresql:
+          client: DEBUG # log sql
           QUERY: DEBUG
     java:
       io:
@@ -88,3 +95,6 @@ service:
     address: localhost:9081
   payments:
     address: localhost:9082
+
+idempotent-consumer:
+  create-partition-scheduler: "0 */30 * * * *"

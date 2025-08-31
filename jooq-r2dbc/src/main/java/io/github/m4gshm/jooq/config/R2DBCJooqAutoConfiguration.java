@@ -1,4 +1,4 @@
-package io.github.m4gshm.utils.config;
+package io.github.m4gshm.jooq.config;
 
 import static lombok.AccessLevel.PRIVATE;
 import static org.jooq.conf.ParamType.INLINED;
@@ -25,8 +25,8 @@ import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionalOperator;
 import org.springframework.transaction.support.DefaultTransactionDefinition;
 
-import io.github.m4gshm.utils.Jooq;
-import io.github.m4gshm.utils.JooqImpl;
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.jooq.JooqImpl;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
