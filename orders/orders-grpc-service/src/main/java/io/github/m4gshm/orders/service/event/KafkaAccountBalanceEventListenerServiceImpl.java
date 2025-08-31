@@ -85,6 +85,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         return messageStorage.storeUnique(MessageImpl.builder()
                 .messageID(requestId)
                 .subscriberID("accountBalance")
+                .timestamp(event.timestamp())
                 .build())
                 .thenMany(orderStorage.findByClientIdAndStatuses(clientId, Set.of(INSUFFICIENT))
                         .doOnSuccess(orders -> {

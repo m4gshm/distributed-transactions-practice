@@ -6,15 +6,22 @@
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="createTable-input_messages" author="alex">
         <createTable tableName="input_messages" ifNotExists="true">
-            <column name="message_id" type="text">
-                <constraints nullable="false" primaryKey="true"/>
+            <column name="id" type="text">
+                <constraints nullable="false"/>
             </column>
             <column name="subscriber_id" type="text">
-                <constraints nullable="false" primaryKey="true"/>
+                <constraints nullable="false"/>
             </column>
-            <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
+            <column name="partition_id" type="date">
+                <constraints nullable="false"/>
+            </column>
+            <column name="event_timestamp" type="timestamptz">
+                <constraints nullable="false"/>
+            </column>
+            <column name="created_at" type="timestamptz">
                 <constraints nullable="false"/>
             </column>
         </createTable>
+        <addPrimaryKey tableName="input_messages" columnNames="partition_id,subscriber_id,id"/>
     </changeSet>
 </databaseChangeLog>

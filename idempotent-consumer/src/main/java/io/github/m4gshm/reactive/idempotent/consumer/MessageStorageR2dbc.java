@@ -1,7 +1,7 @@
 package io.github.m4gshm.reactive.idempotent.consumer;
 
 import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
-import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.Partition.CURRENT;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.PartitionType.CURRENT;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.error;
@@ -47,38 +47,48 @@ public class MessageStorageR2dbc implements InitializingBean, MessageStorage {
 
     @Override
     public void afterPropertiesSet() {
-        var createTableRoutine = createTable ? maintenanceService.createTable(true) : Mono.<Void>empty();
-        var now = LocalDate.now();
+        var createTableRoutine = createTable ? maintenanceService.createTable() : Mono.<Void>empty();
+        var now = OffsetDateTime.now(clock);
         if (createPartition) {
-            createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(now, CURRENT));
+            createTableRoutine = createTableRoutine.then(maintenanceService.addPartition(CURRENT, now));
         }
         createTableRoutine.block();
     }
 
-    private Mono<Integer> insert(Message message) {
+    private Mono<Integer> insert(Message message,
+                                 OffsetDateTime createdAt,
+                                 OffsetDateTime timestamp,
+                                 LocalDate partitionId) {
         return dslEnv.provide(dsl -> from(dsl.insertInto(table)
-                .set(table.MESSAGE_ID, message.getMessageID())
+                .set(table.ID, message.getMessageID())
                 .set(table.SUBSCRIBER_ID, message.getSubscriberID())
-                .set(table.CREATED_AT, OffsetDateTime.now(clock))
+                .set(table.CREATED_AT, createdAt)
+                .set(table.EVENT_TIMESTAMP, timestamp)
+                .set(table.PARTITION_ID, partitionId)
                 .onDuplicateKeyIgnore()));
     }
 
     @Override
     public Mono<Void> storeUnique(Message message) {
-        var insert = insert(message);
+        var timestamp = message.getTimestamp();
+        var insert = insert(message,
+                OffsetDateTime.now(clock),
+                timestamp,
+                maintenanceService.getPartitionStart(CURRENT, timestamp));
 
         var store = !createPartitionOnStore
                 ? insert
                 : insert.onErrorResume(e -> isNoPartitionOfRelation(e)
-                        ? maintenanceService.addPartition(LocalDate.now(clock), CURRENT)
+                        ? maintenanceService.addPartition(CURRENT, timestamp)
                                 .then(insert)
                                 .doOnSubscribe(s -> log.info("trying to insert after the current partition "
                                         + "has been created"))
                         : error(e));
 
-        return store.flatMap(count -> (count == 1 ? Mono.empty()
-                : error(new MessageAlreadyProcessedException(message.getMessageID()))).then());
-
+        return store.flatMap(count -> {
+            return (count == 1 ? Mono.empty() : error(new MessageAlreadyProcessedException(message.getMessageID())))
+                    .then();
+        }).then();
     }
 
     @FunctionalInterface

@@ -51,7 +51,8 @@ public class AccountServiceImpl extends AccountServiceGrpc.AccountServiceImplBas
             var plus = topUp.getAmount();
             var clientId = topUp.getClientId();
             return accountStorage.addAmount(clientId, plus).flatMap(result -> {
-                return accountEventService.sendAccountBalanceEvent(clientId, result.balance()).doOnError(e -> {
+                return accountEventService.sendAccountBalanceEvent(clientId, result.balance(), result.timestamp()
+                ).doOnError(e -> {
                     log.error("event send error", e);
                 }).thenReturn(AccountTopUpResponse.newBuilder().setBalance(result.balance()).build());
             });

@@ -1,20 +1,17 @@
 package io.github.m4gshm.reactive.idempotent.consumer;
 
-import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.Partition.CURRENT;
-import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.Partition.NEXT;
-import static io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessages.INPUT_MESSAGES;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.PartitionType.CURRENT;
+import static io.github.m4gshm.reactive.idempotent.consumer.MessageStorageMaintenanceService.PartitionType.NEXT;
 import static java.time.format.DateTimeFormatter.ISO_DATE;
 import static java.time.format.DateTimeFormatter.ofPattern;
 import static org.springframework.scheduling.annotation.Scheduled.CRON_DISABLED;
 import static reactor.core.publisher.Mono.from;
 
-import java.time.LocalDate;
-import java.util.ArrayList;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.jooq.TableField;
 import org.jooq.UniqueKey;
-import org.jooq.impl.Internal;
 import org.springframework.scheduling.annotation.Scheduled;
 
 import io.github.m4gshm.reactive.idempotent.consumer.storage.tables.InputMessages;
@@ -36,69 +33,48 @@ public class MessageStorageMaintenanceR2Dbc implements MessageStorageMaintenance
     }
 
     public static UniqueKey<?> getPrimaryKeyForPartitionedTable(InputMessages table) {
-        var primaryKey = table.getPrimaryKey();
-
-        var refs = new ArrayList<>(primaryKey.getFields());
-        refs.add(INPUT_MESSAGES.CREATED_AT);
-
-        return Internal.createUniqueKey(
-                primaryKey.getTable(),
-                primaryKey.getQualifiedName(),
-                getArray(refs)
-        );
+        return table.getPrimaryKey();
     }
 
     @Override
-    public Mono<Void> addPartition(@NonNull LocalDate moment, @NonNull Partition partition) {
-        var partitionFrom = partition == NEXT
-                ? moment.plusDays(1)
-                : moment;
-        var partitionTo = partitionFrom.plusDays(1);
-
+    public Mono<Void> addPartition(@NonNull PartitionDuration partition) {
         var partitionedTable = table.getName();
-        var partitionSuffix = partitionFrom.format(ofPattern(partitionSuffixPattern));
+        var partitionSuffix = partition.from().format(ofPattern(partitionSuffixPattern));
         var partitionName = partitionedTable + "_" + partitionSuffix;
-        return dslFactory.provide(dsl -> {
-            return from(dsl.query("create table if not exists " + partitionName
-                    + " partition of "
-                    + partitionedTable
-                    + " for values from ('"
-                    + partitionFrom.format(ISO_DATE)
-                    + "') TO ('"
-                    + partitionTo.format(ISO_DATE)
-                    + "')")).then();
-        });
+        return dslFactory.provide(dsl -> from(dsl.query("create table if not exists " + partitionName
+                + " partition of "
+                + partitionedTable
+                + " for values from ('"
+                + partition.from().format(ISO_DATE)
+                + "') TO ('"
+                + partition.to().format(ISO_DATE)
+                + "')")).then());
     }
 
     @Override
-    public Mono<Void> createTable(boolean usePartition) {
+    public Mono<Void> createTable() {
         return dslFactory.provide(dsl -> {
-            var primaryKey = usePartition
-                    ? table.getPrimaryKey()
-                    : getPrimaryKeyForPartitionedTable(table);
-            var ddl = dsl
+            var query = dsl.query(dsl
                     .createTableIfNotExists(table)
-                    .columns(table.fields());
-            if (primaryKey != null) {
-                ddl = ddl.constraints(primaryKey.constraint());
-            }
-            return (usePartition
-                    ? from(dsl.query(ddl.getSQL()
-                            + " partition by range ("
-                            + table.CREATED_AT.getName()
-                            + ")"))
-                    : from(ddl)).then();
+                    .columns(table.fields())
+                    .primaryKey(table.getPrimaryKey().getFields())
+                    .getSQL()
+                    + " partition by range ("
+                    + table.PARTITION_ID.getName()
+                    + ")");
+            log.debug("create table: {}", query);
+            return from(query).then();
         }).doOnError(t -> {
             log.error("createTable error: {}", table.getQualifiedName(), t);
         }).doOnSuccess(_ -> {
-            log.trace("createTable success: {} {}", table.getQualifiedName(), usePartition ? "partitioned" : "");
+            log.trace("createTable success {}", table.getQualifiedName());
         });
     }
 
     @Scheduled(cron = "${idempotent-consumer.create-partition-scheduler:" + CRON_DISABLED + "}")
     public void scheduledCreatePartition() {
         log.info("starting scheduled create partition");
-        var now = LocalDate.now();
-        addPartition(now, CURRENT).then(addPartition(now, NEXT)).block();
+        var now = OffsetDateTime.now();
+        addPartition(CURRENT, now).then(addPartition(NEXT, now)).block();
     }
 }

@@ -1,5 +1,7 @@
 package io.github.m4gshm.payments.data;
 
+import java.time.OffsetDateTime;
+
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.storage.ReadOperations;
 import jakarta.validation.constraints.Positive;
@@ -21,7 +23,7 @@ public interface AccountStorage extends ReadOperations<Account, String> {
     }
 
     @Builder
-    record BalanceResult(double balance) {
+    record BalanceResult(double balance, OffsetDateTime timestamp) {
 
     }
 }
