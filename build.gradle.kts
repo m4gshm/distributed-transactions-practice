@@ -14,7 +14,6 @@ plugins {
 buildscript {
     val liquibaseVer: String by extra { "4.33.0" }
 
-//    val liquibaseVer: String by rootProject.extra
     dependencies {
         classpath("org.liquibase:liquibase-core:$liquibaseVer")
     }
