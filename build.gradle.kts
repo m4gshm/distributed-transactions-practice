@@ -46,11 +46,13 @@ subprojects {
         ) {
             add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
             add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+            add("runtimeOnly","io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
 
             add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
             add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
 
             add("implementation", "org.springframework.boot:spring-boot-starter-actuator")
+            add("implementation", "io.micrometer:micrometer-registry-prometheus")
             add("implementation", "org.springframework.boot:spring-boot-starter-webflux")
             add("implementation", "org.springframework:spring-webflux")
             add("implementation", "org.springdoc:springdoc-openapi-starter-webflux-ui")
@@ -74,7 +76,6 @@ subprojects {
         }
     }
 
-
     the<DependencyManagementExtension>().apply {
         imports {
             mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
@@ -87,6 +88,10 @@ subprojects {
 
         dependencies {
             dependency("org.projectlombok:lombok:1.18.38")
+
+            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.15.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
+            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.49.0-alpha")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 

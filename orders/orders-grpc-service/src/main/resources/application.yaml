@@ -1,10 +1,13 @@
-debug: true
+debug: false
 logging:
   level:
     root: INFO
-
     org:
       springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: debug # auto configs report
         r2dbc:
           connection: TRACE # log sql
         transaction:
@@ -33,6 +36,8 @@ logging:
       rmi: INFO
     javax:
       management: INFO
+  pattern:
+    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
 
 server:
   port: 7080
@@ -60,7 +65,7 @@ springdoc:
 spring:
   #for liquibase
   datasource:
-    url: r2dbc:postgresql://localhost:5000/orders
+    url: jdbc:postgresql://localhost:5000/orders
     username: postgres
     password: postgres
   r2dbc:
@@ -87,6 +92,8 @@ spring:
             trusted:
               packages: "io.github.m4gshm.payments.event.model"
         reactiveAutoCommit: true
+  application:
+    name: orders
 
 service:
   reserve:
@@ -100,9 +107,15 @@ idempotent-consumer:
   create-partition-scheduler: "0 */30 * * * *"
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   tracing:
     sampling:
       probability: 1.0
   otlp:
+    logging:
+      endpoint: http://localhost:4318/v1/logs
     tracing:
       endpoint: http://localhost:4318/v1/traces

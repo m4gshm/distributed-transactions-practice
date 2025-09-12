@@ -1,12 +1,23 @@
-debug: true
+debug: false
 logging:
   level:
     root: INFO
+    org:
+      springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: debug # auto configs report
+        r2dbc:
+          connection: TRACE # log sql
+        transaction:
+          reactive: TRACE # log sql
     io:
       github:
         m4gshm: TRACE
       r2dbc:
         postgresql:
+          client: DEBUG # log sql
           QUERY: DEBUG
     java:
       io:
@@ -15,6 +26,8 @@ logging:
       rmi: INFO
     javax:
       management: INFO
+  pattern:
+    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
 
 server:
   port: 7082
@@ -29,6 +42,8 @@ grpc:
       enabled: true #conflict with spring.grpc.server.health.enabled
     reflection:
       enabled: true
+    exception-handling:
+      default-exception-advice-enabled: true
 springdoc:
   api-docs:
     enabled: true
@@ -59,4 +74,19 @@ spring:
       group-id: payments
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  application:
+    name: payments
 
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    logging:
+      endpoint: http://localhost:4318/v1/logs
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
