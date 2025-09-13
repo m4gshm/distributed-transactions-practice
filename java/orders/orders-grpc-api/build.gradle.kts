@@ -9,7 +9,7 @@ sourceSets {
         this.proto {
             exclude("buf/**", "google/**")
             include("orders/**")
-            srcDirs("$rootDir/proto")
+            srcDirs("$rootDir/../proto")
         }
     }
 }

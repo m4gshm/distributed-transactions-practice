@@ -7,7 +7,7 @@ apply(plugin = "io.spring.dependency-management")
 sourceSets {
     main {
         this.proto {
-            srcDir("$rootDir/proto/tpc")
+            srcDir("$rootDir/../proto/tpc")
         }
     }
 }
