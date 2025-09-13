@@ -162,7 +162,7 @@ allprojects {
 
 the<SpotlessExtension>().apply {
     protobuf {
-        target("$rootDir/proto/**/*.proto")
+        target("$rootDir/../proto/**/*.proto")
         buf()
     }
 }
