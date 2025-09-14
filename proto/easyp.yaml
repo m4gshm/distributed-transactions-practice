@@ -1,0 +1,55 @@
+go_packages: &go_packages
+  Mtpc/v1/tpc.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/tcp
+  Mpayment/v1/account.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/account
+  Mpayment/v1/payment.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/payment
+  Mreserve/v1/reserve.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/reserve
+  Mreserve/v1/warehouse.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/reserve
+  Morders/v1/orders.proto: github.com/m4gshm/distributed-transactions-practice/golang/gen/go/orders
+lint:
+  use:
+    - DEFAULT
+  # enum_zero_value_suffix: _NONE
+  # service_suffix: API
+  # ignore: []
+  # except: []
+  # allow_comment_ignores: false
+  # ignore_only: {}
+deps:
+  - github.com/googleapis/googleapis
+  - github.com/protocolbuffers/protobuf
+  - github.com/grpc-ecosystem/grpc-gateway
+  - github.com/bufbuild/protovalidate@v0.3.1
+generate:
+  inputs:
+    - directory: tpc
+    - directory: payment
+    - directory: reserve
+    - directory: orders
+  plugins:
+    - name: go
+      proto_path: proto
+      out: ../golang
+      opts: &common_opts
+        paths: import
+        module: &module github.com/m4gshm/distributed-transactions-practice/golang
+        <<: *go_packages
+    - name: go-grpc
+      proto_path: proto
+      out: ../golang
+      opts:
+        <<: *common_opts
+        require_unimplemented_servers: false
+    - name: grpc-gateway
+      proto_path: proto
+      out: ../golang
+      opts:
+        <<: *common_opts
+    - name: openapiv2
+      proto_path: proto
+      out: ../golang/gen/openapi
+      opts:
+        <<: *go_packages
+        proto3_optional_nullable: true
+        
+breaking:
+  against_git_ref: main

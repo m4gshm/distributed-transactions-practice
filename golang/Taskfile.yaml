@@ -1,0 +1,42 @@
+version: '3'
+
+# vars:
+
+tasks:
+  default:
+    desc: "Build Golang implementations of the services"
+    cmds:
+      - task: install-plugins
+      - task: generate
+      - task: build
+
+  install-plugins:
+    desc: "Install all protoc-gen plugins"
+    cmds:
+      - |
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+        go install github.com/envoyproxy/protoc-gen-validate@latest
+        go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+
+  generate:
+    desc: "Generate Go code from proto files"
+    dir: '{{.USER_WORKING_DIR}}/../proto'  
+    cmds:
+      - |
+        easyp mod update
+        easyp generate
+
+  build:
+    desc: "Build services"
+    cmds:
+      - |
+        go get -u ./...
+        go build ./...      
+
+  clean:
+    desc: "Clean generated files"
+    cmds:
+      - rm -rf {{.GO_OUT_DIR}}/*        

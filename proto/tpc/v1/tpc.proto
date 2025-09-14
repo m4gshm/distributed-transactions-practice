@@ -18,8 +18,7 @@ service TwoPhaseCommitService {
 
   rpc rollback(TwoPhaseRollbackRequest) returns (TwoPhaseRollbackResponse) {
     option (google.api.http) = {
-      delete: "/api/v1/transaction"
-      body: "*"
+      delete: "/api/v1/transaction/{id}"
     };
   }
 }

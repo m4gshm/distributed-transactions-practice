@@ -1,0 +1,18 @@
+# Integration Test Configuration
+
+[package]
+name = "integration-tests"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+tokio = { version = "1.0", features = ["full"] }
+tonic = "0.11"
+uuid = { version = "1.0", features = ["v4"] }
+
+[dependencies.common]
+path = "../common"
+
+[[test]]
+name = "integration_tests"
+path = "integration_tests.rs"

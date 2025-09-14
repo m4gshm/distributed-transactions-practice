@@ -1,0 +1,182 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "tpc/v1/tpc.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "TwoPhaseCommitService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/transaction": {
+      "get": {
+        "operationId": "TwoPhaseCommitService_listActives",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseListActivesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      },
+      "put": {
+        "operationId": "TwoPhaseCommitService_commit",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseCommitResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseCommitRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      }
+    },
+    "/api/v1/transaction/{id}": {
+      "delete": {
+        "operationId": "TwoPhaseCommitService_rollback",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseRollbackResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TwoPhaseListActivesResponseTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "v1TwoPhaseCommitRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TwoPhaseCommitResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TwoPhaseListActivesResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/TwoPhaseListActivesResponseTransaction"
+          }
+        }
+      }
+    },
+    "v1TwoPhaseRollbackResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
