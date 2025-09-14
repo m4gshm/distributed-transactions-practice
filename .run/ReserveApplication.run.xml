@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="ReserveApplication" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.reserve.ReserveApplication" />
-    <module name="distributed-transactions-practice.reserve.reserve-grpc-service.main" />
+    <module name="java.reserve.reserve-grpc-service.main" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

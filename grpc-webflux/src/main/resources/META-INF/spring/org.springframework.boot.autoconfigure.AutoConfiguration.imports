@@ -1,3 +1,0 @@
-io.github.m4gshm.reactive.config.DefaultGrpcExceptionHandlerAutoConfiguration
-io.github.m4gshm.reactive.config.RestExceptionHandlerAutoConfiguration
-io.github.m4gshm.reactive.config.GrpcReactiveAutoConfiguration

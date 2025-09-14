@@ -3,7 +3,6 @@ package tpc.v1;
 
 import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
-import "google/protobuf/timestamp.proto";
 
 service TwoPhaseCommitService {
   rpc listActives(TwoPhaseListActivesRequest) returns (TwoPhaseListActivesResponse) {

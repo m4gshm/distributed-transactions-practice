@@ -1,0 +1,92 @@
+debug: false
+logging:
+  level:
+    root: INFO
+    org:
+      springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: debug # auto configs report
+        r2dbc:
+          connection: TRACE
+        transaction:
+          reactive: TRACE
+    io:
+      github:
+        m4gshm: TRACE
+      r2dbc:
+        postgresql:
+          client: DEBUG # log sql
+          QUERY: DEBUG
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+  pattern:
+    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+
+server:
+  port: 7081
+  error:
+    include-message: always
+grpc:
+  server:
+    port: 9081
+    channelz:
+      enabled: true
+    health:
+      enabled: true #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: true
+    exception-handling:
+      default-exception-advice-enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  #for liquibase
+  datasource:
+    url: jdbc:postgresql://localhost:5000/reserve
+    username: postgres
+    password: postgres
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/reserve
+    username: postgres
+    password: postgres
+  liquibase:
+    enabled: true
+  kafka:
+    bootstrap-servers:
+      - localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: payments
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  application:
+    name: reserve
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    logging:
+      endpoint: http://localhost:4318/v1/logs
+    tracing:
+      endpoint: http://localhost:4318/v1/traces
