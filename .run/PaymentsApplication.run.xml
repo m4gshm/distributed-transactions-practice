@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="PaymentsApplication" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.payments.PaymentsApplication" />
-    <module name="distributed-transactions-practice.payments.payments-grpc-service.main" />
+    <module name="java.payments.payments-grpc-service.main" />
     <shortenClasspath name="ARGS_FILE" />
     <extension name="coverage">
       <pattern>

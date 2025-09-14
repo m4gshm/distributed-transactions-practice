@@ -1,7 +1,7 @@
 <component name="ProjectRunConfigurationManager">
   <configuration default="false" name="OrdersApplication" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.orders.OrdersApplication" />
-    <module name="distributed-transactions-practice.orders.orders-grpc-service.main" />
+    <module name="java.orders.orders-grpc-service.main" />
     <extension name="coverage">
       <pattern>
         <option name="PATTERN" value="io.github.m4gshm.orders.*" />

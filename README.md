@@ -6,4 +6,4 @@
 4. gradlew :reserve:reserve-grpc-service:bootRun
 5. gradlew :orders:orders-grpc-service:bootRun
 6. open in browser http://localhost:7080/swagger-ui/index.html
-7.use examples from the [request](request) directory to create an order
+7. use examples from the [request](request) directory to create an order
