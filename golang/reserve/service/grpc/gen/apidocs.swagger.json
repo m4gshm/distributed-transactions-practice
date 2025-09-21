@@ -1,0 +1,727 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "reserve/v1/api/reserve-api.proto",
+    "version": "version not set"
+  },
+  "tags": [
+    {
+      "name": "ReserveService"
+    },
+    {
+      "name": "WarehouseItemService"
+    },
+    {
+      "name": "TwoPhaseCommitService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/reserve": {
+      "get": {
+        "operationId": "ReserveService_List",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "$ref": "#/definitions/reservev1Reserve"
+              }
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "ReserveService"
+        ]
+      },
+      "post": {
+        "operationId": "ReserveService_Create",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReserveCreateResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReserveCreateRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReserveService"
+        ]
+      }
+    },
+    "/api/v1/reserve/approve": {
+      "post": {
+        "operationId": "ReserveService_Approve",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReserveApproveResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReserveApproveRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReserveService"
+        ]
+      }
+    },
+    "/api/v1/reserve/release": {
+      "post": {
+        "operationId": "ReserveService_Release",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReserveReleaseResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReserveReleaseRequest"
+            }
+          }
+        ],
+        "tags": [
+          "ReserveService"
+        ]
+      }
+    },
+    "/api/v1/reserve/{id}": {
+      "get": {
+        "operationId": "ReserveService_Get",
+        "responses": {
+          "200": {
+            "description": "",
+            "schema": {
+              "$ref": "#/definitions/reservev1Reserve"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ReserveService"
+        ]
+      },
+      "delete": {
+        "operationId": "ReserveService_Cancel",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ReserveCancelResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          },
+          {
+            "name": "preparedTransactionId",
+            "description": "bool two_phase_commit = 2;",
+            "in": "query",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "ReserveService"
+        ]
+      }
+    },
+    "/api/v1/transaction": {
+      "get": {
+        "operationId": "TwoPhaseCommitService_listActives",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseListActivesResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      },
+      "put": {
+        "operationId": "TwoPhaseCommitService_commit",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseCommitResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseCommitRequest"
+            }
+          }
+        ],
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      }
+    },
+    "/api/v1/transaction/{id}": {
+      "delete": {
+        "operationId": "TwoPhaseCommitService_rollback",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1TwoPhaseRollbackResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "TwoPhaseCommitService"
+        ]
+      }
+    },
+    "/api/v1/warehouse/item": {
+      "get": {
+        "summary": "should named List but it conflicts with the List from the ReserveService in a generated openapi spec",
+        "operationId": "WarehouseItemService_ItemList",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ItemListResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "tags": [
+          "WarehouseItemService"
+        ]
+      },
+      "put": {
+        "operationId": "WarehouseItemService_TopUp",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1ItemTopUpResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "body",
+            "in": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ItemTopUpRequest"
+            }
+          }
+        ],
+        "tags": [
+          "WarehouseItemService"
+        ]
+      }
+    },
+    "/api/v1/warehouse/item/cost/{id}": {
+      "get": {
+        "operationId": "WarehouseItemService_GetItemCost",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/v1GetItemCostResponse"
+            }
+          },
+          "default": {
+            "description": "An unexpected error response.",
+            "schema": {
+              "$ref": "#/definitions/googlerpcStatus"
+            }
+          }
+        },
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "tags": [
+          "WarehouseItemService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "TwoPhaseListActivesResponseTransaction": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "googlerpcStatus": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "message": {
+          "type": "string"
+        },
+        "details": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/protobufAny"
+          }
+        }
+      }
+    },
+    "protobufAny": {
+      "type": "object",
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": {}
+    },
+    "reservev1Reserve": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "externalRef": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1ReserveStatus"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/reservev1ReserveItem"
+          }
+        }
+      }
+    },
+    "reservev1ReserveItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "insufficient": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        },
+        "reserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1GetItemCostResponse": {
+      "type": "object",
+      "properties": {
+        "cost": {
+          "type": "number",
+          "format": "double"
+        }
+      }
+    },
+    "v1ItemListResponse": {
+      "type": "object",
+      "properties": {
+        "accounts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/warehousev1Item"
+          }
+        }
+      }
+    },
+    "v1ItemTopUpRequest": {
+      "type": "object",
+      "properties": {
+        "topUp": {
+          "$ref": "#/definitions/v1ItemTopUpRequestTopUp"
+        }
+      }
+    },
+    "v1ItemTopUpRequestTopUp": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1ItemTopUpResponse": {
+      "type": "object",
+      "properties": {
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1ReserveApproveRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "preparedTransactionId": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "bool two_phase_commit = 2;"
+        }
+      }
+    },
+    "v1ReserveApproveResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1ReserveStatus"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ReserveApproveResponseItem"
+          }
+        }
+      }
+    },
+    "v1ReserveApproveResponseItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "insufficientQuantity": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reserved": {
+          "type": "boolean"
+        }
+      }
+    },
+    "v1ReserveCancelResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1ReserveStatus"
+        }
+      }
+    },
+    "v1ReserveCreateRequest": {
+      "type": "object",
+      "properties": {
+        "body": {
+          "$ref": "#/definitions/v1ReserveCreateRequestReserve"
+        },
+        "preparedTransactionId": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "bool two_phase_commit = 2;"
+        }
+      }
+    },
+    "v1ReserveCreateRequestReserve": {
+      "type": "object",
+      "properties": {
+        "externalRef": {
+          "type": "string"
+        },
+        "items": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/v1ReserveCreateRequestReserveItem"
+          }
+        }
+      }
+    },
+    "v1ReserveCreateRequestReserveItem": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        }
+      }
+    },
+    "v1ReserveCreateResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1ReserveGetResponse": {
+      "type": "object",
+      "properties": {
+        "reserve": {
+          "$ref": "#/definitions/reservev1Reserve"
+        }
+      }
+    },
+    "v1ReserveListResponse": {
+      "type": "object",
+      "properties": {
+        "reserves": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/reservev1Reserve"
+          }
+        }
+      }
+    },
+    "v1ReserveReleaseRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "preparedTransactionId": {
+          "type": "string",
+          "x-nullable": true,
+          "title": "bool two_phase_commit = 2;"
+        }
+      }
+    },
+    "v1ReserveReleaseResponse": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "status": {
+          "$ref": "#/definitions/v1ReserveStatus"
+        }
+      }
+    },
+    "v1ReserveStatus": {
+      "type": "string",
+      "enum": [
+        "CREATED",
+        "INSUFFICIENT",
+        "APPROVED",
+        "RELEASED",
+        "CANCELLED"
+      ],
+      "default": "CREATED"
+    },
+    "v1TwoPhaseCommitRequest": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TwoPhaseCommitResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "v1TwoPhaseListActivesResponse": {
+      "type": "object",
+      "properties": {
+        "transactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "$ref": "#/definitions/TwoPhaseListActivesResponseTransaction"
+          }
+        }
+      }
+    },
+    "v1TwoPhaseRollbackResponse": {
+      "type": "object",
+      "properties": {
+        "message": {
+          "type": "string"
+        },
+        "id": {
+          "type": "string"
+        }
+      }
+    },
+    "warehousev1Item": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "amount": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "reserved": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time"
+        }
+      }
+    }
+  }
+}

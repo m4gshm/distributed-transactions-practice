@@ -46,7 +46,7 @@ import tpc.v1.Tpc;
 
 @Slf4j
 @UtilityClass
-public class OrdersServiceUtils {
+public class OrderServiceUtils {
 
     static Orders.Order toOrderGrpc(
                                     Order order,

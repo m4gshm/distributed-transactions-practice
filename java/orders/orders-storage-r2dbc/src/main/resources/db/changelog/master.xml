@@ -12,9 +12,7 @@
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
             <column name="status" type="text"/>
             <column name="customer_id" type="text">
                 <constraints nullable="false"/>

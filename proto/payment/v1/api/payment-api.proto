@@ -1,0 +1,109 @@
+syntax = "proto3";
+
+package payment.v1;
+
+import "google/api/annotations.proto";
+import "payment/v1/model/payment-model.proto";
+import "buf/validate/validate.proto";
+
+service PaymentService {
+  rpc Create(PaymentCreateRequest) returns (PaymentCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment"
+      body: "*"
+    };
+  }
+  rpc Approve(PaymentApproveRequest) returns (PaymentApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/payment/approve"
+      body: "*"
+    };
+  }
+  rpc Cancel(PaymentCancelRequest) returns (PaymentCancelResponse) {
+    option (google.api.http) = {delete: "/api/v1/payment/{id}"};
+  }
+  rpc Pay(PaymentPayRequest) returns (PaymentPayResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/payment/{id}"
+      body: "*"
+    };
+  }
+  rpc Get(PaymentGetRequest) returns (PaymentGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment/{id}"
+      response_body: "payment"
+    };
+  }
+  rpc List(PaymentListRequest) returns (PaymentListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/payment"
+      response_body: "payments"
+    };
+  }
+}
+
+
+message PaymentCreateRequest {
+  PaymentCreate body = 1;
+//  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+  message PaymentCreate {
+    string external_ref = 1 [(buf.validate.field).string.uuid = true];
+    string client_id = 2 [(buf.validate.field).string.uuid = true];
+    double amount = 3 [(buf.validate.field).double.gt = 0];
+  }
+}
+
+message PaymentCreateResponse {
+  string id = 1;
+}
+
+message PaymentApproveRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+//  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message PaymentApproveResponse {
+  string id = 1;
+  Payment.Status status = 2;
+  double insufficient_amount = 3;
+}
+
+message PaymentCancelRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+//  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message PaymentCancelResponse {
+  string id = 1;
+  Payment.Status status = 2;
+}
+
+message PaymentPayRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+//  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message PaymentPayResponse {
+  string id = 1;
+  Payment.Status status = 2;
+  double balance = 3;
+}
+
+message PaymentGetRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message PaymentGetResponse {
+  Payment payment = 1;
+}
+
+message PaymentListRequest {}
+
+message PaymentListResponse {
+  repeated Payment payments = 1;
+}
+

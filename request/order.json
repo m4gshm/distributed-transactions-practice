@@ -17,5 +17,5 @@
       "type": "PICKUP"
     }
   },
-  "twoPhaseCommit": true
+  "twoPhaseCommit": false
 }

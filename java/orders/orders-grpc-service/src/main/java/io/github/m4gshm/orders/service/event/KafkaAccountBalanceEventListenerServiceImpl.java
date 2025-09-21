@@ -14,7 +14,7 @@ import org.springframework.stereotype.Service;
 
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.github.m4gshm.orders.service.OrdersService;
+import io.github.m4gshm.orders.service.OrderService;
 import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageImpl;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
@@ -36,7 +36,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate;
 
     OrderStorage orderStorage;
-    OrdersService ordersService;
+    OrderService ordersService;
     PaymentServiceStub paymentServiceStub;
     MessageStorage messageStorage;
     // todo move to config of order table

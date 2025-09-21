@@ -1,0 +1,50 @@
+go_packages: &go_packages
+  Morder/v1/model/order-model.proto: &pkgOrder github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen
+  Morder/v1/api/order-api.proto: *pkgOrder
+  Mpayment/v1/model/payment-model.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
+  Mreserve/v1/model/reserve-model.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
+lint:
+  use:
+    - DEFAULT
+  # enum_zero_value_suffix: _NONE
+  # service_suffix: API
+  # ignore: []
+  # except: []
+  # allow_comment_ignores: false
+  # ignore_only: {}
+deps:
+  - github.com/googleapis/googleapis
+  - github.com/protocolbuffers/protobuf
+  - github.com/grpc-ecosystem/grpc-gateway
+  - github.com/bufbuild/protovalidate@v0.3.1
+generate:
+  inputs:
+    - directory: order
+    - directory: payment/v1/model
+    - directory: reserve/v1/model
+  plugins:
+    - name: go
+      out: &out ../golang
+      opts: &common_opts
+        paths: import
+        module: &module github.com/m4gshm/distributed-transactions-practice/golang
+        <<: *go_packages
+    - name: go-grpc
+      out: *out
+      opts:
+        <<: *common_opts
+        require_unimplemented_servers: false
+    - name: grpc-gateway
+      out: *out
+      opts:
+        <<: *common_opts
+    - name: openapiv2
+      out: *out
+      opts:
+        <<: *go_packages
+        proto3_optional_nullable: true
+        allow_merge: true
+        merge_file_name: order/service/grpc/gen/apidocs.json
+        
+breaking:
+  against_git_ref: main

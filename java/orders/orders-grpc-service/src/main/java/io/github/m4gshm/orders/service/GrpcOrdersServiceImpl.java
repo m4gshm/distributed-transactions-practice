@@ -18,7 +18,7 @@ import orders.v1.Orders.OrderListRequest;
 import orders.v1.Orders.OrderListResponse;
 import orders.v1.Orders.OrderReleaseRequest;
 import orders.v1.Orders.OrderReleaseResponse;
-import orders.v1.OrdersServiceGrpc;
+import orders.v1.OrderServiceGrpc;
 import org.springframework.stereotype.Service;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -27,9 +27,9 @@ import static lombok.AccessLevel.PRIVATE;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-public class GrpcOrdersServiceImpl extends OrdersServiceGrpc.OrdersServiceImplBase {
+public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase {
     GrpcReactive grpc;
-    OrdersService ordersService;
+    OrderService ordersService;
 
     @Override
     public void approve(OrderApproveRequest request, StreamObserver<OrderApproveResponse> responseObserver) {

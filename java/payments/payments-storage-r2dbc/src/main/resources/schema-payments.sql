@@ -1,1 +1,1 @@
-create if not exists schema payments;
+create if not exists schema public;

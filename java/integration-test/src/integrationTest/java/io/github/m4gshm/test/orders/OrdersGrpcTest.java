@@ -24,7 +24,7 @@ import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
 import orders.v1.Orders;
 import orders.v1.Orders.Order.Status;
 import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.OrdersServiceGrpc.OrdersServiceBlockingStub;
+import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import payment.v1.AccountOuterClass;
 import payment.v1.AccountServiceGrpc.AccountServiceBlockingStub;
 import warehouse.v1.Warehouse;
@@ -44,7 +44,7 @@ public class OrdersGrpcTest {
     @Autowired
     AccountServiceBlockingStub accountService;
     @Autowired
-    OrdersServiceBlockingStub ordersService;
+    OrderServiceBlockingStub ordersService;
     @Autowired
     WarehouseItemServiceBlockingStub warehouseItemService;
     @Autowired

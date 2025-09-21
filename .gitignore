@@ -11,3 +11,4 @@
 .settings
 docker/tempo-data
 *.exe
+rust/target

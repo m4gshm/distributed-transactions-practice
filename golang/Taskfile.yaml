@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 # vars:
 
@@ -7,6 +7,8 @@ tasks:
     desc: "Build Golang implementations of the services"
     cmds:
       - task: install-plugins
+      - task: install-generators
+      - task: generate-proto
       - task: generate
       - task: build
 
@@ -21,22 +23,40 @@ tasks:
         go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
         go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
 
-  generate:
-    desc: "Generate Go code from proto files"
-    dir: '{{.USER_WORKING_DIR}}/../proto'  
+  install-generators:
+    desc: "Install code generators"
     cmds:
       - |
-        easyp mod update
-        easyp generate
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+  generate-proto:
+    dir: "{{.USER_WORKING_DIR}}/../proto"
+    cmds:
+      - |
+        easyp --cfg easyp-order.yaml mod update
+        echo tpc
+        easyp --cfg easyp-tpc.yaml generate
+        echo order
+        easyp --cfg easyp-order.yaml generate
+        echo payment
+        easyp --cfg easyp-payment.yaml generate
+        echo reserve
+        easyp --cfg easyp-reserve.yaml generate
+
+  generate:
+    desc: "Generate Go code"
+    cmds:
+      - |
+        go generate ./...
 
   build:
     desc: "Build services"
     cmds:
       - |
         go get -u ./...
-        go build ./...      
+        go build ./...
 
   clean:
     desc: "Clean generated files"
     cmds:
-      - rm -rf {{.GO_OUT_DIR}}/*        
+      - rm -rf {{.GO_OUT_DIR}}/*

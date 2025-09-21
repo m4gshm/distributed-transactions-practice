@@ -1,0 +1,19 @@
+syntax = "proto3";
+package account.v1;
+
+import "account/v1/model/account-model.proto";
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+
+service AccountService {
+  rpc List(AccountListRequest) returns (AccountListResponse) {
+    option (google.api.http) = {get: "/api/v1/account"};
+  }
+
+  rpc TopUp(AccountTopUpRequest) returns (AccountTopUpResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/account"
+      body: "*"
+    };
+  }
+}

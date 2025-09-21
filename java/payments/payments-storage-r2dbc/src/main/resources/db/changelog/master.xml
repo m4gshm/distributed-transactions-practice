@@ -20,16 +20,16 @@
             </column>
         </createTable>
     </changeSet>
-<!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
-<!--        <sql>-->
-<!--            ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked &lt;= amount);-->
-<!--        </sql>-->
-<!--        <rollback>-->
-<!--            <sql>-->
-<!--                ALTER TABLE account DROP CONSTRAINT lock_leq_amount;-->
-<!--            </sql>-->
-<!--        </rollback>-->
-<!--    </changeSet>-->
+    <!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
+    <!--        <sql>-->
+    <!--            ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked &lt;= amount);-->
+    <!--        </sql>-->
+    <!--        <rollback>-->
+    <!--            <sql>-->
+    <!--                ALTER TABLE account DROP CONSTRAINT lock_leq_amount;-->
+    <!--            </sql>-->
+    <!--        </rollback>-->
+    <!--    </changeSet>-->
     <changeSet id="createTable-payment" author="alex">
         <createTable tableName="payment">
             <column name="id" type="text">

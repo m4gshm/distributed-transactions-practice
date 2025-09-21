@@ -1,12 +1,12 @@
 package io.github.m4gshm.test.orders.config;
 
+import account.v1.AccountServiceGrpc;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import payment.v1.AccountServiceGrpc;
 
 import java.util.List;
 
