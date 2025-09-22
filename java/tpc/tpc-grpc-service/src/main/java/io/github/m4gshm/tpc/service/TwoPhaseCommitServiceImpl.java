@@ -5,20 +5,19 @@ import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import tpc.v1.Tpc.TwoPhaseCommitRequest;
-import tpc.v1.Tpc.TwoPhaseCommitResponse;
-import tpc.v1.Tpc.TwoPhaseListActivesRequest;
-import tpc.v1.Tpc.TwoPhaseListActivesResponse;
-import tpc.v1.Tpc.TwoPhaseListActivesResponse.Transaction;
-import tpc.v1.Tpc.TwoPhaseRollbackRequest;
-import tpc.v1.Tpc.TwoPhaseRollbackResponse;
-import tpc.v1.TwoPhaseCommitServiceGrpc;
+import tpc.v1.TpcApi.TwoPhaseCommitRequest;
+import tpc.v1.TpcApi.TwoPhaseCommitResponse;
+import tpc.v1.TpcApi.TwoPhaseListActivesRequest;
+import tpc.v1.TpcApi.TwoPhaseListActivesResponse;
+import tpc.v1.TpcApi.TwoPhaseListActivesResponse.Transaction;
+import tpc.v1.TpcApi.TwoPhaseRollbackRequest;
+import tpc.v1.TpcApi.TwoPhaseRollbackResponse;
 
 import static lombok.AccessLevel.PRIVATE;
 
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-public class TwoPhaseCommitServiceImpl extends TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase {
+public class TwoPhaseCommitServiceImpl extends tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase {
     GrpcReactive grpc;
     PreparedTransactionService transactionService;
 

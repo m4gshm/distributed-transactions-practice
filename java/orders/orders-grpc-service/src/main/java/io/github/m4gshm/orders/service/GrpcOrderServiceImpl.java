@@ -5,19 +5,20 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders;
-import orders.v1.Orders.OrderApproveRequest;
-import orders.v1.Orders.OrderApproveResponse;
-import orders.v1.Orders.OrderCancelRequest;
-import orders.v1.Orders.OrderCancelResponse;
-import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.Orders.OrderCreateResponse;
-import orders.v1.Orders.OrderGetRequest;
-import orders.v1.Orders.OrderGetResponse;
-import orders.v1.Orders.OrderListRequest;
-import orders.v1.Orders.OrderListResponse;
-import orders.v1.Orders.OrderReleaseRequest;
-import orders.v1.Orders.OrderReleaseResponse;
+import orders.v1.OrderApi;
+import orders.v1.OrderApi.OrderApproveRequest;
+import orders.v1.OrderApi.OrderApproveResponse;
+import orders.v1.OrderApi.OrderCancelRequest;
+import orders.v1.OrderApi.OrderCancelResponse;
+import orders.v1.OrderApi.OrderCreateRequest;
+import orders.v1.OrderApi.OrderCreateResponse;
+import orders.v1.OrderApi.OrderGetRequest;
+import orders.v1.OrderApi.OrderListRequest;
+import orders.v1.OrderApi.OrderListResponse;
+import orders.v1.OrderApi.OrderReleaseRequest;
+import orders.v1.OrderApi.OrderReleaseResponse;
+import orders.v1.OrderApi.OrderResumeRequest;
+import orders.v1.OrderApi.OrderResumeResponse;
 import orders.v1.OrderServiceGrpc;
 import org.springframework.stereotype.Service;
 
@@ -47,7 +48,7 @@ public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase 
     }
 
     @Override
-    public void get(OrderGetRequest request, StreamObserver<OrderGetResponse> responseObserver) {
+    public void get(OrderGetRequest request, StreamObserver<OrderApi.OrderGetResponse> responseObserver) {
         grpc.subscribe(responseObserver, ordersService.get(request.getId()));
     }
 
@@ -62,7 +63,7 @@ public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase 
     }
 
     @Override
-    public void resume(Orders.OrderResumeRequest request, StreamObserver<Orders.OrderResumeResponse> responseObserver) {
+    public void resume(OrderResumeRequest request, StreamObserver<OrderResumeResponse> responseObserver) {
         grpc.subscribe(responseObserver, ordersService.resume(request.getId(), request.getTwoPhaseCommit()));
     }
 

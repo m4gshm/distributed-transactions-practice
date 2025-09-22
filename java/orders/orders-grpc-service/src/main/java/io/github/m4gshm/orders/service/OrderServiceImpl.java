@@ -1,5 +1,45 @@
 package io.github.m4gshm.orders.service;
 
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
+import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
+import io.github.m4gshm.storage.NotFoundException;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import orders.v1.OrderApi.OrderApproveResponse;
+import orders.v1.OrderApi.OrderCancelResponse;
+import orders.v1.OrderApi.OrderCreateRequest;
+import orders.v1.OrderApi.OrderCreateResponse;
+import orders.v1.OrderApi.OrderGetResponse;
+import orders.v1.OrderApi.OrderListResponse;
+import orders.v1.OrderApi.OrderReleaseResponse;
+import orders.v1.OrderApi.OrderResumeResponse;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
+import payment.v1.PaymentApi.PaymentApproveResponse;
+import payment.v1.PaymentApi.PaymentCancelResponse;
+import payment.v1.PaymentApi.PaymentCreateRequest;
+import payment.v1.PaymentApi.PaymentGetRequest;
+import payment.v1.PaymentModel.Payment;
+import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveApi.ReserveApproveResponse;
+import reserve.v1.ReserveApi.ReserveCancelResponse;
+import reserve.v1.ReserveApi.ReserveCreateRequest;
+import reserve.v1.ReserveApi.ReserveGetRequest;
+import reserve.v1.ReserveModel.Reserve;
+import reserve.v1.ReserveServiceGrpc;
+import tpc.v1.TpcApi;
+import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
+
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.Function;
+
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newStatusException;
 import static io.github.m4gshm.orders.data.model.Order.Status.APPROVED;
@@ -19,49 +59,12 @@ import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PROTECTED;
-import static payment.v1.PaymentOuterClass.Payment.Status.PAID;
+import static payment.v1.PaymentModel.Payment.Status.PAID;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.empty;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.fromSupplier;
 import static reactor.core.publisher.Mono.just;
-
-import java.util.List;
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.Function;
-
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
-import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
-import io.github.m4gshm.storage.NotFoundException;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders.OrderApproveResponse;
-import orders.v1.Orders.OrderCancelResponse;
-import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.Orders.OrderCreateResponse;
-import orders.v1.Orders.OrderGetResponse;
-import orders.v1.Orders.OrderListResponse;
-import orders.v1.Orders.OrderReleaseResponse;
-import orders.v1.Orders.OrderResumeResponse;
-import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentOuterClass.Payment;
-import payment.v1.PaymentOuterClass.PaymentApproveResponse;
-import payment.v1.PaymentServiceGrpc;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass;
-import reserve.v1.ReserveOuterClass.Reserve;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveServiceGrpc;
-import tpc.v1.Tpc;
-import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 @Slf4j
 @Service
@@ -74,7 +77,7 @@ public class OrderServiceImpl implements OrderService {
     ReserveServiceGrpc.ReserveServiceStub reserveClient;
 
     TwoPhaseCommitServiceStub reserveClientTcp;
-    PaymentServiceGrpc.PaymentServiceStub paymentsClient;
+    PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
     ItemService itemService;
     Jooq jooq;
@@ -116,33 +119,33 @@ public class OrderServiceImpl implements OrderService {
                         "paymentsClient::cancel",
                         OrderServiceUtils.newPaymentCancelRequest(order, twoPhaseCommit),
                         paymentsClient::cancel
-                ).map(PaymentOuterClass.PaymentCancelResponse::getStatus),
+                ).map(PaymentCancelResponse::getStatus),
                 order -> toMono(
                         "reserveClient::cancel",
                         OrderServiceUtils.newReserveCancelRequest(order, twoPhaseCommit),
                         reserveClient::cancel
-                ).map(ReserveOuterClass.ReserveCancelResponse::getStatus),
+                ).map(ReserveCancelResponse::getStatus),
                 order -> OrderCancelResponse.newBuilder()
                         .setId(order.id())
                         .build()
         );
     }
 
-    private Mono<Tpc.TwoPhaseCommitResponse> commit(
-                                                    String operationName,
-                                                    String transactionId,
-                                                    TwoPhaseCommitServiceStub paymentsClientTcp
+    private Mono<TpcApi.TwoPhaseCommitResponse> commit(
+                                                       String operationName,
+                                                       String transactionId,
+                                                       TwoPhaseCommitServiceStub paymentsClientTcp
     ) {
         return toMono(operationName, OrderServiceUtils.newCommitRequest(transactionId), paymentsClientTcp::commit)
                 .onErrorComplete(e -> OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId))
                 .doOnError(e -> log.error("error on commit {} {}", operationName, transactionId));
     }
 
-    private Mono<Tpc.TwoPhaseCommitResponse> commitPayment(String transactionId) {
+    private Mono<TpcApi.TwoPhaseCommitResponse> commitPayment(String transactionId) {
         return commit("paymentsClientTcp::commit", transactionId, paymentsClientTcp);
     }
 
-    private Mono<Tpc.TwoPhaseCommitResponse> commitReserve(String transactionId) {
+    private Mono<TpcApi.TwoPhaseCommitResponse> commitReserve(String transactionId) {
         return commit("reserveClientTcp::commit", transactionId, reserveClientTcp);
     }
 
@@ -152,8 +155,8 @@ public class OrderServiceImpl implements OrderService {
         var itemIds = items.stream().map(Order.Item::id).toList();
         var paymentTransactionId = order.paymentTransactionId();
         var paymentRoutine = itemService.getSumCost(itemIds).map(cost -> {
-            var paymentRequestBuilder = PaymentOuterClass.PaymentCreateRequest.newBuilder()
-                    .setBody(PaymentOuterClass.PaymentCreateRequest.PaymentCreate.newBuilder()
+            var paymentRequestBuilder = PaymentCreateRequest.newBuilder()
+                    .setBody(PaymentCreateRequest.PaymentCreate.newBuilder()
                             .setExternalRef(orderId)
                             .setClientId(order.customerId())
                             .setAmount(cost)
@@ -166,8 +169,8 @@ public class OrderServiceImpl implements OrderService {
 
         var reserveTransactionId = order.reserveTransactionId();
 
-        var reserveRequestBuilder = ReserveOuterClass.ReserveCreateRequest.newBuilder()
-                .setBody(ReserveOuterClass.ReserveCreateRequest.Reserve.newBuilder()
+        var reserveRequestBuilder = ReserveCreateRequest.newBuilder()
+                .setBody(ReserveCreateRequest.Reserve.newBuilder()
                         .setExternalRef(orderId)
                         .addAllItems(items.stream()
                                 .map(OrderServiceUtils::toCreateReserveItem)
@@ -204,7 +207,9 @@ public class OrderServiceImpl implements OrderService {
                     .id(orderId)
                     .status(CREATING)
                     .customerId(createRequest.getCustomerId())
-                    .delivery(createRequest.hasDelivery() ? toDelivery(createRequest.getDelivery()) : null)
+                    .delivery(createRequest.hasDelivery()
+                            ? toDelivery(createRequest.getDelivery())
+                            : null)
                     .items(itemsList.stream().map(OrderServiceUtils::toItem).toList());
 
             if (twoPhaseCommit) {
@@ -285,7 +290,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Mono<List<Reserve.Item>> getItems(String reserveId) {
         return toMono("reserveClient::get",
-                ReserveOuterClass.ReserveGetRequest.newBuilder()
+                ReserveGetRequest.newBuilder()
                         .setId(reserveId)
                         .build(),
                 reserveClient::get
@@ -296,7 +301,7 @@ public class OrderServiceImpl implements OrderService {
 
     private Mono<Payment.Status> getPaymentStatus(String paymentId) {
         return toMono("paymentsClient::get",
-                PaymentOuterClass.PaymentGetRequest.newBuilder()
+                PaymentGetRequest.newBuilder()
                         .setId(paymentId)
                         .build(),
                 paymentsClient::get

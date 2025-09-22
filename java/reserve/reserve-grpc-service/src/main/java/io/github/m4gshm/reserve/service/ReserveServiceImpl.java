@@ -1,5 +1,37 @@
 package io.github.m4gshm.reserve.service;
 
+import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reserve.data.ReserveStorage;
+import io.github.m4gshm.reserve.data.WarehouseItemStorage;
+import io.github.m4gshm.reserve.data.model.Reserve;
+import io.grpc.stub.StreamObserver;
+import lombok.AccessLevel;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
+import reserve.v1.ReserveApi;
+import reserve.v1.ReserveApi.ReserveApproveRequest;
+import reserve.v1.ReserveApi.ReserveCancelRequest;
+import reserve.v1.ReserveApi.ReserveCancelResponse;
+import reserve.v1.ReserveApi.ReserveCreateRequest;
+import reserve.v1.ReserveApi.ReserveCreateResponse;
+import reserve.v1.ReserveApi.ReserveGetRequest;
+import reserve.v1.ReserveApi.ReserveGetResponse;
+import reserve.v1.ReserveApi.ReserveListRequest;
+import reserve.v1.ReserveApi.ReserveListResponse;
+import reserve.v1.ReserveApi.ReserveReleaseRequest;
+import reserve.v1.ReserveApi.ReserveReleaseResponse;
+import reserve.v1.ReserveServiceGrpc;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newValidateException;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
@@ -17,38 +49,7 @@ import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
 import static reactor.core.publisher.Mono.error;
 
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-
-import io.github.m4gshm.LogUtils;
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.reactive.GrpcReactive;
-import io.github.m4gshm.reserve.data.ReserveStorage;
-import io.github.m4gshm.reserve.data.WarehouseItemStorage;
-import io.github.m4gshm.reserve.data.model.Reserve;
-import io.grpc.stub.StreamObserver;
-import lombok.AccessLevel;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
-import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
-import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
-import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
-import reserve.v1.ReserveOuterClass.ReserveGetRequest;
-import reserve.v1.ReserveOuterClass.ReserveGetResponse;
-import reserve.v1.ReserveOuterClass.ReserveListRequest;
-import reserve.v1.ReserveOuterClass.ReserveListResponse;
-import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
-import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
-import reserve.v1.ReserveServiceGrpc;
+;
 
 @Slf4j
 @Service
@@ -66,7 +67,8 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     }
 
     @Override
-    public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
+    public void approve(ReserveApproveRequest request,
+                        StreamObserver<ReserveApi.ReserveApproveResponse> responseObserver) {
         var reserveId = request.getId();
         reserveInStatus("release", responseObserver, reserveId, Set.of(CREATED), (dsl, reserve) -> {
             var items = reserve.items();

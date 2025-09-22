@@ -1,17 +1,5 @@
 package io.github.m4gshm.orders.service.event;
 
-import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
-import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.empty;
-
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
-
-import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
-import org.springframework.stereotype.Service;
-
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.orders.service.OrderService;
@@ -21,11 +9,21 @@ import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.Orders.OrderApproveResponse;
-import payment.v1.PaymentOuterClass;
+import orders.v1.OrderApi.OrderApproveResponse;
+import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import org.springframework.stereotype.Service;
+import payment.v1.PaymentApi.PaymentGetRequest;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import javax.annotation.PostConstruct;
+import java.util.Set;
+
+import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
+import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.empty;
 
 @Slf4j
 @Service
@@ -42,8 +40,8 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     // todo move to config of order table
     private final boolean twoPhaseCommit = true;
 
-    private static PaymentOuterClass.PaymentGetRequest paymentGetRequest(String paymentId) {
-        return PaymentOuterClass.PaymentGetRequest.newBuilder()
+    private static PaymentGetRequest paymentGetRequest(String paymentId) {
+        return PaymentGetRequest.newBuilder()
                 .setId(paymentId)
                 .build();
     }

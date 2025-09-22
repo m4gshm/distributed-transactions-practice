@@ -1,6 +1,6 @@
 package io.github.m4gshm.test.orders.config;
 
-import account.v1.AccountServiceGrpc;
+import account.v1.AccountServiceGrpc.AccountServiceBlockingStub;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -10,6 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
+import static account.v1.AccountServiceGrpc.newBlockingStub;
 import static io.github.m4gshm.test.orders.config.Utils.newManagedChannel;
 
 @Configuration
@@ -17,8 +18,8 @@ import static io.github.m4gshm.test.orders.config.Utils.newManagedChannel;
 public class AccountServiceConfig {
 
     @Bean
-    public AccountServiceGrpc.AccountServiceBlockingStub accountService(List<ClientInterceptor> clientInterceptors) {
-        return AccountServiceGrpc.newBlockingStub(newManagedChannel(paymentClientProperties(), clientInterceptors));
+    public AccountServiceBlockingStub accountService(List<ClientInterceptor> clientInterceptors) {
+        return newBlockingStub(newManagedChannel(paymentClientProperties(), clientInterceptors));
     }
 
     @Bean
