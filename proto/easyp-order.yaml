@@ -1,8 +1,8 @@
 go_packages: &go_packages
-  Morder/v1/model/order-model.proto: &pkgOrder github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen
-  Morder/v1/api/order-api.proto: *pkgOrder
-  Mpayment/v1/model/payment-model.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
-  Mreserve/v1/model/reserve-model.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
+  Morder/v1/model/order.proto: &pkgOrder github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen
+  Morder/v1/api/order_service.proto: *pkgOrder
+  Mpayment/v1/model/payment.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
+  Mreserve/v1/model/reserve.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
 lint:
   use:
     - DEFAULT

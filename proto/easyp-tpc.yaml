@@ -1,5 +1,5 @@
 go_packages: &go_packages
-  Mtpc/v1/api/tpc-api.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
 lint:
   use:
     - DEFAULT

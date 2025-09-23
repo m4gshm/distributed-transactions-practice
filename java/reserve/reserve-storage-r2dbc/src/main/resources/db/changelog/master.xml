@@ -18,9 +18,7 @@
             <column name="unit_cost" type="double" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
     <changeSet id="createTable-reserve" author="alex">
@@ -35,9 +33,7 @@
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
     <changeSet id="createTable_reserve_item" author="alex">
@@ -61,7 +57,7 @@
             <column name="amount" type="int4">
                 <constraints nullable="false"/>
             </column>
-            <column name="unsufficient" type="int4"/>
+            <column name="insufficient" type="int4"/>
             <column name="reserved" type="bool"/>
         </createTable>
     </changeSet>

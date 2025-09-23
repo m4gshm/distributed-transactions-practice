@@ -15,9 +15,7 @@
             <column name="locked" type="float8" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
     <!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
@@ -53,9 +51,7 @@
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
     <changeSet id="createIndex-payment" author="alex">

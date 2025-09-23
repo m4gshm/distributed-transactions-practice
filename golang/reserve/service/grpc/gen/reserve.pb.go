@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.32.1
-// source: reserve/v1/model/reserve-model.proto
+// source: reserve/v1/model/reserve.proto
 
 package gen
 
@@ -60,11 +60,11 @@ func (x Reserve_Status) String() string {
 }
 
 func (Reserve_Status) Descriptor() protoreflect.EnumDescriptor {
-	return file_reserve_v1_model_reserve_model_proto_enumTypes[0].Descriptor()
+	return file_reserve_v1_model_reserve_proto_enumTypes[0].Descriptor()
 }
 
 func (Reserve_Status) Type() protoreflect.EnumType {
-	return &file_reserve_v1_model_reserve_model_proto_enumTypes[0]
+	return &file_reserve_v1_model_reserve_proto_enumTypes[0]
 }
 
 func (x Reserve_Status) Number() protoreflect.EnumNumber {
@@ -73,7 +73,7 @@ func (x Reserve_Status) Number() protoreflect.EnumNumber {
 
 // Deprecated: Use Reserve_Status.Descriptor instead.
 func (Reserve_Status) EnumDescriptor() ([]byte, []int) {
-	return file_reserve_v1_model_reserve_model_proto_rawDescGZIP(), []int{0, 0}
+	return file_reserve_v1_model_reserve_proto_rawDescGZIP(), []int{0, 0}
 }
 
 type Reserve struct {
@@ -88,7 +88,7 @@ type Reserve struct {
 
 func (x *Reserve) Reset() {
 	*x = Reserve{}
-	mi := &file_reserve_v1_model_reserve_model_proto_msgTypes[0]
+	mi := &file_reserve_v1_model_reserve_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -100,7 +100,7 @@ func (x *Reserve) String() string {
 func (*Reserve) ProtoMessage() {}
 
 func (x *Reserve) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_model_reserve_model_proto_msgTypes[0]
+	mi := &file_reserve_v1_model_reserve_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -113,7 +113,7 @@ func (x *Reserve) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reserve.ProtoReflect.Descriptor instead.
 func (*Reserve) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_model_reserve_model_proto_rawDescGZIP(), []int{0}
+	return file_reserve_v1_model_reserve_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Reserve) GetId() string {
@@ -156,7 +156,7 @@ type Reserve_Item struct {
 
 func (x *Reserve_Item) Reset() {
 	*x = Reserve_Item{}
-	mi := &file_reserve_v1_model_reserve_model_proto_msgTypes[1]
+	mi := &file_reserve_v1_model_reserve_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -168,7 +168,7 @@ func (x *Reserve_Item) String() string {
 func (*Reserve_Item) ProtoMessage() {}
 
 func (x *Reserve_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_model_reserve_model_proto_msgTypes[1]
+	mi := &file_reserve_v1_model_reserve_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -181,7 +181,7 @@ func (x *Reserve_Item) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Reserve_Item.ProtoReflect.Descriptor instead.
 func (*Reserve_Item) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_model_reserve_model_proto_rawDescGZIP(), []int{0, 0}
+	return file_reserve_v1_model_reserve_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *Reserve_Item) GetId() string {
@@ -212,11 +212,11 @@ func (x *Reserve_Item) GetReserved() bool {
 	return false
 }
 
-var File_reserve_v1_model_reserve_model_proto protoreflect.FileDescriptor
+var File_reserve_v1_model_reserve_proto protoreflect.FileDescriptor
 
-const file_reserve_v1_model_reserve_model_proto_rawDesc = "" +
+const file_reserve_v1_model_reserve_proto_rawDesc = "" +
 	"\n" +
-	"$reserve/v1/model/reserve-model.proto\x12\n" +
+	"\x1ereserve/v1/model/reserve.proto\x12\n" +
 	"reserve.v1\"\xfb\x02\n" +
 	"\aReserve\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12!\n" +
@@ -237,25 +237,25 @@ const file_reserve_v1_model_reserve_model_proto_rawDesc = "" +
 	"\tCANCELLED\x10\x04b\x06proto3"
 
 var (
-	file_reserve_v1_model_reserve_model_proto_rawDescOnce sync.Once
-	file_reserve_v1_model_reserve_model_proto_rawDescData []byte
+	file_reserve_v1_model_reserve_proto_rawDescOnce sync.Once
+	file_reserve_v1_model_reserve_proto_rawDescData []byte
 )
 
-func file_reserve_v1_model_reserve_model_proto_rawDescGZIP() []byte {
-	file_reserve_v1_model_reserve_model_proto_rawDescOnce.Do(func() {
-		file_reserve_v1_model_reserve_model_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_reserve_v1_model_reserve_model_proto_rawDesc), len(file_reserve_v1_model_reserve_model_proto_rawDesc)))
+func file_reserve_v1_model_reserve_proto_rawDescGZIP() []byte {
+	file_reserve_v1_model_reserve_proto_rawDescOnce.Do(func() {
+		file_reserve_v1_model_reserve_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_reserve_v1_model_reserve_proto_rawDesc), len(file_reserve_v1_model_reserve_proto_rawDesc)))
 	})
-	return file_reserve_v1_model_reserve_model_proto_rawDescData
+	return file_reserve_v1_model_reserve_proto_rawDescData
 }
 
-var file_reserve_v1_model_reserve_model_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_reserve_v1_model_reserve_model_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
-var file_reserve_v1_model_reserve_model_proto_goTypes = []any{
+var file_reserve_v1_model_reserve_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
+var file_reserve_v1_model_reserve_proto_msgTypes = make([]protoimpl.MessageInfo, 2)
+var file_reserve_v1_model_reserve_proto_goTypes = []any{
 	(Reserve_Status)(0),  // 0: reserve.v1.Reserve.Status
 	(*Reserve)(nil),      // 1: reserve.v1.Reserve
 	(*Reserve_Item)(nil), // 2: reserve.v1.Reserve.Item
 }
-var file_reserve_v1_model_reserve_model_proto_depIdxs = []int32{
+var file_reserve_v1_model_reserve_proto_depIdxs = []int32{
 	0, // 0: reserve.v1.Reserve.status:type_name -> reserve.v1.Reserve.Status
 	2, // 1: reserve.v1.Reserve.items:type_name -> reserve.v1.Reserve.Item
 	2, // [2:2] is the sub-list for method output_type
@@ -265,28 +265,28 @@ var file_reserve_v1_model_reserve_model_proto_depIdxs = []int32{
 	0, // [0:2] is the sub-list for field type_name
 }
 
-func init() { file_reserve_v1_model_reserve_model_proto_init() }
-func file_reserve_v1_model_reserve_model_proto_init() {
-	if File_reserve_v1_model_reserve_model_proto != nil {
+func init() { file_reserve_v1_model_reserve_proto_init() }
+func file_reserve_v1_model_reserve_proto_init() {
+	if File_reserve_v1_model_reserve_proto != nil {
 		return
 	}
-	file_reserve_v1_model_reserve_model_proto_msgTypes[1].OneofWrappers = []any{}
+	file_reserve_v1_model_reserve_proto_msgTypes[1].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reserve_v1_model_reserve_model_proto_rawDesc), len(file_reserve_v1_model_reserve_model_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reserve_v1_model_reserve_proto_rawDesc), len(file_reserve_v1_model_reserve_proto_rawDesc)),
 			NumEnums:      1,
 			NumMessages:   2,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_reserve_v1_model_reserve_model_proto_goTypes,
-		DependencyIndexes: file_reserve_v1_model_reserve_model_proto_depIdxs,
-		EnumInfos:         file_reserve_v1_model_reserve_model_proto_enumTypes,
-		MessageInfos:      file_reserve_v1_model_reserve_model_proto_msgTypes,
+		GoTypes:           file_reserve_v1_model_reserve_proto_goTypes,
+		DependencyIndexes: file_reserve_v1_model_reserve_proto_depIdxs,
+		EnumInfos:         file_reserve_v1_model_reserve_proto_enumTypes,
+		MessageInfos:      file_reserve_v1_model_reserve_proto_msgTypes,
 	}.Build()
-	File_reserve_v1_model_reserve_model_proto = out.File
-	file_reserve_v1_model_reserve_model_proto_goTypes = nil
-	file_reserve_v1_model_reserve_model_proto_depIdxs = nil
+	File_reserve_v1_model_reserve_proto = out.File
+	file_reserve_v1_model_reserve_proto_goTypes = nil
+	file_reserve_v1_model_reserve_proto_depIdxs = nil
 }

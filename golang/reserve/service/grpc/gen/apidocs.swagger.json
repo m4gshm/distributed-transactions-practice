@@ -1,7 +1,7 @@
 {
   "swagger": "2.0",
   "info": {
-    "title": "reserve/v1/api/reserve-api.proto",
+    "title": "reserve/v1/api/reserve_service.proto",
     "version": "version not set"
   },
   "tags": [

@@ -1,10 +1,10 @@
 go_packages: &go_packages
-  Mpayment/v1/api/payment-api.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
-  Mpayment/v1/model/payment-model.proto: *pkgPayment
+  Mpayment/v1/api/payment_service.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
+  Mpayment/v1/model/payment.proto: *pkgPayment
   Mpayment/v1/account.proto: *pkgPayment 
-  Maccount/v1/api/account-api.proto: *pkgPayment
-  Maccount/v1/model/account-model.proto: *pkgPayment
-  Mtpc/v1/api/tpc-api.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+  Maccount/v1/api/account_service.proto: *pkgPayment
+  Maccount/v1/model/account.proto: *pkgPayment
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
 lint:
   use:
     - DEFAULT

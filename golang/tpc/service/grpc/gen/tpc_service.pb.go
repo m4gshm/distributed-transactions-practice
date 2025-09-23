@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.32.1
-// source: tpc/v1/api/tpc-api.proto
+// source: tpc/v1/api/tpc_service.proto
 
 package gen
 
@@ -31,7 +31,7 @@ type TwoPhaseListActivesRequest struct {
 
 func (x *TwoPhaseListActivesRequest) Reset() {
 	*x = TwoPhaseListActivesRequest{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[0]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -43,7 +43,7 @@ func (x *TwoPhaseListActivesRequest) String() string {
 func (*TwoPhaseListActivesRequest) ProtoMessage() {}
 
 func (x *TwoPhaseListActivesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[0]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -56,7 +56,7 @@ func (x *TwoPhaseListActivesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseListActivesRequest.ProtoReflect.Descriptor instead.
 func (*TwoPhaseListActivesRequest) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{0}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{0}
 }
 
 type TwoPhaseListActivesResponse struct {
@@ -68,7 +68,7 @@ type TwoPhaseListActivesResponse struct {
 
 func (x *TwoPhaseListActivesResponse) Reset() {
 	*x = TwoPhaseListActivesResponse{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[1]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -80,7 +80,7 @@ func (x *TwoPhaseListActivesResponse) String() string {
 func (*TwoPhaseListActivesResponse) ProtoMessage() {}
 
 func (x *TwoPhaseListActivesResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[1]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -93,7 +93,7 @@ func (x *TwoPhaseListActivesResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseListActivesResponse.ProtoReflect.Descriptor instead.
 func (*TwoPhaseListActivesResponse) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{1}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *TwoPhaseListActivesResponse) GetTransactions() []*TwoPhaseListActivesResponse_Transaction {
@@ -112,7 +112,7 @@ type TwoPhaseCommitRequest struct {
 
 func (x *TwoPhaseCommitRequest) Reset() {
 	*x = TwoPhaseCommitRequest{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[2]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -124,7 +124,7 @@ func (x *TwoPhaseCommitRequest) String() string {
 func (*TwoPhaseCommitRequest) ProtoMessage() {}
 
 func (x *TwoPhaseCommitRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[2]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -137,7 +137,7 @@ func (x *TwoPhaseCommitRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseCommitRequest.ProtoReflect.Descriptor instead.
 func (*TwoPhaseCommitRequest) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{2}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *TwoPhaseCommitRequest) GetId() string {
@@ -157,7 +157,7 @@ type TwoPhaseCommitResponse struct {
 
 func (x *TwoPhaseCommitResponse) Reset() {
 	*x = TwoPhaseCommitResponse{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[3]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -169,7 +169,7 @@ func (x *TwoPhaseCommitResponse) String() string {
 func (*TwoPhaseCommitResponse) ProtoMessage() {}
 
 func (x *TwoPhaseCommitResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[3]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -182,7 +182,7 @@ func (x *TwoPhaseCommitResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseCommitResponse.ProtoReflect.Descriptor instead.
 func (*TwoPhaseCommitResponse) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{3}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *TwoPhaseCommitResponse) GetMessage() string {
@@ -208,7 +208,7 @@ type TwoPhaseRollbackRequest struct {
 
 func (x *TwoPhaseRollbackRequest) Reset() {
 	*x = TwoPhaseRollbackRequest{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[4]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -220,7 +220,7 @@ func (x *TwoPhaseRollbackRequest) String() string {
 func (*TwoPhaseRollbackRequest) ProtoMessage() {}
 
 func (x *TwoPhaseRollbackRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[4]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -233,7 +233,7 @@ func (x *TwoPhaseRollbackRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseRollbackRequest.ProtoReflect.Descriptor instead.
 func (*TwoPhaseRollbackRequest) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{4}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *TwoPhaseRollbackRequest) GetId() string {
@@ -253,7 +253,7 @@ type TwoPhaseRollbackResponse struct {
 
 func (x *TwoPhaseRollbackResponse) Reset() {
 	*x = TwoPhaseRollbackResponse{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[5]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -265,7 +265,7 @@ func (x *TwoPhaseRollbackResponse) String() string {
 func (*TwoPhaseRollbackResponse) ProtoMessage() {}
 
 func (x *TwoPhaseRollbackResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[5]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -278,7 +278,7 @@ func (x *TwoPhaseRollbackResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use TwoPhaseRollbackResponse.ProtoReflect.Descriptor instead.
 func (*TwoPhaseRollbackResponse) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{5}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *TwoPhaseRollbackResponse) GetMessage() string {
@@ -304,7 +304,7 @@ type TwoPhaseListActivesResponse_Transaction struct {
 
 func (x *TwoPhaseListActivesResponse_Transaction) Reset() {
 	*x = TwoPhaseListActivesResponse_Transaction{}
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[6]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -316,7 +316,7 @@ func (x *TwoPhaseListActivesResponse_Transaction) String() string {
 func (*TwoPhaseListActivesResponse_Transaction) ProtoMessage() {}
 
 func (x *TwoPhaseListActivesResponse_Transaction) ProtoReflect() protoreflect.Message {
-	mi := &file_tpc_v1_api_tpc_api_proto_msgTypes[6]
+	mi := &file_tpc_v1_api_tpc_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -329,7 +329,7 @@ func (x *TwoPhaseListActivesResponse_Transaction) ProtoReflect() protoreflect.Me
 
 // Deprecated: Use TwoPhaseListActivesResponse_Transaction.ProtoReflect.Descriptor instead.
 func (*TwoPhaseListActivesResponse_Transaction) Descriptor() ([]byte, []int) {
-	return file_tpc_v1_api_tpc_api_proto_rawDescGZIP(), []int{1, 0}
+	return file_tpc_v1_api_tpc_service_proto_rawDescGZIP(), []int{1, 0}
 }
 
 func (x *TwoPhaseListActivesResponse_Transaction) GetId() string {
@@ -339,11 +339,11 @@ func (x *TwoPhaseListActivesResponse_Transaction) GetId() string {
 	return ""
 }
 
-var File_tpc_v1_api_tpc_api_proto protoreflect.FileDescriptor
+var File_tpc_v1_api_tpc_service_proto protoreflect.FileDescriptor
 
-const file_tpc_v1_api_tpc_api_proto_rawDesc = "" +
+const file_tpc_v1_api_tpc_service_proto_rawDesc = "" +
 	"\n" +
-	"\x18tpc/v1/api/tpc-api.proto\x12\x06tpc.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\"\x1c\n" +
+	"\x1ctpc/v1/api/tpc_service.proto\x12\x06tpc.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\"\x1c\n" +
 	"\x1aTwoPhaseListActivesRequest\"\x9a\x01\n" +
 	"\x1bTwoPhaseListActivesResponse\x12S\n" +
 	"\ftransactions\x18\x01 \x03(\v2/.tpc.v1.TwoPhaseListActivesResponse.TransactionR\ftransactions\x1a&\n" +
@@ -365,19 +365,19 @@ const file_tpc_v1_api_tpc_api_proto_rawDesc = "" +
 	"\brollback\x12\x1f.tpc.v1.TwoPhaseRollbackRequest\x1a .tpc.v1.TwoPhaseRollbackResponse\" \x82\xd3\xe4\x93\x02\x1a*\x18/api/v1/transaction/{id}b\x06proto3"
 
 var (
-	file_tpc_v1_api_tpc_api_proto_rawDescOnce sync.Once
-	file_tpc_v1_api_tpc_api_proto_rawDescData []byte
+	file_tpc_v1_api_tpc_service_proto_rawDescOnce sync.Once
+	file_tpc_v1_api_tpc_service_proto_rawDescData []byte
 )
 
-func file_tpc_v1_api_tpc_api_proto_rawDescGZIP() []byte {
-	file_tpc_v1_api_tpc_api_proto_rawDescOnce.Do(func() {
-		file_tpc_v1_api_tpc_api_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_tpc_v1_api_tpc_api_proto_rawDesc), len(file_tpc_v1_api_tpc_api_proto_rawDesc)))
+func file_tpc_v1_api_tpc_service_proto_rawDescGZIP() []byte {
+	file_tpc_v1_api_tpc_service_proto_rawDescOnce.Do(func() {
+		file_tpc_v1_api_tpc_service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_tpc_v1_api_tpc_service_proto_rawDesc), len(file_tpc_v1_api_tpc_service_proto_rawDesc)))
 	})
-	return file_tpc_v1_api_tpc_api_proto_rawDescData
+	return file_tpc_v1_api_tpc_service_proto_rawDescData
 }
 
-var file_tpc_v1_api_tpc_api_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
-var file_tpc_v1_api_tpc_api_proto_goTypes = []any{
+var file_tpc_v1_api_tpc_service_proto_msgTypes = make([]protoimpl.MessageInfo, 7)
+var file_tpc_v1_api_tpc_service_proto_goTypes = []any{
 	(*TwoPhaseListActivesRequest)(nil),              // 0: tpc.v1.TwoPhaseListActivesRequest
 	(*TwoPhaseListActivesResponse)(nil),             // 1: tpc.v1.TwoPhaseListActivesResponse
 	(*TwoPhaseCommitRequest)(nil),                   // 2: tpc.v1.TwoPhaseCommitRequest
@@ -386,7 +386,7 @@ var file_tpc_v1_api_tpc_api_proto_goTypes = []any{
 	(*TwoPhaseRollbackResponse)(nil),                // 5: tpc.v1.TwoPhaseRollbackResponse
 	(*TwoPhaseListActivesResponse_Transaction)(nil), // 6: tpc.v1.TwoPhaseListActivesResponse.Transaction
 }
-var file_tpc_v1_api_tpc_api_proto_depIdxs = []int32{
+var file_tpc_v1_api_tpc_service_proto_depIdxs = []int32{
 	6, // 0: tpc.v1.TwoPhaseListActivesResponse.transactions:type_name -> tpc.v1.TwoPhaseListActivesResponse.Transaction
 	0, // 1: tpc.v1.TwoPhaseCommitService.listActives:input_type -> tpc.v1.TwoPhaseListActivesRequest
 	2, // 2: tpc.v1.TwoPhaseCommitService.commit:input_type -> tpc.v1.TwoPhaseCommitRequest
@@ -401,26 +401,26 @@ var file_tpc_v1_api_tpc_api_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_tpc_v1_api_tpc_api_proto_init() }
-func file_tpc_v1_api_tpc_api_proto_init() {
-	if File_tpc_v1_api_tpc_api_proto != nil {
+func init() { file_tpc_v1_api_tpc_service_proto_init() }
+func file_tpc_v1_api_tpc_service_proto_init() {
+	if File_tpc_v1_api_tpc_service_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tpc_v1_api_tpc_api_proto_rawDesc), len(file_tpc_v1_api_tpc_api_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_tpc_v1_api_tpc_service_proto_rawDesc), len(file_tpc_v1_api_tpc_service_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   7,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_tpc_v1_api_tpc_api_proto_goTypes,
-		DependencyIndexes: file_tpc_v1_api_tpc_api_proto_depIdxs,
-		MessageInfos:      file_tpc_v1_api_tpc_api_proto_msgTypes,
+		GoTypes:           file_tpc_v1_api_tpc_service_proto_goTypes,
+		DependencyIndexes: file_tpc_v1_api_tpc_service_proto_depIdxs,
+		MessageInfos:      file_tpc_v1_api_tpc_service_proto_msgTypes,
 	}.Build()
-	File_tpc_v1_api_tpc_api_proto = out.File
-	file_tpc_v1_api_tpc_api_proto_goTypes = nil
-	file_tpc_v1_api_tpc_api_proto_depIdxs = nil
+	File_tpc_v1_api_tpc_service_proto = out.File
+	file_tpc_v1_api_tpc_service_proto_goTypes = nil
+	file_tpc_v1_api_tpc_service_proto_depIdxs = nil
 }

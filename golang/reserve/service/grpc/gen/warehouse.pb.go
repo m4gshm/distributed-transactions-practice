@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.32.1
-// source: warehouse/v1/model/warehouse-model.proto
+// source: warehouse/v1/model/warehouse.proto
 
 package gen
 
@@ -34,7 +34,7 @@ type Item struct {
 
 func (x *Item) Reset() {
 	*x = Item{}
-	mi := &file_warehouse_v1_model_warehouse_model_proto_msgTypes[0]
+	mi := &file_warehouse_v1_model_warehouse_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *Item) String() string {
 func (*Item) ProtoMessage() {}
 
 func (x *Item) ProtoReflect() protoreflect.Message {
-	mi := &file_warehouse_v1_model_warehouse_model_proto_msgTypes[0]
+	mi := &file_warehouse_v1_model_warehouse_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *Item) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use Item.ProtoReflect.Descriptor instead.
 func (*Item) Descriptor() ([]byte, []int) {
-	return file_warehouse_v1_model_warehouse_model_proto_rawDescGZIP(), []int{0}
+	return file_warehouse_v1_model_warehouse_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *Item) GetId() string {
@@ -90,11 +90,11 @@ func (x *Item) GetUpdatedAt() *timestamppb.Timestamp {
 	return nil
 }
 
-var File_warehouse_v1_model_warehouse_model_proto protoreflect.FileDescriptor
+var File_warehouse_v1_model_warehouse_proto protoreflect.FileDescriptor
 
-const file_warehouse_v1_model_warehouse_model_proto_rawDesc = "" +
+const file_warehouse_v1_model_warehouse_proto_rawDesc = "" +
 	"\n" +
-	"(warehouse/v1/model/warehouse-model.proto\x12\fwarehouse.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x85\x01\n" +
+	"\"warehouse/v1/model/warehouse.proto\x12\fwarehouse.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x85\x01\n" +
 	"\x04Item\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x05R\x06amount\x12\x1a\n" +
@@ -103,23 +103,23 @@ const file_warehouse_v1_model_warehouse_model_proto_rawDesc = "" +
 	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtb\x06proto3"
 
 var (
-	file_warehouse_v1_model_warehouse_model_proto_rawDescOnce sync.Once
-	file_warehouse_v1_model_warehouse_model_proto_rawDescData []byte
+	file_warehouse_v1_model_warehouse_proto_rawDescOnce sync.Once
+	file_warehouse_v1_model_warehouse_proto_rawDescData []byte
 )
 
-func file_warehouse_v1_model_warehouse_model_proto_rawDescGZIP() []byte {
-	file_warehouse_v1_model_warehouse_model_proto_rawDescOnce.Do(func() {
-		file_warehouse_v1_model_warehouse_model_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_warehouse_v1_model_warehouse_model_proto_rawDesc), len(file_warehouse_v1_model_warehouse_model_proto_rawDesc)))
+func file_warehouse_v1_model_warehouse_proto_rawDescGZIP() []byte {
+	file_warehouse_v1_model_warehouse_proto_rawDescOnce.Do(func() {
+		file_warehouse_v1_model_warehouse_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_warehouse_v1_model_warehouse_proto_rawDesc), len(file_warehouse_v1_model_warehouse_proto_rawDesc)))
 	})
-	return file_warehouse_v1_model_warehouse_model_proto_rawDescData
+	return file_warehouse_v1_model_warehouse_proto_rawDescData
 }
 
-var file_warehouse_v1_model_warehouse_model_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
-var file_warehouse_v1_model_warehouse_model_proto_goTypes = []any{
+var file_warehouse_v1_model_warehouse_proto_msgTypes = make([]protoimpl.MessageInfo, 1)
+var file_warehouse_v1_model_warehouse_proto_goTypes = []any{
 	(*Item)(nil),                  // 0: warehouse.v1.Item
 	(*timestamppb.Timestamp)(nil), // 1: google.protobuf.Timestamp
 }
-var file_warehouse_v1_model_warehouse_model_proto_depIdxs = []int32{
+var file_warehouse_v1_model_warehouse_proto_depIdxs = []int32{
 	1, // 0: warehouse.v1.Item.updated_at:type_name -> google.protobuf.Timestamp
 	1, // [1:1] is the sub-list for method output_type
 	1, // [1:1] is the sub-list for method input_type
@@ -128,26 +128,26 @@ var file_warehouse_v1_model_warehouse_model_proto_depIdxs = []int32{
 	0, // [0:1] is the sub-list for field type_name
 }
 
-func init() { file_warehouse_v1_model_warehouse_model_proto_init() }
-func file_warehouse_v1_model_warehouse_model_proto_init() {
-	if File_warehouse_v1_model_warehouse_model_proto != nil {
+func init() { file_warehouse_v1_model_warehouse_proto_init() }
+func file_warehouse_v1_model_warehouse_proto_init() {
+	if File_warehouse_v1_model_warehouse_proto != nil {
 		return
 	}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_warehouse_v1_model_warehouse_model_proto_rawDesc), len(file_warehouse_v1_model_warehouse_model_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_warehouse_v1_model_warehouse_proto_rawDesc), len(file_warehouse_v1_model_warehouse_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   1,
 			NumExtensions: 0,
 			NumServices:   0,
 		},
-		GoTypes:           file_warehouse_v1_model_warehouse_model_proto_goTypes,
-		DependencyIndexes: file_warehouse_v1_model_warehouse_model_proto_depIdxs,
-		MessageInfos:      file_warehouse_v1_model_warehouse_model_proto_msgTypes,
+		GoTypes:           file_warehouse_v1_model_warehouse_proto_goTypes,
+		DependencyIndexes: file_warehouse_v1_model_warehouse_proto_depIdxs,
+		MessageInfos:      file_warehouse_v1_model_warehouse_proto_msgTypes,
 	}.Build()
-	File_warehouse_v1_model_warehouse_model_proto = out.File
-	file_warehouse_v1_model_warehouse_model_proto_goTypes = nil
-	file_warehouse_v1_model_warehouse_model_proto_depIdxs = nil
+	File_warehouse_v1_model_warehouse_proto = out.File
+	file_warehouse_v1_model_warehouse_proto_goTypes = nil
+	file_warehouse_v1_model_warehouse_proto_depIdxs = nil
 }

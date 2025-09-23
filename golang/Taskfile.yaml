@@ -8,6 +8,7 @@ tasks:
     cmds:
       - task: install-plugins
       - task: install-generators
+      - task: clean-gen
       - task: generate-proto
       - task: generate
       - task: build
@@ -28,6 +29,13 @@ tasks:
     cmds:
       - |
         go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+
+  clean-gen:
+    cmds:
+      -  rm -rf order/service/grpc/gen
+      -  rm -rf payment/service/grpc/gen
+      -  rm -rf reserve/service/grpc/gen
+      -  rm -rf tpc/service/grpc/gen
 
   generate-proto:
     dir: "{{.USER_WORKING_DIR}}/../proto"

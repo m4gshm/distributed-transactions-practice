@@ -1,9 +1,9 @@
 go_packages: &go_packages
-  Mreserve/v1/api/reserve-api.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
-  Mreserve/v1/model/reserve-model.proto: *pkgReserve
-  Mwarehouse/v1/api/warehouse-api.proto: *pkgReserve
-  Mwarehouse/v1/model/warehouse-model.proto: *pkgReserve
-  Mtpc/v1/api/tpc-api.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+  Mreserve/v1/api/reserve_service.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
+  Mreserve/v1/model/reserve.proto: *pkgReserve
+  Mwarehouse/v1/api/warehouse_service.proto: *pkgReserve
+  Mwarehouse/v1/model/warehouse.proto: *pkgReserve
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
 lint:
   use:
     - DEFAULT

@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.36.9
 // 	protoc        v6.32.1
-// source: reserve/v1/api/reserve-api.proto
+// source: reserve/v1/api/reserve_service.proto
 
 package gen
 
@@ -34,7 +34,7 @@ type ReserveCreateRequest struct {
 
 func (x *ReserveCreateRequest) Reset() {
 	*x = ReserveCreateRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[0]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[0]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -46,7 +46,7 @@ func (x *ReserveCreateRequest) String() string {
 func (*ReserveCreateRequest) ProtoMessage() {}
 
 func (x *ReserveCreateRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[0]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[0]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -59,7 +59,7 @@ func (x *ReserveCreateRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveCreateRequest.ProtoReflect.Descriptor instead.
 func (*ReserveCreateRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{0}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{0}
 }
 
 func (x *ReserveCreateRequest) GetBody() *ReserveCreateRequest_Reserve {
@@ -85,7 +85,7 @@ type ReserveCreateResponse struct {
 
 func (x *ReserveCreateResponse) Reset() {
 	*x = ReserveCreateResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[1]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[1]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -97,7 +97,7 @@ func (x *ReserveCreateResponse) String() string {
 func (*ReserveCreateResponse) ProtoMessage() {}
 
 func (x *ReserveCreateResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[1]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[1]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -110,7 +110,7 @@ func (x *ReserveCreateResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveCreateResponse.ProtoReflect.Descriptor instead.
 func (*ReserveCreateResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{1}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{1}
 }
 
 func (x *ReserveCreateResponse) GetId() string {
@@ -131,7 +131,7 @@ type ReserveApproveRequest struct {
 
 func (x *ReserveApproveRequest) Reset() {
 	*x = ReserveApproveRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[2]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[2]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -143,7 +143,7 @@ func (x *ReserveApproveRequest) String() string {
 func (*ReserveApproveRequest) ProtoMessage() {}
 
 func (x *ReserveApproveRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[2]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[2]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -156,7 +156,7 @@ func (x *ReserveApproveRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveApproveRequest.ProtoReflect.Descriptor instead.
 func (*ReserveApproveRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{2}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{2}
 }
 
 func (x *ReserveApproveRequest) GetId() string {
@@ -184,7 +184,7 @@ type ReserveApproveResponse struct {
 
 func (x *ReserveApproveResponse) Reset() {
 	*x = ReserveApproveResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[3]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[3]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -196,7 +196,7 @@ func (x *ReserveApproveResponse) String() string {
 func (*ReserveApproveResponse) ProtoMessage() {}
 
 func (x *ReserveApproveResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[3]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[3]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -209,7 +209,7 @@ func (x *ReserveApproveResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveApproveResponse.ProtoReflect.Descriptor instead.
 func (*ReserveApproveResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{3}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{3}
 }
 
 func (x *ReserveApproveResponse) GetId() string {
@@ -244,7 +244,7 @@ type ReserveReleaseRequest struct {
 
 func (x *ReserveReleaseRequest) Reset() {
 	*x = ReserveReleaseRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[4]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[4]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -256,7 +256,7 @@ func (x *ReserveReleaseRequest) String() string {
 func (*ReserveReleaseRequest) ProtoMessage() {}
 
 func (x *ReserveReleaseRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[4]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[4]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -269,7 +269,7 @@ func (x *ReserveReleaseRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveReleaseRequest.ProtoReflect.Descriptor instead.
 func (*ReserveReleaseRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{4}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{4}
 }
 
 func (x *ReserveReleaseRequest) GetId() string {
@@ -296,7 +296,7 @@ type ReserveReleaseResponse struct {
 
 func (x *ReserveReleaseResponse) Reset() {
 	*x = ReserveReleaseResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[5]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -308,7 +308,7 @@ func (x *ReserveReleaseResponse) String() string {
 func (*ReserveReleaseResponse) ProtoMessage() {}
 
 func (x *ReserveReleaseResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[5]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -321,7 +321,7 @@ func (x *ReserveReleaseResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveReleaseResponse.ProtoReflect.Descriptor instead.
 func (*ReserveReleaseResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{5}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *ReserveReleaseResponse) GetId() string {
@@ -349,7 +349,7 @@ type ReserveCancelRequest struct {
 
 func (x *ReserveCancelRequest) Reset() {
 	*x = ReserveCancelRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[6]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -361,7 +361,7 @@ func (x *ReserveCancelRequest) String() string {
 func (*ReserveCancelRequest) ProtoMessage() {}
 
 func (x *ReserveCancelRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[6]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -374,7 +374,7 @@ func (x *ReserveCancelRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveCancelRequest.ProtoReflect.Descriptor instead.
 func (*ReserveCancelRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{6}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{6}
 }
 
 func (x *ReserveCancelRequest) GetId() string {
@@ -401,7 +401,7 @@ type ReserveCancelResponse struct {
 
 func (x *ReserveCancelResponse) Reset() {
 	*x = ReserveCancelResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[7]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -413,7 +413,7 @@ func (x *ReserveCancelResponse) String() string {
 func (*ReserveCancelResponse) ProtoMessage() {}
 
 func (x *ReserveCancelResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[7]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -426,7 +426,7 @@ func (x *ReserveCancelResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveCancelResponse.ProtoReflect.Descriptor instead.
 func (*ReserveCancelResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{7}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *ReserveCancelResponse) GetId() string {
@@ -451,7 +451,7 @@ type ReserveListRequest struct {
 
 func (x *ReserveListRequest) Reset() {
 	*x = ReserveListRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[8]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -463,7 +463,7 @@ func (x *ReserveListRequest) String() string {
 func (*ReserveListRequest) ProtoMessage() {}
 
 func (x *ReserveListRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[8]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -476,7 +476,7 @@ func (x *ReserveListRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveListRequest.ProtoReflect.Descriptor instead.
 func (*ReserveListRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{8}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{8}
 }
 
 type ReserveListResponse struct {
@@ -488,7 +488,7 @@ type ReserveListResponse struct {
 
 func (x *ReserveListResponse) Reset() {
 	*x = ReserveListResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[9]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -500,7 +500,7 @@ func (x *ReserveListResponse) String() string {
 func (*ReserveListResponse) ProtoMessage() {}
 
 func (x *ReserveListResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[9]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -513,7 +513,7 @@ func (x *ReserveListResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveListResponse.ProtoReflect.Descriptor instead.
 func (*ReserveListResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{9}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{9}
 }
 
 func (x *ReserveListResponse) GetReserves() []*Reserve {
@@ -532,7 +532,7 @@ type ReserveGetRequest struct {
 
 func (x *ReserveGetRequest) Reset() {
 	*x = ReserveGetRequest{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[10]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -544,7 +544,7 @@ func (x *ReserveGetRequest) String() string {
 func (*ReserveGetRequest) ProtoMessage() {}
 
 func (x *ReserveGetRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[10]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -557,7 +557,7 @@ func (x *ReserveGetRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveGetRequest.ProtoReflect.Descriptor instead.
 func (*ReserveGetRequest) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{10}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ReserveGetRequest) GetId() string {
@@ -576,7 +576,7 @@ type ReserveGetResponse struct {
 
 func (x *ReserveGetResponse) Reset() {
 	*x = ReserveGetResponse{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[11]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -588,7 +588,7 @@ func (x *ReserveGetResponse) String() string {
 func (*ReserveGetResponse) ProtoMessage() {}
 
 func (x *ReserveGetResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[11]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -601,7 +601,7 @@ func (x *ReserveGetResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveGetResponse.ProtoReflect.Descriptor instead.
 func (*ReserveGetResponse) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{11}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *ReserveGetResponse) GetReserve() *Reserve {
@@ -621,7 +621,7 @@ type ReserveCreateRequest_Reserve struct {
 
 func (x *ReserveCreateRequest_Reserve) Reset() {
 	*x = ReserveCreateRequest_Reserve{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[12]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -633,7 +633,7 @@ func (x *ReserveCreateRequest_Reserve) String() string {
 func (*ReserveCreateRequest_Reserve) ProtoMessage() {}
 
 func (x *ReserveCreateRequest_Reserve) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[12]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -646,7 +646,7 @@ func (x *ReserveCreateRequest_Reserve) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveCreateRequest_Reserve.ProtoReflect.Descriptor instead.
 func (*ReserveCreateRequest_Reserve) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{0, 0}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{0, 0}
 }
 
 func (x *ReserveCreateRequest_Reserve) GetExternalRef() string {
@@ -673,7 +673,7 @@ type ReserveCreateRequest_Reserve_Item struct {
 
 func (x *ReserveCreateRequest_Reserve_Item) Reset() {
 	*x = ReserveCreateRequest_Reserve_Item{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[13]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -685,7 +685,7 @@ func (x *ReserveCreateRequest_Reserve_Item) String() string {
 func (*ReserveCreateRequest_Reserve_Item) ProtoMessage() {}
 
 func (x *ReserveCreateRequest_Reserve_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[13]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -698,7 +698,7 @@ func (x *ReserveCreateRequest_Reserve_Item) ProtoReflect() protoreflect.Message 
 
 // Deprecated: Use ReserveCreateRequest_Reserve_Item.ProtoReflect.Descriptor instead.
 func (*ReserveCreateRequest_Reserve_Item) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{0, 0, 0}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{0, 0, 0}
 }
 
 func (x *ReserveCreateRequest_Reserve_Item) GetId() string {
@@ -726,7 +726,7 @@ type ReserveApproveResponse_Item struct {
 
 func (x *ReserveApproveResponse_Item) Reset() {
 	*x = ReserveApproveResponse_Item{}
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[14]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -738,7 +738,7 @@ func (x *ReserveApproveResponse_Item) String() string {
 func (*ReserveApproveResponse_Item) ProtoMessage() {}
 
 func (x *ReserveApproveResponse_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_reserve_v1_api_reserve_api_proto_msgTypes[14]
+	mi := &file_reserve_v1_api_reserve_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -751,7 +751,7 @@ func (x *ReserveApproveResponse_Item) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ReserveApproveResponse_Item.ProtoReflect.Descriptor instead.
 func (*ReserveApproveResponse_Item) Descriptor() ([]byte, []int) {
-	return file_reserve_v1_api_reserve_api_proto_rawDescGZIP(), []int{3, 0}
+	return file_reserve_v1_api_reserve_service_proto_rawDescGZIP(), []int{3, 0}
 }
 
 func (x *ReserveApproveResponse_Item) GetId() string {
@@ -775,12 +775,12 @@ func (x *ReserveApproveResponse_Item) GetReserved() bool {
 	return false
 }
 
-var File_reserve_v1_api_reserve_api_proto protoreflect.FileDescriptor
+var File_reserve_v1_api_reserve_service_proto protoreflect.FileDescriptor
 
-const file_reserve_v1_api_reserve_api_proto_rawDesc = "" +
+const file_reserve_v1_api_reserve_service_proto_rawDesc = "" +
 	"\n" +
-	" reserve/v1/api/reserve-api.proto\x12\n" +
-	"reserve.v1\x1a$reserve/v1/model/reserve-model.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bbuf/validate/validate.proto\"\xee\x02\n" +
+	"$reserve/v1/api/reserve_service.proto\x12\n" +
+	"reserve.v1\x1a\x1ereserve/v1/model/reserve.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1bbuf/validate/validate.proto\"\xee\x02\n" +
 	"\x14ReserveCreateRequest\x12<\n" +
 	"\x04body\x18\x01 \x01(\v2(.reserve.v1.ReserveCreateRequest.ReserveR\x04body\x12;\n" +
 	"\x17prepared_transaction_id\x18\x03 \x01(\tH\x00R\x15preparedTransactionId\x88\x01\x01\x1a\xbe\x01\n" +
@@ -835,19 +835,19 @@ const file_reserve_v1_api_reserve_api_proto_rawDesc = "" +
 	"\x04List\x12\x1e.reserve.v1.ReserveListRequest\x1a\x1f.reserve.v1.ReserveListResponse\"!\x82\xd3\xe4\x93\x02\x1bb\breserves\x12\x0f/api/v1/reserveb\x06proto3"
 
 var (
-	file_reserve_v1_api_reserve_api_proto_rawDescOnce sync.Once
-	file_reserve_v1_api_reserve_api_proto_rawDescData []byte
+	file_reserve_v1_api_reserve_service_proto_rawDescOnce sync.Once
+	file_reserve_v1_api_reserve_service_proto_rawDescData []byte
 )
 
-func file_reserve_v1_api_reserve_api_proto_rawDescGZIP() []byte {
-	file_reserve_v1_api_reserve_api_proto_rawDescOnce.Do(func() {
-		file_reserve_v1_api_reserve_api_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_reserve_v1_api_reserve_api_proto_rawDesc), len(file_reserve_v1_api_reserve_api_proto_rawDesc)))
+func file_reserve_v1_api_reserve_service_proto_rawDescGZIP() []byte {
+	file_reserve_v1_api_reserve_service_proto_rawDescOnce.Do(func() {
+		file_reserve_v1_api_reserve_service_proto_rawDescData = protoimpl.X.CompressGZIP(unsafe.Slice(unsafe.StringData(file_reserve_v1_api_reserve_service_proto_rawDesc), len(file_reserve_v1_api_reserve_service_proto_rawDesc)))
 	})
-	return file_reserve_v1_api_reserve_api_proto_rawDescData
+	return file_reserve_v1_api_reserve_service_proto_rawDescData
 }
 
-var file_reserve_v1_api_reserve_api_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
-var file_reserve_v1_api_reserve_api_proto_goTypes = []any{
+var file_reserve_v1_api_reserve_service_proto_msgTypes = make([]protoimpl.MessageInfo, 15)
+var file_reserve_v1_api_reserve_service_proto_goTypes = []any{
 	(*ReserveCreateRequest)(nil),              // 0: reserve.v1.ReserveCreateRequest
 	(*ReserveCreateResponse)(nil),             // 1: reserve.v1.ReserveCreateResponse
 	(*ReserveApproveRequest)(nil),             // 2: reserve.v1.ReserveApproveRequest
@@ -866,7 +866,7 @@ var file_reserve_v1_api_reserve_api_proto_goTypes = []any{
 	(Reserve_Status)(0),                       // 15: reserve.v1.Reserve.Status
 	(*Reserve)(nil),                           // 16: reserve.v1.Reserve
 }
-var file_reserve_v1_api_reserve_api_proto_depIdxs = []int32{
+var file_reserve_v1_api_reserve_service_proto_depIdxs = []int32{
 	12, // 0: reserve.v1.ReserveCreateRequest.body:type_name -> reserve.v1.ReserveCreateRequest.Reserve
 	15, // 1: reserve.v1.ReserveApproveResponse.status:type_name -> reserve.v1.Reserve.Status
 	14, // 2: reserve.v1.ReserveApproveResponse.items:type_name -> reserve.v1.ReserveApproveResponse.Item
@@ -894,31 +894,31 @@ var file_reserve_v1_api_reserve_api_proto_depIdxs = []int32{
 	0,  // [0:8] is the sub-list for field type_name
 }
 
-func init() { file_reserve_v1_api_reserve_api_proto_init() }
-func file_reserve_v1_api_reserve_api_proto_init() {
-	if File_reserve_v1_api_reserve_api_proto != nil {
+func init() { file_reserve_v1_api_reserve_service_proto_init() }
+func file_reserve_v1_api_reserve_service_proto_init() {
+	if File_reserve_v1_api_reserve_service_proto != nil {
 		return
 	}
-	file_reserve_v1_model_reserve_model_proto_init()
-	file_reserve_v1_api_reserve_api_proto_msgTypes[0].OneofWrappers = []any{}
-	file_reserve_v1_api_reserve_api_proto_msgTypes[2].OneofWrappers = []any{}
-	file_reserve_v1_api_reserve_api_proto_msgTypes[4].OneofWrappers = []any{}
-	file_reserve_v1_api_reserve_api_proto_msgTypes[6].OneofWrappers = []any{}
+	file_reserve_v1_model_reserve_proto_init()
+	file_reserve_v1_api_reserve_service_proto_msgTypes[0].OneofWrappers = []any{}
+	file_reserve_v1_api_reserve_service_proto_msgTypes[2].OneofWrappers = []any{}
+	file_reserve_v1_api_reserve_service_proto_msgTypes[4].OneofWrappers = []any{}
+	file_reserve_v1_api_reserve_service_proto_msgTypes[6].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
-			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reserve_v1_api_reserve_api_proto_rawDesc), len(file_reserve_v1_api_reserve_api_proto_rawDesc)),
+			RawDescriptor: unsafe.Slice(unsafe.StringData(file_reserve_v1_api_reserve_service_proto_rawDesc), len(file_reserve_v1_api_reserve_service_proto_rawDesc)),
 			NumEnums:      0,
 			NumMessages:   15,
 			NumExtensions: 0,
 			NumServices:   1,
 		},
-		GoTypes:           file_reserve_v1_api_reserve_api_proto_goTypes,
-		DependencyIndexes: file_reserve_v1_api_reserve_api_proto_depIdxs,
-		MessageInfos:      file_reserve_v1_api_reserve_api_proto_msgTypes,
+		GoTypes:           file_reserve_v1_api_reserve_service_proto_goTypes,
+		DependencyIndexes: file_reserve_v1_api_reserve_service_proto_depIdxs,
+		MessageInfos:      file_reserve_v1_api_reserve_service_proto_msgTypes,
 	}.Build()
-	File_reserve_v1_api_reserve_api_proto = out.File
-	file_reserve_v1_api_reserve_api_proto_goTypes = nil
-	file_reserve_v1_api_reserve_api_proto_depIdxs = nil
+	File_reserve_v1_api_reserve_service_proto = out.File
+	file_reserve_v1_api_reserve_service_proto_goTypes = nil
+	file_reserve_v1_api_reserve_service_proto_depIdxs = nil
 }

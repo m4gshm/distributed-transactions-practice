@@ -2,7 +2,7 @@
 // versions:
 // - protoc-gen-go-grpc v1.5.1
 // - protoc             v6.32.1
-// source: tpc/v1/api/tpc-api.proto
+// source: tpc/v1/api/tpc_service.proto
 
 package gen
 
@@ -191,5 +191,5 @@ var TwoPhaseCommitService_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "tpc/v1/api/tpc-api.proto",
+	Metadata: "tpc/v1/api/tpc_service.proto",
 }
