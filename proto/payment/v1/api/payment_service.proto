@@ -3,7 +3,7 @@ syntax = "proto3";
 package payment.v1;
 
 import "google/api/annotations.proto";
-import "payment/v1/model/payment-model.proto";
+import "payment/v1/model/payment.proto";
 import "buf/validate/validate.proto";
 
 service PaymentService {

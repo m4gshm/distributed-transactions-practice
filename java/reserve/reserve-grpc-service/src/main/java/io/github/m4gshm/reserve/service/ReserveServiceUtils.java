@@ -3,14 +3,14 @@ package io.github.m4gshm.reserve.service;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage.ItemOp;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import lombok.experimental.UtilityClass;
-import reserve.v1.ReserveApi.ReserveApproveResponse;
-import reserve.v1.ReserveModel;
+import reserve.v1.ReserveServiceOuterClass.ReserveApproveResponse;
+import reserve.v1.ReserveOuterClass;
 
 import java.util.List;
 
-import static reserve.v1.ReserveModel.Reserve.Item;
-import static reserve.v1.ReserveModel.Reserve.Status;
-import static reserve.v1.ReserveModel.Reserve.newBuilder;
+import static reserve.v1.ReserveOuterClass.Reserve.Item;
+import static reserve.v1.ReserveOuterClass.Reserve.Status;
+import static reserve.v1.ReserveOuterClass.Reserve.newBuilder;
 
 @UtilityClass
 public class ReserveServiceUtils {
@@ -39,7 +39,7 @@ public class ReserveServiceUtils {
         }).toList();
     }
 
-    public static ReserveModel.Reserve toReserveProto(Reserve reserve) {
+    public static ReserveOuterClass.Reserve toReserveProto(Reserve reserve) {
         return newBuilder()
                 .setId(reserve.id())
                 .setExternalRef(reserve.externalRef())

@@ -11,23 +11,23 @@ import io.grpc.StatusRuntimeException;
 import lombok.NonNull;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.OrderApi.OrderCreateRequest.OrderCreate;
-import orders.v1.OrderApi.OrderCreateResponse;
-import orders.v1.OrderApi.OrderResumeResponse;
-import orders.v1.OrderModel;
+import orders.v1.OrderOuterClass;
+import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
+import orders.v1.OrderServiceOuterClass.OrderCreateResponse;
+import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
 import org.jooq.DSLContext;
-import payment.v1.PaymentApi.PaymentApproveRequest;
-import payment.v1.PaymentApi.PaymentCancelRequest;
-import payment.v1.PaymentApi.PaymentPayRequest;
-import payment.v1.PaymentModel.Payment;
+import payment.v1.PaymentOuterClass.Payment;
+import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentPayRequest;
 import reactor.core.publisher.Mono;
-import reserve.v1.ReserveApi.ReserveApproveRequest;
-import reserve.v1.ReserveApi.ReserveCancelRequest;
-import reserve.v1.ReserveApi.ReserveCreateRequest;
-import reserve.v1.ReserveApi.ReserveReleaseRequest;
-import reserve.v1.ReserveModel.Reserve;
-import tpc.v1.TpcApi.TwoPhaseCommitRequest;
-import tpc.v1.TpcApi.TwoPhaseRollbackRequest;
+import reserve.v1.ReserveOuterClass.Reserve;
+import reserve.v1.ReserveServiceOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveReleaseRequest;
+import tpc.v1.TpcService.TwoPhaseCommitRequest;
+import tpc.v1.TpcService.TwoPhaseRollbackRequest;
 
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -41,15 +41,15 @@ import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
-import static orders.v1.OrderModel.Order.Status.APPROVED;
-import static orders.v1.OrderModel.Order.Status.APPROVING;
-import static orders.v1.OrderModel.Order.Status.CANCELLED;
-import static orders.v1.OrderModel.Order.Status.CANCELLING;
-import static orders.v1.OrderModel.Order.Status.CREATED;
-import static orders.v1.OrderModel.Order.Status.CREATING;
-import static orders.v1.OrderModel.Order.Status.INSUFFICIENT;
-import static orders.v1.OrderModel.Order.Status.RELEASED;
-import static orders.v1.OrderModel.Order.Status.RELEASING;
+import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
+import static orders.v1.OrderOuterClass.Order.Status.APPROVING;
+import static orders.v1.OrderOuterClass.Order.Status.CANCELLED;
+import static orders.v1.OrderOuterClass.Order.Status.CANCELLING;
+import static orders.v1.OrderOuterClass.Order.Status.CREATED;
+import static orders.v1.OrderOuterClass.Order.Status.CREATING;
+import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
+import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
+import static orders.v1.OrderOuterClass.Order.Status.RELEASING;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.just;
 
@@ -57,12 +57,12 @@ import static reactor.core.publisher.Mono.just;
 @UtilityClass
 public class OrderServiceUtils {
 
-    static OrderModel.Order toOrderGrpc(
-                                        Order order,
-                                        Payment.Status paymentStatus,
-                                        List<Reserve.Item> items
+    static OrderOuterClass.Order toOrderGrpc(
+                                             Order order,
+                                             Payment.Status paymentStatus,
+                                             List<Reserve.Item> items
     ) {
-        var builder = OrderModel.Order.newBuilder()
+        var builder = OrderOuterClass.Order.newBuilder()
                 .setId(order.id())
                 .setCreatedAt(toTimestamp(order.createdAt()))
                 .setUpdatedAt(toTimestamp(order.updatedAt()))
@@ -78,7 +78,7 @@ public class OrderServiceUtils {
         return builder.build();
     }
 
-    public static OrderModel.Order.Status toOrderStatusGrpc(Order.Status status) {
+    public static OrderOuterClass.Order.Status toOrderStatusGrpc(Order.Status status) {
         return status == null ? null : switch (status) {
             case CREATING -> CREATING;
             case CREATED -> CREATED;
@@ -92,16 +92,16 @@ public class OrderServiceUtils {
         };
     }
 
-    private static OrderModel.Order.Delivery toDeliveryGrpc(Order.Delivery delivery) {
+    private static OrderOuterClass.Order.Delivery toDeliveryGrpc(Order.Delivery delivery) {
         return delivery == null ? null
-                : OrderModel.Order.Delivery.newBuilder()
+                : OrderOuterClass.Order.Delivery.newBuilder()
                         .setAddress(delivery.address())
                         .mergeDateTime(toTimestamp(delivery.dateTime()))
                         .setType(toType(delivery.type()))
                         .build();
     }
 
-    static Order.Delivery toDelivery(OrderModel.Order.Delivery delivery) {
+    static Order.Delivery toDelivery(OrderOuterClass.Order.Delivery delivery) {
         return delivery == null ? null
                 : Order.Delivery.builder()
                         .address(delivery.getAddress())
@@ -113,7 +113,7 @@ public class OrderServiceUtils {
                         .build();
     }
 
-    static Order.Delivery.Type toDeliveryType(OrderModel.Order.Delivery.Type type) {
+    static Order.Delivery.Type toDeliveryType(OrderOuterClass.Order.Delivery.Type type) {
         return type == null ? null : switch (type) {
             case PICKUP -> pickup;
             case COURIER -> courier;
@@ -121,10 +121,10 @@ public class OrderServiceUtils {
         };
     }
 
-    private static OrderModel.Order.Delivery.Type toType(Order.Delivery.Type type) {
+    private static OrderOuterClass.Order.Delivery.Type toType(Order.Delivery.Type type) {
         return type == null ? null : switch (type) {
-            case pickup -> OrderModel.Order.Delivery.Type.PICKUP;
-            case courier -> OrderModel.Order.Delivery.Type.COURIER;
+            case pickup -> OrderOuterClass.Order.Delivery.Type.PICKUP;
+            case courier -> OrderOuterClass.Order.Delivery.Type.COURIER;
         };
     }
 
@@ -252,7 +252,7 @@ public class OrderServiceUtils {
         };
     }
 
-    static OrderResumeResponse newOrderResumeResponse(String o, orders.v1.OrderModel.Order.Status o1) {
+    static OrderResumeResponse newOrderResumeResponse(String o, orders.v1.OrderOuterClass.Order.Status o1) {
         return OrderResumeResponse
                 .newBuilder()
                 .setId(o)

@@ -1,20 +1,29 @@
 syntax = "proto3";
 package account.v1;
 
-import "buf/validate/validate.proto";
+import "account/v1/model/account.proto";
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
+
+import "buf/validate/validate.proto";
+
+service AccountService {
+  rpc List(AccountListRequest) returns (AccountListResponse) {
+    option (google.api.http) = {get: "/api/v1/account"};
+  }
+
+  rpc TopUp(AccountTopUpRequest) returns (AccountTopUpResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/account"
+      body: "*"
+    };
+  }
+}
 
 message AccountListRequest {}
 
 message AccountListResponse {
   repeated Account accounts = 1;
-}
-
-message Account {
-  string client_id = 1;
-  double amount = 2;
-  double locked = 3;
-  google.protobuf.Timestamp updated_at = 4;
 }
 
 message AccountTopUpRequest {

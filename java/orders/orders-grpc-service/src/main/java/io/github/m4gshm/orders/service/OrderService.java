@@ -1,13 +1,13 @@
 package io.github.m4gshm.orders.service;
 
-import orders.v1.OrderApi.OrderApproveResponse;
-import orders.v1.OrderApi.OrderCancelResponse;
-import orders.v1.OrderApi.OrderCreateRequest.OrderCreate;
-import orders.v1.OrderApi.OrderCreateResponse;
-import orders.v1.OrderApi.OrderGetResponse;
-import orders.v1.OrderApi.OrderListResponse;
-import orders.v1.OrderApi.OrderReleaseResponse;
-import orders.v1.OrderApi.OrderResumeResponse;
+import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import orders.v1.OrderServiceOuterClass.OrderCancelResponse;
+import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
+import orders.v1.OrderServiceOuterClass.OrderCreateResponse;
+import orders.v1.OrderServiceOuterClass.OrderGetResponse;
+import orders.v1.OrderServiceOuterClass.OrderListResponse;
+import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
+import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
 import reactor.core.publisher.Mono;
 
 public interface OrderService {

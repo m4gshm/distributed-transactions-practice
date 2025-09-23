@@ -1,18 +1,14 @@
 package io.github.m4gshm.test.orders;
 
 import account.v1.AccountServiceGrpc.AccountServiceBlockingStub;
+import account.v1.AccountServiceOuterClass.AccountTopUpRequest;
 import com.google.protobuf.util.Timestamps;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
-import orders.v1.OrderApi.OrderApproveRequest;
-import orders.v1.OrderApi.OrderApproveResponse;
-import orders.v1.OrderApi.OrderCreateRequest;
-import orders.v1.OrderApi.OrderGetRequest;
-import orders.v1.OrderApi.OrderReleaseRequest;
-import orders.v1.OrderModel.Order.Delivery;
-import orders.v1.OrderModel.Order.Status;
+import orders.v1.OrderOuterClass.Order.Delivery;
+import orders.v1.OrderOuterClass.Order.Status;
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,18 +17,24 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ActiveProfiles;
-import warehouse.v1.WarehouseApi.GetItemCostRequest;
-import warehouse.v1.WarehouseApi.ItemTopUpRequest;
-import warehouse.v1.WarehouseApi.ItemTopUpRequest.TopUp;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
+import warehouse.v1.WarehouseService.GetItemCostRequest;
+import warehouse.v1.WarehouseService.ItemTopUpRequest;
+import warehouse.v1.WarehouseService.ItemTopUpRequest.TopUp;
 
 import java.util.Map;
 
-import static account.v1.AccountModel.AccountTopUpRequest;
-import static orders.v1.OrderModel.Order.Status.APPROVED;
-import static orders.v1.OrderModel.Order.Status.INSUFFICIENT;
-import static orders.v1.OrderModel.Order.Status.RELEASED;
+import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
+import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
+import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
+import static orders.v1.OrderServiceOuterClass.OrderApproveRequest;
+import static orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import static orders.v1.OrderServiceOuterClass.OrderCreateRequest;
+import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
+import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+
+;
 
 @ActiveProfiles("test")
 @SpringBootTest(classes = {

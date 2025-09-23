@@ -6,8 +6,8 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-import "payment/v1/model/payment-model.proto";
-import "reserve/v1/model/reserve-model.proto";
+import "payment/v1/model/payment.proto";
+import "reserve/v1/model/reserve.proto";
 
 message Order {
   string id = 1;

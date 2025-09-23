@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package reserve.v1;
 
-import "reserve/v1/model/reserve-model.proto";
+import "reserve/v1/model/reserve.proto";
 import "google/api/annotations.proto";
 import "buf/validate/validate.proto";
 

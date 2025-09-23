@@ -4,7 +4,7 @@ package warehouse.v1;
 
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
-import "warehouse/v1/model/warehouse-model.proto";
+import "warehouse/v1/model/warehouse.proto";
 
 service WarehouseItemService {
   rpc GetItemCost(GetItemCostRequest) returns (GetItemCostResponse) {

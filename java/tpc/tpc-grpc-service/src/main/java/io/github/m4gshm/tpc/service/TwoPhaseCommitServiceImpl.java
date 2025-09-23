@@ -5,13 +5,14 @@ import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import tpc.v1.TpcApi.TwoPhaseCommitRequest;
-import tpc.v1.TpcApi.TwoPhaseCommitResponse;
-import tpc.v1.TpcApi.TwoPhaseListActivesRequest;
-import tpc.v1.TpcApi.TwoPhaseListActivesResponse;
-import tpc.v1.TpcApi.TwoPhaseListActivesResponse.Transaction;
-import tpc.v1.TpcApi.TwoPhaseRollbackRequest;
-import tpc.v1.TpcApi.TwoPhaseRollbackResponse;
+import tpc.v1.TpcService;
+import tpc.v1.TpcService.TwoPhaseCommitRequest;
+import tpc.v1.TpcService.TwoPhaseCommitResponse;
+import tpc.v1.TpcService.TwoPhaseListActivesRequest;
+import tpc.v1.TpcService.TwoPhaseListActivesResponse;
+import tpc.v1.TpcService.TwoPhaseListActivesResponse.Transaction;
+import tpc.v1.TpcService.TwoPhaseRollbackRequest;
+import tpc.v1.TpcService.TwoPhaseRollbackResponse;
 
 import static lombok.AccessLevel.PRIVATE;
 
@@ -22,7 +23,7 @@ public class TwoPhaseCommitServiceImpl extends tpc.v1.TwoPhaseCommitServiceGrpc.
     PreparedTransactionService transactionService;
 
     @Override
-    public void commit(TwoPhaseCommitRequest request, StreamObserver<TwoPhaseCommitResponse> response) {
+    public void commit(TwoPhaseCommitRequest request, StreamObserver<TpcService.TwoPhaseCommitResponse> response) {
         var requestId = request.getId();
         grpc.subscribe(
                 response,

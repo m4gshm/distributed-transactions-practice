@@ -6,7 +6,7 @@ import "buf/validate/validate.proto";
 import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 
-import "order/v1/model/order-model.proto";
+import "order/v1/model/order.proto";
 
 service OrderService {
   rpc Create (OrderCreateRequest) returns (OrderCreateResponse) {

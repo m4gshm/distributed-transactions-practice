@@ -10,8 +10,8 @@ sourceSets {
             exclude("buf/**", "google/**")
             setIncludes(listOf(
                 "order/**/*.proto",
-                "payment/**/*-model.proto",
-                "reserve/**/*-model.proto",
+                "payment/v1/model/*.proto",
+                "reserve/v1/model/*.proto",
                 ))
             srcDirs("$rootDir/../proto")
         }

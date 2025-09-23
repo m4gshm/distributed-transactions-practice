@@ -9,11 +9,11 @@ import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.OrderApi.OrderApproveResponse;
+import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
 import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
 import org.springframework.stereotype.Service;
-import payment.v1.PaymentApi.PaymentGetRequest;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
+import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 

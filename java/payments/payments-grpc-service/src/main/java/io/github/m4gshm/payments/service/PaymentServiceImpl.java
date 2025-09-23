@@ -11,19 +11,18 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.stereotype.Service;
-import payment.v1.PaymentApi;
-import payment.v1.PaymentApi.PaymentApproveRequest;
-import payment.v1.PaymentApi.PaymentApproveResponse;
-import payment.v1.PaymentApi.PaymentCancelRequest;
-import payment.v1.PaymentApi.PaymentCancelResponse;
-import payment.v1.PaymentApi.PaymentCreateRequest;
-import payment.v1.PaymentApi.PaymentCreateResponse;
-import payment.v1.PaymentApi.PaymentGetRequest;
-import payment.v1.PaymentApi.PaymentGetResponse;
-import payment.v1.PaymentApi.PaymentListRequest;
-import payment.v1.PaymentApi.PaymentListResponse;
-import payment.v1.PaymentApi.PaymentPayRequest;
-import payment.v1.PaymentApi.PaymentPayResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCancelResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentGetResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentListRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentListResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentPayRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentPayResponse;
 import reactor.core.publisher.Mono;
 
 import java.util.Set;
@@ -61,7 +60,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
 
     @Override
     public void approve(PaymentApproveRequest request,
-                        StreamObserver<PaymentApi.PaymentApproveResponse> responseObserver) {
+                        StreamObserver<PaymentApproveResponse> responseObserver) {
         var expected = Set.of(CREATED, INSUFFICIENT);
         paymentAccount("approve",
                 responseObserver,

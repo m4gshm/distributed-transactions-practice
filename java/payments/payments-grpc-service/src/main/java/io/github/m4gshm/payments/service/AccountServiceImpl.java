@@ -1,11 +1,12 @@
 package io.github.m4gshm.payments.service;
 
-import account.v1.AccountModel;
-import account.v1.AccountModel.AccountListRequest;
-import account.v1.AccountModel.AccountListResponse;
-import account.v1.AccountModel.AccountTopUpRequest;
-import account.v1.AccountModel.AccountTopUpResponse;
+import account.v1.AccountOuterClass;
 import account.v1.AccountServiceGrpc.AccountServiceImplBase;
+import account.v1.AccountServiceOuterClass;
+import account.v1.AccountServiceOuterClass.AccountListRequest;
+import account.v1.AccountServiceOuterClass.AccountListResponse;
+import account.v1.AccountServiceOuterClass.AccountTopUpRequest;
+import account.v1.AccountServiceOuterClass.AccountTopUpResponse;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.service.event.AccountEventService;
 import io.github.m4gshm.reactive.GrpcReactive;
@@ -30,10 +31,11 @@ public class AccountServiceImpl extends AccountServiceImplBase {
     AccountEventService accountEventService;
 
     @Override
-    public void list(AccountListRequest request, StreamObserver<AccountListResponse> responseObserver) {
+    public void list(AccountListRequest request,
+                     StreamObserver<AccountServiceOuterClass.AccountListResponse> responseObserver) {
         grpc.subscribe(responseObserver, accountStorage.findAll().map(accounts -> {
             return AccountListResponse.newBuilder().addAllAccounts(accounts.stream().map(account -> {
-                return AccountModel.Account.newBuilder()
+                return AccountOuterClass.Account.newBuilder()
                         .setClientId(account.clientId())
                         .setAmount(account.amount())
                         .setLocked(account.locked())

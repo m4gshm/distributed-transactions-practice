@@ -9,8 +9,8 @@ import java.util.List;
 
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static reactor.core.publisher.Flux.fromIterable;
-import static warehouse.v1.WarehouseApi.GetItemCostRequest;
-import static warehouse.v1.WarehouseApi.GetItemCostResponse;
+import static warehouse.v1.WarehouseService.GetItemCostRequest;
+import static warehouse.v1.WarehouseService.GetItemCostResponse;
 
 @Service
 @RequiredArgsConstructor

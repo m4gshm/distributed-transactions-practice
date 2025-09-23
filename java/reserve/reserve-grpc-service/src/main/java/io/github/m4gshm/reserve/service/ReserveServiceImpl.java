@@ -14,18 +14,18 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reserve.v1.ReserveApi;
-import reserve.v1.ReserveApi.ReserveApproveRequest;
-import reserve.v1.ReserveApi.ReserveCancelRequest;
-import reserve.v1.ReserveApi.ReserveCancelResponse;
-import reserve.v1.ReserveApi.ReserveCreateRequest;
-import reserve.v1.ReserveApi.ReserveCreateResponse;
-import reserve.v1.ReserveApi.ReserveGetRequest;
-import reserve.v1.ReserveApi.ReserveGetResponse;
-import reserve.v1.ReserveApi.ReserveListRequest;
-import reserve.v1.ReserveApi.ReserveListResponse;
-import reserve.v1.ReserveApi.ReserveReleaseRequest;
-import reserve.v1.ReserveApi.ReserveReleaseResponse;
+import reserve.v1.ReserveServiceOuterClass;
+import reserve.v1.ReserveServiceOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCancelResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCreateResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveGetRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveGetResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveListRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveListResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveReleaseRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveReleaseResponse;
 import reserve.v1.ReserveServiceGrpc;
 
 import java.util.Set;
@@ -68,7 +68,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
 
     @Override
     public void approve(ReserveApproveRequest request,
-                        StreamObserver<ReserveApi.ReserveApproveResponse> responseObserver) {
+                        StreamObserver<ReserveServiceOuterClass.ReserveApproveResponse> responseObserver) {
         var reserveId = request.getId();
         reserveInStatus("release", responseObserver, reserveId, Set.of(CREATED), (dsl, reserve) -> {
             var items = reserve.items();
