@@ -10,5 +10,5 @@ func Status[S comparable](entityName string, actual S, expecteds ...S) error {
 	if slice.Contains(expecteds, actual) {
 		return nil
 	}
-	return status.Errorf(codes.FailedPrecondition, "%s in unexpected status %s, extected one of %v", entityName, actual, expecteds)
+	return status.Errorf(codes.FailedPrecondition, "%s in unexpected status %v, extected one of %v", entityName, actual, expecteds)
 }

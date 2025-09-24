@@ -97,7 +97,7 @@ func (s *Service) Rollback(ctx context.Context, req *tpcpb.TwoPhaseRollbackReque
 	err := s.db.QueryRowContext(ctx, `
 		SELECT COUNT(*) FROM pg_prepared_xacts WHERE gid = $1`, req.Id).Scan(&count)
 	if err != nil {
-		return nil, status.Errorf(grpc.Status(err), "failed to check transaction: %w", err)
+		return nil, status.Errorf(grpc.Status(err), "failed to check transaction: %v", err)
 	}
 
 	if count == 0 {

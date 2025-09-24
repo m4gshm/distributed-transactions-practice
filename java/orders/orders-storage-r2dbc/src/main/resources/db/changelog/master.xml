@@ -23,8 +23,8 @@
             <column name="reserve_transaction_id" type="text"/>
         </createTable>
     </changeSet>
-    <changeSet id="createTable-items" author="alex">
-        <createTable tableName="items">
+    <changeSet id="createTable-item" author="alex">
+        <createTable tableName="item">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>

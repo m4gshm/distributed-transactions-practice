@@ -11,6 +11,7 @@ tasks:
       - task: clean-gen
       - task: generate-proto
       - task: generate
+      - task: updep
       - task: build
 
   install-plugins:
@@ -54,15 +55,18 @@ tasks:
   generate:
     desc: "Generate Go code"
     cmds:
-      - |
-        go generate ./...
+      - go generate ./...
+
+  updep:
+    desc: "Update dependencies"
+    cmds:
+      - go get -u ./...
 
   build:
     desc: "Build services"
     cmds:
-      - |
-        go get -u ./...
-        go build ./...
+      - go build ./...
+      - go vet ./...
 
   clean:
     desc: "Clean generated files"

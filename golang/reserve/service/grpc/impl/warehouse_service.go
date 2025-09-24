@@ -34,7 +34,7 @@ func (s *WarehouseService) GetItemCost(ctx context.Context, req *warehousepb.Get
 		// if err == sql.ErrNoRows {
 		// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
 		// }
-		return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID [%s]): %w", req.Id, err)
+		return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID [%s]): %v", req.Id, err)
 	}
 	return &warehousepb.GetItemCostResponse{Cost: item.UnitCost}, nil
 }
@@ -43,7 +43,7 @@ func (s *WarehouseService) ItemList(ctx context.Context, req *warehousepb.ItemLi
 	query := whsqlc.New(s.db)
 	rows, err := query.SelectAllItems(ctx)
 	if err != nil {
-		return nil, status.Errorf(grpc.Status(err), "failed to list warehouse items: %w", err)
+		return nil, status.Errorf(grpc.Status(err), "failed to list warehouse items: %v", err)
 	}
 
 	items := slice.Convert(rows, func(item whsqlc.WarehouseItem) *warehousepb.Item {
@@ -73,7 +73,7 @@ func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUp
 			// if err == sql.ErrNoRows {
 			// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
 			// }
-			return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID [%s]): %w", itemID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID [%s]): %v", itemID, err)
 		}
 
 		newAmount := item.Amount + body.Amount
@@ -81,7 +81,7 @@ func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUp
 			ID:     itemID,
 			Amount: newAmount,
 		}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to update warehouse account (itemID [%s]): %w", itemID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to update warehouse account (itemID [%s]): %v", itemID, err)
 		}
 
 		return &warehousepb.ItemTopUpResponse{Amount: newAmount}, nil

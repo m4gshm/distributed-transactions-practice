@@ -77,6 +77,15 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 			}
 		}
 
+		for _, item := range body.Items {
+			if err := query.InsertOrUpdateItem(ctx, sqlc.InsertOrUpdateItemParams{
+				OrderID: orderID,
+				ID:      item.Id,
+				Amount:  item.Amount}); err != nil {
+				return nil, status.Errorf(grpc.Status(err), "failed to create item (order [%s], item [%s]): %v", orderID, item.Id, err)
+			}
+		}
+
 		cost := 0.0
 		reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
 		for _, item := range body.Items {
@@ -383,7 +392,7 @@ func paymentTransactionID(support bool, order sqlc.Order) *string {
 func updateOrderStatus(ctx context.Context, query *sqlc.Queries, finalStatus sqlc.OrderStatus, orderId string) error {
 	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{Status: finalStatus})
 	if err != nil {
-		return status.Errorf(grpc.Status(err), "failed to update order status (orderId [%s], status [%s]): %w",
+		return status.Errorf(grpc.Status(err), "failed to update order status (orderId [%s], status [%s]): %v",
 			orderId, finalStatus, err)
 	}
 	return nil

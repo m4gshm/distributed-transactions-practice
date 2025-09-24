@@ -54,7 +54,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 			CreatedAt:   pg.Timestamptz(time.Now()),
 			Status:      ressqlc.ReserveStatusCREATED,
 		}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (externalRef [%s]): %w", body.ExternalRef, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (externalRef [%s]): %v", body.ExternalRef, err)
 		}
 
 		for _, item := range body.Items {
@@ -63,7 +63,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 				ID:        item.Id,
 				Amount:    item.Amount,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to create reserve item (externalRef [%s], itemId [%s]): %w", body.ExternalRef, item.Id, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to create reserve item (externalRef [%s], itemId [%s]): %v", body.ExternalRef, item.Id, err)
 			}
 		}
 
@@ -157,7 +157,7 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 				Reserved:     item.Reserved,
 				Insufficient: item.Insufficient,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to update reserve item (itemId [%s]): %w", item.ID, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to update reserve item (itemId [%s]): %v", item.ID, err)
 			}
 		}
 
@@ -166,7 +166,7 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 				ID:       itemId,
 				Reserved: reserved,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to increment reserve of warehouse item (itemId [%s]): %w", itemId, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to increment reserve of warehouse item (itemId [%s]): %v", itemId, err)
 			}
 		}
 
@@ -343,7 +343,7 @@ func releaseWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, reserve
 				ID:       item.ID,
 				Reserved: item.Amount,
 			}); err != nil {
-				return status.Errorf(grpc.Status(err), "failed to release item (itemID [$s]): %w", item.ID, err)
+				return status.Errorf(grpc.Status(err), "failed to release item (itemID [%s]): %v", item.ID, err)
 			}
 		}
 	}
@@ -356,7 +356,7 @@ func updateReserveStatus(ctx context.Context, resQuery *ressqlc.Queries, reserve
 		Status:    newStatus,
 		UpdatedAt: pg.Timestamptz(time.Now()),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "failed to update reserve status (reserveId [%s]): %w", reserveID, err)
+		return status.Errorf(grpc.Status(err), "failed to update reserve status (reserveId [%s]): %v", reserveID, err)
 	}
 	return nil
 }
