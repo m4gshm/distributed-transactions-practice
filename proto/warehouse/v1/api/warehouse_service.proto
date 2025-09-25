@@ -14,7 +14,6 @@ service WarehouseItemService {
     };
   }
 
-  // should named List but it conflicts with the List from the ReserveService in a generated openapi spec
   rpc ItemList(ItemListRequest) returns (ItemListResponse) {
     option (google.api.http) = {get: "/api/v1/warehouse/item"};
   }
