@@ -1,4 +1,3 @@
 github.com/bufbuild/protovalidate v0.3.1 h1:Nsed+fLQn7+OB4u0bj6+Fou/WbExAdySyf+EgaCUgys=
-github.com/googleapis/googleapis v0.0.0-20250913025924-c99b529e5ba7aeb0e0be3d47521d9db65d45b8bf h1:MK9dGe7x4ZVclrNk7na2LV+SVstkWlI1qrrxPiKLXXk=
-github.com/grpc-ecosystem/grpc-gateway v0.0.0-20250914042427-6f9e37fbe3eb80a656d1f2a71102e767b8dec04a h1:yng6aS40MqR79QJv74dU2oabtHGyjgh8d1ZIM/6GgZM=
-github.com/protocolbuffers/protobuf v0.0.0-20250913171952-d0a39dc509965978906140eca19fd88b29772047 h1:Adinu3vJMR4CO2w89Ur5vaHJgqtQveWI5VuXS53C8go=
+github.com/grpc-ecosystem/grpc-gateway v1.16.0 h1:R4prSmbOeuFytbil/IvSgVJ5YY2GmmxiNrhKGguLjDU=
+github.com/protocolbuffers/protobuf v3.19.6 h1:utQRdabalb+rt4/FwjyxsAB8m8N3X9NAzzXaeHXrhug=

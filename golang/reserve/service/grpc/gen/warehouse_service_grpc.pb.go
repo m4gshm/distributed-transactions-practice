@@ -29,7 +29,6 @@ const (
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type WarehouseItemServiceClient interface {
 	GetItemCost(ctx context.Context, in *GetItemCostRequest, opts ...grpc.CallOption) (*GetItemCostResponse, error)
-	// should named List but it conflicts with the List from the ReserveService in a generated openapi spec
 	ItemList(ctx context.Context, in *ItemListRequest, opts ...grpc.CallOption) (*ItemListResponse, error)
 	TopUp(ctx context.Context, in *ItemTopUpRequest, opts ...grpc.CallOption) (*ItemTopUpResponse, error)
 }
@@ -77,7 +76,6 @@ func (c *warehouseItemServiceClient) TopUp(ctx context.Context, in *ItemTopUpReq
 // for forward compatibility.
 type WarehouseItemServiceServer interface {
 	GetItemCost(context.Context, *GetItemCostRequest) (*GetItemCostResponse, error)
-	// should named List but it conflicts with the List from the ReserveService in a generated openapi spec
 	ItemList(context.Context, *ItemListRequest) (*ItemListResponse, error)
 	TopUp(context.Context, *ItemTopUpRequest) (*ItemTopUpResponse, error)
 }

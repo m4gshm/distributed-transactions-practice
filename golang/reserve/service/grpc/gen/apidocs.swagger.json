@@ -291,7 +291,6 @@
     },
     "/api/v1/warehouse/item": {
       "get": {
-        "summary": "should named List but it conflicts with the List from the ReserveService in a generated openapi spec",
         "operationId": "WarehouseItemService_ItemList",
         "responses": {
           "200": {

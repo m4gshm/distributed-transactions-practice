@@ -18,25 +18,25 @@ tasks:
     desc: "Install all protoc-gen plugins"
     cmds:
       - |
-        go install google.golang.org/protobuf/cmd/protoc-gen-go@latest
-        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
-        go install github.com/envoyproxy/protoc-gen-validate@latest
-        go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@latest
-        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@latest
-        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.9
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+        go install github.com/envoyproxy/protoc-gen-validate@v1.2.1 
+        go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.27.2
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.27.2
 
   install-generators:
     desc: "Install code generators"
     cmds:
       - |
-        go install github.com/sqlc-dev/sqlc/cmd/sqlc@latest
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
 
   clean-gen:
     cmds:
-      -  rm -rf order/service/grpc/gen
-      -  rm -rf payment/service/grpc/gen
-      -  rm -rf reserve/service/grpc/gen
-      -  rm -rf tpc/service/grpc/gen
+      - rm -rf order/service/grpc/gen
+      - rm -rf payment/service/grpc/gen
+      - rm -rf reserve/service/grpc/gen
+      - rm -rf tpc/service/grpc/gen
 
   generate-proto:
     dir: "{{.USER_WORKING_DIR}}/../proto"
