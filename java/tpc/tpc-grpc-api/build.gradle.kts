@@ -6,8 +6,10 @@ apply(plugin = "io.spring.dependency-management")
 
 sourceSets {
     main {
-        this.proto {
-            srcDir("$rootDir/../proto/tpc")
+        proto {
+            exclude("buf/**", "google/**")
+            this.setIncludes(listOf("tpc/**/*.proto"))
+            srcDirs("$rootDir/../proto")
         }
     }
 }
@@ -17,17 +19,17 @@ protobuf {
         artifact = "com.google.protobuf:protoc"
     }
     plugins {
-        this.create("grpc") {
+        create("grpc") {
             artifact = "io.grpc:protoc-gen-grpc-java"
         }
     }
     generateProtoTasks {
         all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask?> {
-            this.plugins {
-                this.create("grpc") {}
+            plugins {
+                create("grpc") {}
             }
-            this.builtins {
-                "java".apply {}
+            builtins {
+                maybeCreate("java")
             }
         })
     }

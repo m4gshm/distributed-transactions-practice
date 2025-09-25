@@ -15,21 +15,19 @@
             <column name="locked" type="float8" defaultValueNumeric="0">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
-<!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
-<!--        <sql>-->
-<!--            ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked &lt;= amount);-->
-<!--        </sql>-->
-<!--        <rollback>-->
-<!--            <sql>-->
-<!--                ALTER TABLE account DROP CONSTRAINT lock_leq_amount;-->
-<!--            </sql>-->
-<!--        </rollback>-->
-<!--    </changeSet>-->
+    <!--    <changeSet id="addConstraint-lock_leq_amount" author="alex">-->
+    <!--        <sql>-->
+    <!--            ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked &lt;= amount);-->
+    <!--        </sql>-->
+    <!--        <rollback>-->
+    <!--            <sql>-->
+    <!--                ALTER TABLE account DROP CONSTRAINT lock_leq_amount;-->
+    <!--            </sql>-->
+    <!--        </rollback>-->
+    <!--    </changeSet>-->
     <changeSet id="createTable-payment" author="alex">
         <createTable tableName="payment">
             <column name="id" type="text">
@@ -53,9 +51,7 @@
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
     <changeSet id="createIndex-payment" author="alex">

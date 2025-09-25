@@ -1,0 +1,127 @@
+# Docker configuration for Rust services
+version: '3.8'
+
+services:
+  # Orders Service
+  orders-service-rust:
+    build:
+      context: .
+      dockerfile: orders-service/Dockerfile
+    ports:
+      - "50051:50051"
+    environment:
+      - SERVER_PORT=50051
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - RUST_LOG=info
+    depends_on:
+      - postgres
+      - payments-service-rust
+      - reserve-service-rust
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # Payments Service
+  payments-service-rust:
+    build:
+      context: .
+      dockerfile: payments-service/Dockerfile
+    ports:
+      - "50052:50052"
+    environment:
+      - SERVER_PORT=50052
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - KAFKA_BROKER=kafka:9092
+      - RUST_LOG=info
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # Reserve Service
+  reserve-service-rust:
+    build:
+      context: .
+      dockerfile: reserve-service/Dockerfile
+    ports:
+      - "50053:50053"
+    environment:
+      - SERVER_PORT=50053
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - RUST_LOG=info
+    depends_on:
+      - postgres
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # Two-Phase Commit Service
+  tpc-service-rust:
+    build:
+      context: .
+      dockerfile: tpc-service/Dockerfile
+    ports:
+      - "50054:50054"
+    environment:
+      - SERVER_PORT=50054
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/postgres
+      - RUST_LOG=info
+    depends_on:
+      - postgres
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # PostgreSQL Database (shared with Java services)
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_INITDB_ARGS: "--encoding=UTF-8"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/01-rust-schema.sql
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # Kafka (shared with Java services)
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+  # Zookeeper (for Kafka)
+  zookeeper:
+    image: confluentinc/cp-zookeeper:latest
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - distributed-transactions
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+
+networks:
+  distributed-transactions:
+    driver: bridge

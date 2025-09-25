@@ -1,0 +1,39 @@
+go_packages: &go_packages
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+lint:
+  use:
+    - DEFAULT
+deps:
+  - github.com/protocolbuffers/protobuf@v3.19.6
+  - github.com/grpc-ecosystem/grpc-gateway@v1.16.0
+  - github.com/bufbuild/protovalidate@v0.3.1
+generate:
+  inputs:
+    - directory:
+        path: tpc
+  plugins:
+    - name: go
+      out: &out ../golang
+      opts: &common_opts
+        paths: import
+        module: &module github.com/m4gshm/distributed-transactions-practice/golang
+        <<: *go_packages
+    - name: go-grpc
+      out: *out
+      opts:
+        <<: *common_opts
+        require_unimplemented_servers: false
+    # - name: grpc-gateway
+    #   out: *out
+    #   opts:
+    #     <<: *common_opts
+    # - name: openapiv2
+    #   out: *out
+    #   opts:
+    #     <<: *go_packages
+    #     proto3_optional_nullable: true
+    #     allow_merge: true
+    #     merge_file_name: reserve/service/grpc/gen/apidocs.json
+
+breaking:
+  against_git_ref: main

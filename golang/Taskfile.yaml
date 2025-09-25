@@ -1,0 +1,74 @@
+version: "3"
+
+# vars:
+
+tasks:
+  default:
+    desc: "Build Golang implementations of the services"
+    cmds:
+      - task: install-plugins
+      - task: install-generators
+      - task: clean-gen
+      - task: generate-proto
+      - task: generate
+      - task: updep
+      - task: build
+
+  install-plugins:
+    desc: "Install all protoc-gen plugins"
+    cmds:
+      - |
+        go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.9
+        go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
+        go install github.com/envoyproxy/protoc-gen-validate@v1.2.1 
+        go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.27.2
+        go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.27.2
+
+  install-generators:
+    desc: "Install code generators"
+    cmds:
+      - |
+        go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+
+  clean-gen:
+    cmds:
+      - rm -rf order/service/grpc/gen
+      - rm -rf payment/service/grpc/gen
+      - rm -rf reserve/service/grpc/gen
+      - rm -rf tpc/service/grpc/gen
+
+  generate-proto:
+    dir: "{{.USER_WORKING_DIR}}/../proto"
+    cmds:
+      - |
+        easyp --cfg easyp-order.yaml mod update
+        echo tpc
+        easyp --cfg easyp-tpc.yaml generate
+        echo order
+        easyp --cfg easyp-order.yaml generate
+        echo payment
+        easyp --cfg easyp-payment.yaml generate
+        echo reserve
+        easyp --cfg easyp-reserve.yaml generate
+
+  generate:
+    desc: "Generate Go code"
+    cmds:
+      - go generate ./...
+
+  updep:
+    desc: "Update dependencies"
+    cmds:
+      - go get -u ./...
+
+  build:
+    desc: "Build services"
+    cmds:
+      - go build ./...
+      - go vet ./...
+
+  clean:
+    desc: "Clean generated files"
+    cmds:
+      - rm -rf {{.GO_OUT_DIR}}/*

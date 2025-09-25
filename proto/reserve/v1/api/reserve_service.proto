@@ -1,0 +1,117 @@
+syntax = "proto3";
+
+package reserve.v1;
+
+import "reserve/v1/model/reserve.proto";
+import "google/api/annotations.proto";
+import "buf/validate/validate.proto";
+
+
+service ReserveService {
+  rpc Create (ReserveCreateRequest) returns (ReserveCreateResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve"
+      body: "*"
+    };
+  }
+  rpc Approve (ReserveApproveRequest) returns (ReserveApproveResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve/approve"
+      body: "*"
+    };
+  }
+  rpc Release (ReserveReleaseRequest) returns (ReserveReleaseResponse) {
+    option (google.api.http) = {
+      post: "/api/v1/reserve/release"
+      body: "*"
+    };
+  }
+  rpc Cancel (ReserveCancelRequest) returns (ReserveCancelResponse) {
+    option (google.api.http) = {delete: "/api/v1/reserve/{id}"};
+  }
+  rpc Get (ReserveGetRequest) returns (ReserveGetResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/reserve/{id}"
+      response_body: "reserve"
+    };
+  }
+  rpc List (ReserveListRequest) returns (ReserveListResponse) {
+    option (google.api.http) = {
+      get: "/api/v1/reserve"
+      response_body: "reserves"
+    };
+  }
+}
+
+message ReserveCreateRequest {
+  Reserve body = 1;
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+  message Reserve {
+    string external_ref = 1 [(buf.validate.field).string.uuid = true];
+    repeated Item items = 2;
+    message Item {
+      string id = 1 [(buf.validate.field).string.uuid = true];
+      int32 amount = 2 [(buf.validate.field).int32.gt = 0];
+    }
+  }
+}
+
+message ReserveCreateResponse {
+  string id = 1;
+}
+
+message ReserveApproveRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message ReserveApproveResponse {
+  string id = 1;
+  Reserve.Status status = 2;
+  repeated Item items = 3;
+  message Item {
+    string id = 1;
+    int32 insufficient_quantity = 2;
+    bool reserved = 3;
+  }
+}
+
+message ReserveReleaseRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message ReserveReleaseResponse {
+  string id = 1;
+  Reserve.Status status = 2;
+}
+
+message ReserveCancelRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+  //  bool two_phase_commit = 2;
+  optional string prepared_transaction_id = 3;
+}
+
+message ReserveCancelResponse {
+  string id = 1;
+  Reserve.Status status = 2;
+}
+
+
+message ReserveListRequest {}
+
+message ReserveListResponse {
+  repeated Reserve reserves = 1;
+}
+
+message ReserveGetRequest {
+  string id = 1 [(buf.validate.field).string.uuid = true];
+}
+
+message ReserveGetResponse {
+  Reserve reserve = 1;
+}
+

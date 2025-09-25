@@ -1,1 +1,1 @@
-create if not exists schema orders;
+create if not exists schema public;

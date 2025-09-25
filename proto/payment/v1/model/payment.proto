@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+package payment.v1;
+
+import "buf/validate/validate.proto";
+
+message Payment {
+  string external_ref = 1 [(buf.validate.field).string.uuid = true];
+  string client_id = 2 [(buf.validate.field).string.uuid = true];
+  double amount = 3 [(buf.validate.field).double.gt = 0];
+  optional double insufficient = 4 [(buf.validate.field).double.gt = 0];
+  Status status = 5;
+  enum Status {
+    CREATED = 0;
+    HOLD = 1;
+    INSUFFICIENT = 2;
+    PAID = 3;
+    CANCELLED = 4;
+  }
+}

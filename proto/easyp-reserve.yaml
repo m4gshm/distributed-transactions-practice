@@ -1,0 +1,57 @@
+go_packages: &go_packages
+  Mreserve/v1/api/reserve_service.proto: &pkgReserve github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen
+  Mreserve/v1/model/reserve.proto: *pkgReserve
+  Mwarehouse/v1/api/warehouse_service.proto: *pkgReserve
+  Mwarehouse/v1/model/warehouse.proto: *pkgReserve
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+lint:
+  use:
+    - DEFAULT
+  # enum_zero_value_suffix: _NONE
+  # service_suffix: API
+  # ignore: []
+  # except: []
+  # allow_comment_ignores: false
+  # ignore_only: {}
+deps:
+  - github.com/protocolbuffers/protobuf@v3.19.6
+  - github.com/grpc-ecosystem/grpc-gateway@v1.16.0
+  - github.com/bufbuild/protovalidate@v0.3.1
+generate:
+  inputs:
+    - directory:
+        path: reserve
+    - directory:
+        path: warehouse    
+    - directory:
+        path: tpc
+  plugins:
+    - name: go
+      proto_path: proto
+      out: &out ../golang
+      opts: &common_opts
+        paths: import
+        module: &module github.com/m4gshm/distributed-transactions-practice/golang
+        <<: *go_packages
+    - name: go-grpc
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *common_opts
+        require_unimplemented_servers: false
+    - name: grpc-gateway
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *common_opts
+    - name: openapiv2
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *go_packages
+        proto3_optional_nullable: true
+        allow_merge: true
+        merge_file_name: reserve/service/grpc/gen/apidocs.json
+
+breaking:
+  against_git_ref: main

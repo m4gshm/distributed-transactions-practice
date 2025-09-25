@@ -1,5 +1,34 @@
 package io.github.m4gshm.payments.service;
 
+import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.payments.data.model.Account;
+import io.github.m4gshm.payments.data.model.Payment;
+import io.github.m4gshm.reactive.GrpcReactive;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import org.springframework.stereotype.Service;
+import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentApproveResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentCancelRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCancelResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCreateResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentGetResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentListRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentListResponse;
+import payment.v1.PaymentServiceOuterClass.PaymentPayRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentPayResponse;
+import reactor.core.publisher.Mono;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.payments.data.model.Payment.Status.CANCELLED;
 import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
@@ -14,36 +43,6 @@ import static io.github.m4gshm.protobuf.Utils.getOrNull;
 import static lombok.AccessLevel.PRIVATE;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
 import static reactor.core.publisher.Mono.defer;
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
-import org.springframework.stereotype.Service;
-
-import io.github.m4gshm.LogUtils;
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.PaymentStorage;
-import io.github.m4gshm.payments.data.model.Account;
-import io.github.m4gshm.payments.data.model.Payment;
-import io.github.m4gshm.reactive.GrpcReactive;
-import io.grpc.stub.StreamObserver;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import payment.v1.PaymentOuterClass.PaymentApproveRequest;
-import payment.v1.PaymentOuterClass.PaymentApproveResponse;
-import payment.v1.PaymentOuterClass.PaymentCancelRequest;
-import payment.v1.PaymentOuterClass.PaymentCancelResponse;
-import payment.v1.PaymentOuterClass.PaymentCreateRequest;
-import payment.v1.PaymentOuterClass.PaymentCreateResponse;
-import payment.v1.PaymentOuterClass.PaymentGetRequest;
-import payment.v1.PaymentOuterClass.PaymentGetResponse;
-import payment.v1.PaymentOuterClass.PaymentListRequest;
-import payment.v1.PaymentOuterClass.PaymentListResponse;
-import payment.v1.PaymentOuterClass.PaymentPayRequest;
-import payment.v1.PaymentOuterClass.PaymentPayResponse;
-import reactor.core.publisher.Mono;
 
 @Service
 @RequiredArgsConstructor
@@ -60,7 +59,8 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     }
 
     @Override
-    public void approve(PaymentApproveRequest request, StreamObserver<PaymentApproveResponse> responseObserver) {
+    public void approve(PaymentApproveRequest request,
+                        StreamObserver<PaymentApproveResponse> responseObserver) {
         var expected = Set.of(CREATED, INSUFFICIENT);
         paymentAccount("approve",
                 responseObserver,

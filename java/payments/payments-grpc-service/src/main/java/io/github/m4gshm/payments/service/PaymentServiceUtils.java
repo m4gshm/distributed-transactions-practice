@@ -3,7 +3,7 @@ package io.github.m4gshm.payments.service;
 import io.github.m4gshm.payments.data.model.Payment;
 import lombok.experimental.UtilityClass;
 import payment.v1.PaymentOuterClass;
-import payment.v1.PaymentOuterClass.PaymentCreateRequest;
+import payment.v1.PaymentServiceOuterClass.PaymentCreateRequest.PaymentCreate;
 
 @UtilityClass
 public class PaymentServiceUtils {
@@ -36,7 +36,7 @@ public class PaymentServiceUtils {
                 .build();
     }
 
-    static Payment toPayment(String id, PaymentCreateRequest.PaymentCreate payment, Payment.Status status) {
+    static Payment toPayment(String id, PaymentCreate payment, Payment.Status status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())

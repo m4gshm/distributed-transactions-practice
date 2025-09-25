@@ -1,0 +1,58 @@
+go_packages: &go_packages
+  Mpayment/v1/api/payment_service.proto: &pkgPayment github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen
+  Mpayment/v1/model/payment.proto: *pkgPayment
+  Mpayment/v1/account.proto: *pkgPayment 
+  Maccount/v1/api/account_service.proto: *pkgPayment
+  Maccount/v1/model/account.proto: *pkgPayment
+  Mtpc/v1/api/tpc_service.proto: github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen
+lint:
+  use:
+    - DEFAULT
+  # enum_zero_value_suffix: _NONE
+  # service_suffix: API
+  # ignore: []
+  # except: []
+  # allow_comment_ignores: false
+  # ignore_only: {}
+deps:
+  - github.com/protocolbuffers/protobuf@v3.19.6
+  - github.com/grpc-ecosystem/grpc-gateway@v1.16.0
+  - github.com/bufbuild/protovalidate@v0.3.1
+generate:
+  inputs:
+    - directory:
+        path: payment
+    - directory:
+        path: account       
+    - directory:
+        path: tpc
+  plugins:
+    - name: go
+      proto_path: proto
+      out: &out ../golang
+      opts: &common_opts
+        paths: import
+        module: &module github.com/m4gshm/distributed-transactions-practice/golang
+        <<: *go_packages
+    - name: go-grpc
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *common_opts
+        require_unimplemented_servers: false
+    - name: grpc-gateway
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *common_opts
+    - name: openapiv2
+      proto_path: proto
+      out: *out
+      opts:
+        <<: *go_packages
+        proto3_optional_nullable: true
+        allow_merge: true
+        merge_file_name: payment/service/grpc/gen/apidocs.json
+
+breaking:
+  against_git_ref: main

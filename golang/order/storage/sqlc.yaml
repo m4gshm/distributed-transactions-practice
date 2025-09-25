@@ -1,0 +1,15 @@
+version: "2"
+sql:
+  - name: "orders"
+    engine: "postgresql"
+    queries: "./queries/"
+    schema: "./migrations/"
+    gen:
+      go:
+        package: "gen"
+        out: "gen"
+        sql_package: "pgx/v5"
+        emit_json_tags: false
+        emit_interface: true # Generate an interface for the queries
+        emit_empty_slices: false # Emit empty slices instead of nil for no results
+        # Other Go-specific options like emit_db_tags, emit_prepared_queries, etc.

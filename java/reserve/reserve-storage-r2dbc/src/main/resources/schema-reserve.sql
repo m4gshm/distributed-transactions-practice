@@ -1,1 +1,1 @@
-create if not exists schema reserve;
+create if not exists schema public;

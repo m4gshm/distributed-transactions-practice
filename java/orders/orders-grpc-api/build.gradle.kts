@@ -8,7 +8,11 @@ sourceSets {
     main {
         this.proto {
             exclude("buf/**", "google/**")
-            include("orders/**")
+            setIncludes(listOf(
+                "order/**/*.proto",
+                "payment/v1/model/*.proto",
+                "reserve/v1/model/*.proto",
+                ))
             srcDirs("$rootDir/../proto")
         }
     }
@@ -28,8 +32,9 @@ protobuf {
             plugins {
                 create("grpc") {}
             }
-            builtins {
-                "java".apply {}
+            builtins.maybeCreate("java").apply {
+//                option("lite")
+//                option("shared=true")
             }
         })
     }

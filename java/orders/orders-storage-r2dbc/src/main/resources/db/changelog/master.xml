@@ -12,9 +12,7 @@
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
                 <constraints nullable="false"/>
             </column>
-            <column name="updated_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">
-                <constraints nullable="false"/>
-            </column>
+            <column name="updated_at" type="timestamptz"/>
             <column name="status" type="text"/>
             <column name="customer_id" type="text">
                 <constraints nullable="false"/>
@@ -25,8 +23,8 @@
             <column name="reserve_transaction_id" type="text"/>
         </createTable>
     </changeSet>
-    <changeSet id="createTable-items" author="alex">
-        <createTable tableName="items">
+    <changeSet id="createTable-item" author="alex">
+        <createTable tableName="item">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
