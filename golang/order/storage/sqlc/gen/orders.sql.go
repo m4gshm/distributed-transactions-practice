@@ -109,14 +109,10 @@ func (q *Queries) FindOrderById(ctx context.Context, id string) (FindOrderByIdRo
 const findOrdersByClientAndStatuses = `-- name: FindOrdersByClientAndStatuses :many
 SELECT
   o.id, o.created_at, o.updated_at, o.status, o.customer_id, o.reserve_id, o.payment_id, o.payment_transaction_id, o.reserve_transaction_id,
-  d.address AS delivery_address,
-  d.type AS delivery_type,
-  i.id AS item_id,
-  i.amount AS item_amount
+  d.order_id, d.address, d.type
 FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id
-  LEFT JOIN item i ON o.id = i.order_id
 WHERE
   o.customer_id = $1
   AND o.status IN (
@@ -126,28 +122,17 @@ WHERE
 `
 
 type FindOrdersByClientAndStatusesParams struct {
-	CustomerID string
-	Column2    []OrderStatus
+	CustomerID  string
+	Orderstatus []OrderStatus
 }
 
 type FindOrdersByClientAndStatusesRow struct {
-	ID                   string
-	CreatedAt            pgtype.Timestamptz
-	UpdatedAt            pgtype.Timestamptz
-	Status               OrderStatus
-	CustomerID           string
-	ReserveID            pgtype.Text
-	PaymentID            pgtype.Text
-	PaymentTransactionID pgtype.Text
-	ReserveTransactionID pgtype.Text
-	DeliveryAddress      pgtype.Text
-	DeliveryType         pgtype.Text
-	ItemID               pgtype.Text
-	ItemAmount           pgtype.Int4
+	Order    Order
+	Delivery Delivery
 }
 
 func (q *Queries) FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrdersByClientAndStatusesParams) ([]FindOrdersByClientAndStatusesRow, error) {
-	rows, err := q.db.Query(ctx, findOrdersByClientAndStatuses, arg.CustomerID, arg.Column2)
+	rows, err := q.db.Query(ctx, findOrdersByClientAndStatuses, arg.CustomerID, arg.Orderstatus)
 	if err != nil {
 		return nil, err
 	}
@@ -156,19 +141,18 @@ func (q *Queries) FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrd
 	for rows.Next() {
 		var i FindOrdersByClientAndStatusesRow
 		if err := rows.Scan(
-			&i.ID,
-			&i.CreatedAt,
-			&i.UpdatedAt,
-			&i.Status,
-			&i.CustomerID,
-			&i.ReserveID,
-			&i.PaymentID,
-			&i.PaymentTransactionID,
-			&i.ReserveTransactionID,
-			&i.DeliveryAddress,
-			&i.DeliveryType,
-			&i.ItemID,
-			&i.ItemAmount,
+			&i.Order.ID,
+			&i.Order.CreatedAt,
+			&i.Order.UpdatedAt,
+			&i.Order.Status,
+			&i.Order.CustomerID,
+			&i.Order.ReserveID,
+			&i.Order.PaymentID,
+			&i.Order.PaymentTransactionID,
+			&i.Order.ReserveTransactionID,
+			&i.Delivery.OrderID,
+			&i.Delivery.Address,
+			&i.Delivery.Type,
 		); err != nil {
 			return nil, err
 		}

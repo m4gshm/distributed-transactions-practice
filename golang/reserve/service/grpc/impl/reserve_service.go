@@ -2,14 +2,9 @@ package impl
 
 import (
 	"context"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
@@ -20,15 +15,25 @@ import (
 	"github.com/m4gshm/gollections/convert"
 	"github.com/m4gshm/gollections/op"
 	"github.com/m4gshm/gollections/slice"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"time"
 )
+
+//go:generate fieldr -type ReserveService -out . new-full
 
 type ReserveService struct {
 	reservepb.UnimplementedReserveServiceServer
 	db *pgxpool.Pool
 }
 
-func NewReserveService(db *pgxpool.Pool) *ReserveService {
-	return &ReserveService{db: db}
+func NewReserveService(
+	db *pgxpool.Pool,
+) *ReserveService {
+	return &ReserveService{
+		UnimplementedReserveServiceServer: reservepb.UnimplementedReserveServiceServer{},
+		db:                                db,
+	}
 }
 
 func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreateRequest) (*reservepb.ReserveCreateResponse, error) {
@@ -321,7 +326,7 @@ func (s *ReserveService) List(ctx context.Context, req *reservepb.ReserveListReq
 func toProtoReserve(reserve ressqlc.Reserve, reserveItems []ressqlc.ReserveItem) *reservepb.Reserve {
 	return &reservepb.Reserve{
 		Id:          reserve.ID,
-		ExternalRef: convert.PtrVal(reserve.ExternalRef),
+		ExternalRef: convert.ToVal(reserve.ExternalRef),
 		Status:      toProtoReserveStatus(reserve.Status),
 		Items:       slice.Convert(reserveItems, toProtoReserveItem),
 	}
@@ -331,7 +336,7 @@ func toProtoReserveItem(item ressqlc.ReserveItem) *reservepb.Reserve_Item {
 	return &reservepb.Reserve_Item{
 		Id:           item.ID,
 		Amount:       item.Amount,
-		Reserved:     convert.PtrVal(item.Reserved),
+		Reserved:     convert.ToVal(item.Reserved),
 		Insufficient: item.Insufficient,
 	}
 }

@@ -2,29 +2,29 @@ package impl
 
 import (
 	"context"
-	"time"
-
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
-
-	"github.com/m4gshm/gollections/convert/ptr"
-	"github.com/m4gshm/gollections/op"
-	"github.com/m4gshm/gollections/slice"
-
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
 	orderspb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"
-	sqlc "github.com/m4gshm/distributed-transactions-practice/golang/order/storage/gen"
+	sqlc "github.com/m4gshm/distributed-transactions-practice/golang/order/storage/sqlc/gen"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	"github.com/m4gshm/gollections/convert/ptr"
+	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/slice"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+	"time"
 )
 
+//go:generate fieldr -type OrderService -out . new-full
+
+// generate.fieldr: new-full
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
 	db *pgxpool.Pool
@@ -34,15 +34,18 @@ type OrderService struct {
 	warehouse reservepb.WarehouseItemServiceClient
 }
 
-func NewService(connPool *pgxpool.Pool, payment paymentpb.PaymentServiceClient,
+func NewOrderService(
+	db *pgxpool.Pool,
+	payment paymentpb.PaymentServiceClient,
 	reserve reservepb.ReserveServiceClient,
 	warehouse reservepb.WarehouseItemServiceClient,
 ) *OrderService {
 	return &OrderService{
-		db:        connPool,
-		payment:   payment,
-		reserve:   reserve,
-		warehouse: warehouse,
+		UnimplementedOrderServiceServer: orderspb.UnimplementedOrderServiceServer{},
+		db:                              db,
+		payment:                         payment,
+		reserve:                         reserve,
+		warehouse:                       warehouse,
 	}
 }
 

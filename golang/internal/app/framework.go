@@ -24,9 +24,11 @@ import (
 	"google.golang.org/grpc/reflection"
 )
 
+type Close = func() error
+
 func Run(
 	name string, cfg config.ServiceConfig,
-	registerServices ...func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error),
+	registerServices ...func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]Close, error),
 ) {
 	ctx := context.Background()
 

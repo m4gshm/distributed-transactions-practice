@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/m4gshm/gollections/slice"
 )
 
 type Config struct {
 	Order   OrderConfig
-	Payment ServiceConfig
+	Payment PaymentConfig
 	Reserve ServiceConfig
 	TPC     ServiceConfig
 }
@@ -22,8 +24,19 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
+type KafkaConfig struct {
+	Topic   string
+	Servers []string
+}
+
+type PaymentConfig struct {
+	ServiceConfig
+	KafkaConfig
+}
+
 type OrderConfig struct {
 	ServiceConfig
+	KafkaConfig
 	PaymentServiceURL string
 	ReserveServiceURL string
 }
@@ -35,10 +48,17 @@ type ServiceConfig struct {
 }
 
 func Load() *Config {
-	payment := ServiceConfig{
-		GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
-		HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
-		Database: defDBConfig("payment"),
+	kafka := KafkaConfig{
+		Topic:   "payment",
+		Servers: slice.Of("localhost:9092"),
+	}
+	payment := PaymentConfig{
+		ServiceConfig: ServiceConfig{
+			GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
+			HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
+			Database: defDBConfig("payment"),
+		},
+		KafkaConfig: kafka,
 	}
 	reserve := ServiceConfig{
 		GrpcPort: getEnvInt("RESERVE_PORT", 9003),
@@ -52,6 +72,7 @@ func Load() *Config {
 				HttpPort: getEnvInt("ORDERS_PORT", 8001),
 				Database: defDBConfig("orders"),
 			},
+			KafkaConfig:       kafka,
 			PaymentServiceURL: getEnv("ORDERS_PAYMENT_SERVICE_URL", fmt.Sprintf("localhost:%d", payment.GrpcPort)),
 			ReserveServiceURL: getEnv("ORDERS_RESERVE_SERVICE_URL", fmt.Sprintf("localhost:%d", reserve.GrpcPort)),
 		},

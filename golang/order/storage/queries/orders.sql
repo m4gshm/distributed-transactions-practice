@@ -8,20 +8,16 @@ FROM
 
 -- name: FindOrdersByClientAndStatuses :many
 SELECT
-  o.*,
-  d.address AS delivery_address,
-  d.type AS delivery_type,
-  i.id AS item_id,
-  i.amount AS item_amount
+  sqlc.embed(o),
+  sqlc.embed(d)
 FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id
-  LEFT JOIN item i ON o.id = i.order_id
 WHERE
   o.customer_id = $1
   AND o.status IN (
     SELECT
-      unnest($2:: order_status [])
+      unnest(sqlc.arg(orderStatus):: order_status [])
   );
 
 
