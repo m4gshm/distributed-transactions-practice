@@ -11,6 +11,7 @@ import (
 type Querier interface {
 	DeleteItemsByOrderId(ctx context.Context, orderID string) error
 	FindAllOrders(ctx context.Context) ([]FindAllOrdersRow, error)
+	FindItemsByOrderId(ctx context.Context, orderID string) ([]Item, error)
 	FindOrderById(ctx context.Context, id string) (FindOrderByIdRow, error)
 	FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrdersByClientAndStatusesParams) ([]FindOrdersByClientAndStatusesRow, error)
 	InsertOrUpdateDelivery(ctx context.Context, arg InsertOrUpdateDeliveryParams) error

@@ -9,7 +9,6 @@ import org.jooq.Record;
 import org.jooq.SelectJoinStep;
 
 import io.github.m4gshm.payments.data.model.Payment;
-import io.github.m4gshm.payments.data.model.Payment.Status;
 import io.github.m4gshm.storage.jooq.Query;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ public class PaymentStorageR2DBCUtils {
         return Payment.builder()
                 .id(record.get(Tables.PAYMENT.ID))
                 .externalRef(record.get(Tables.PAYMENT.EXTERNAL_REF))
-                .status(Status.byCode(record.get(Tables.PAYMENT.STATUS)))
+                .status(record.get(Tables.PAYMENT.STATUS))
                 .amount(record.get(Tables.PAYMENT.AMOUNT))
                 .clientId(record.get(Tables.PAYMENT.CLIENT_ID))
                 .createdAt(record.get(Tables.PAYMENT.CREATED_AT))

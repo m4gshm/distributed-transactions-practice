@@ -1,14 +1,13 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
-import io.github.m4gshm.EnumWithCode;
 import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.access.jooq.Tables;
+import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
 import io.github.m4gshm.orders.data.access.jooq.tables.Delivery;
 import io.github.m4gshm.orders.data.access.jooq.tables.Item;
 import io.github.m4gshm.orders.data.access.jooq.tables.Orders;
 import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.model.Order.Status;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +21,6 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 import java.util.List;
 
-import static io.github.m4gshm.EnumWithCodeUtils.getCode;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperUtils.toOrder;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.orNow;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.selectOrdersJoinDelivery;
@@ -56,12 +54,10 @@ public class OrderStorageR2DBC implements OrderStorage {
     }
 
     @Override
-    public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<Status> statuses) {
+    public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<OrderStatus> statuses) {
         return jooq.inTransaction(dsl -> {
             var selectOrder = selectOrdersJoinDelivery(dsl).where(ORDERS.CUSTOMER_ID.eq(clientId)
-                    .and(ORDERS.STATUS.in(statuses.stream()
-                            .map(EnumWithCode::getCode)
-                            .toList())));
+                    .and(ORDERS.STATUS.in(statuses)));
             return Flux.from(selectOrder).collectList().flatMap(orders -> {
                 var orderIds = orders.stream().map(record -> record.get(ORDERS.ID)).toList();
                 var selectItems = selectAllFrom(dsl, ITEM).where(ITEM.ORDER_ID.in(orderIds));
@@ -95,7 +91,7 @@ public class OrderStorageR2DBC implements OrderStorage {
     @Override
     public Mono<Order> save(Order order) {
         return jooq.inTransaction(dsl -> {
-            var orderStatus = getCode(order.status());
+            var orderStatus = order.status();
             var mergeOrder = from(dsl.insertInto(ORDERS)
                     .set(ORDERS.ID, order.id())
                     .set(ORDERS.STATUS, orderStatus)
@@ -118,7 +114,7 @@ public class OrderStorageR2DBC implements OrderStorage {
             if (delivery == null) {
                 mergeDelivery = Mono.empty();
             } else {
-                var deliveryType = getCode(delivery.type());
+                var deliveryType = delivery.type();
                 mergeDelivery = from(dsl.insertInto(DELIVERY)
                         .set(DELIVERY.ORDER_ID, order.id())
                         .set(DELIVERY.ADDRESS, delivery.address())

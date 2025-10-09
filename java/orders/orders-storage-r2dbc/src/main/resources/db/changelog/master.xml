@@ -4,6 +4,30 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="CREATE TYPE order_status" author="alex">
+        <sql>
+            CREATE TYPE order_status AS ENUM (
+            'CREATING',
+            'CREATED',
+            'APPROVING',
+            'APPROVED',
+            'RELEASING',
+            'RELEASED',
+            'INSUFFICIENT',
+            'CANCELLING',
+            'CANCELLED'
+            );
+        </sql>
+    </changeSet>
+
+    <changeSet id="CREATE TYPE delivery_type" author="alex">
+        <sql>
+            CREATE TYPE delivery_type AS ENUM (
+            'PICKUP',
+            'COURIER'
+            );
+        </sql>
+    </changeSet>
     <changeSet id="createTable-orders" author="alex">
         <createTable tableName="orders">
             <column name="id" type="text">
@@ -13,7 +37,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="updated_at" type="timestamptz"/>
-            <column name="status" type="text"/>
+            <column name="status" type="order_status"/>
             <column name="customer_id" type="text">
                 <constraints nullable="false"/>
             </column>
@@ -54,7 +78,7 @@
             <column name="address" type="text">
                 <constraints nullable="false"/>
             </column>
-            <column name="type" type="text">
+            <column name="type" type="delivery_type">
                 <constraints nullable="false"/>
             </column>
         </createTable>

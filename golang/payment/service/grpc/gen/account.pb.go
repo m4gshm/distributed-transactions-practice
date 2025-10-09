@@ -27,7 +27,7 @@ type Account struct {
 	ClientId      string                 `protobuf:"bytes,1,opt,name=client_id,json=clientId,proto3" json:"client_id,omitempty"`
 	Amount        float64                `protobuf:"fixed64,2,opt,name=amount,proto3" json:"amount,omitempty"`
 	Locked        float64                `protobuf:"fixed64,3,opt,name=locked,proto3" json:"locked,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,4,opt,name=updated_at,json=updatedAt,proto3,oneof" json:"updated_at,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -95,13 +95,14 @@ var File_account_v1_model_account_proto protoreflect.FileDescriptor
 const file_account_v1_model_account_proto_rawDesc = "" +
 	"\n" +
 	"\x1eaccount/v1/model/account.proto\x12\n" +
-	"account.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\x91\x01\n" +
+	"account.v1\x1a\x1fgoogle/protobuf/timestamp.proto\"\xa5\x01\n" +
 	"\aAccount\x12\x1b\n" +
 	"\tclient_id\x18\x01 \x01(\tR\bclientId\x12\x16\n" +
 	"\x06amount\x18\x02 \x01(\x01R\x06amount\x12\x16\n" +
-	"\x06locked\x18\x03 \x01(\x01R\x06locked\x129\n" +
+	"\x06locked\x18\x03 \x01(\x01R\x06locked\x12>\n" +
 	"\n" +
-	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAtb\x06proto3"
+	"updated_at\x18\x04 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tupdatedAt\x88\x01\x01B\r\n" +
+	"\v_updated_atb\x06proto3"
 
 var (
 	file_account_v1_model_account_proto_rawDescOnce sync.Once
@@ -134,6 +135,7 @@ func file_account_v1_model_account_proto_init() {
 	if File_account_v1_model_account_proto != nil {
 		return
 	}
+	file_account_v1_model_account_proto_msgTypes[0].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{

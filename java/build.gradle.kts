@@ -46,7 +46,7 @@ subprojects {
         ) {
             add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
             add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
-            add("runtimeOnly","io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            add("runtimeOnly", "io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
 
             add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
             add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
@@ -74,10 +74,17 @@ subprojects {
             add("implementation", "io.projectreactor.kafka:reactor-kafka")
             add("implementation", "org.springframework.kafka:spring-kafka")
         }
+
+        add("testImplementation", "org.junit.jupiter:junit-jupiter-api")
+        add("testImplementation", "org.junit.jupiter:junit-jupiter")
+        add("testRuntimeOnly", "org.junit.platform:junit-platform-engine")
+        add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
     }
 
     the<DependencyManagementExtension>().apply {
         imports {
+            // -> 5.12.2
+//            mavenBom("org.junit:junit-bom:5.8.2")
             mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
 
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
@@ -127,6 +134,8 @@ subprojects {
 
             dependency("org.jooq:jooq:3.20.6")
             dependency("org.jooq:jooq-postgres-extensions:3.20.6")
+
+//            dependency("org.junit.jupiter:junit-jupiter:5.12.2")
         }
         the<SpotlessExtension>().apply {
             java {
@@ -152,7 +161,12 @@ subprojects {
                     .configFile("$rootDir/config/codestyle.xml")
             }
         }
-        tasks.findByName("checkstyleMain")?.dependsOn("spotlessApply")
+    }
+    tasks {
+        findByName("checkstyleMain")?.dependsOn("spotlessApply")
+        withType<Test> {
+            useJUnitPlatform()
+        }
     }
 }
 

@@ -28,26 +28,28 @@ type Close = func() error
 
 func Run(
 	name string, cfg config.ServiceConfig,
+	postgresEnumTypes []string,
 	registerServices ...func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]Close, error),
 ) {
 	ctx := context.Background()
 
-	InitLog()
+	InitLog(zerolog.InfoLevel)
 
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
 
-	db := NewDB(ctx, cfg.Database)
+	db := NewDB(ctx, postgresEnumTypes, cfg.Database)
 	defer db.Close()
 
 	for _, buildService := range registerServices {
 		closes, err := buildService(ctx, db, grpcServer, rmux)
-		if err != nil {
-			log.Fatal().Err(err).Msg("Failed to register service")
-		}
 		for _, close := range closes {
 			defer close()
 		}
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to register service")
+		}
+
 	}
 	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux)
 }
@@ -57,16 +59,16 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	httpServer := NewHttpServer(rmux, name, httpPort)
 
 	go func() {
-		log.Printf("%s http service listening on port %d", name, httpPort)
+		log.Info().Msgf("%s http service listening on port %d", name, httpPort)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to serve")
+			log.Fatal().Err(err).Msg("Failed to serve http")
 		}
 	}()
 
 	go func() {
 		log.Info().Msgf("%s grpc service listening on port %d", name, grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatal().Err(err).Msg("Failed to serve")
+			log.Fatal().Err(err).Msg("Failed to serve grpc")
 		}
 	}()
 
@@ -75,8 +77,10 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	Shutdown(ctx, grpcServer, httpServer)
 }
 
-func NewDB(ctx context.Context, cfg config.DatabaseConfig) *pgxpool.Pool {
-	db, err := database.NewConnection(ctx, cfg, database.WithLogger(log.Logger, tracelog.LogLevelDebug))
+func NewDB(ctx context.Context, postgresEnumTypes []string, cfg config.DatabaseConfig) *pgxpool.Pool {
+	db, err := database.NewConnection(ctx, cfg, database.WithLogger(log.Logger, tracelog.LogLevelDebug),
+		database.WithCustomEnumType(postgresEnumTypes...),
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
@@ -151,10 +155,10 @@ func NewGrpcClient(url string, name string) *grpc.ClientConn {
 	return paymentConn
 }
 
-func InitLog() {
+func InitLog(l zerolog.Level) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	log.Logger = log.Output(output).Level(zerolog.DebugLevel)
+	log.Logger = log.Output(output).Level(l)
 	grpclog.SetLoggerV2(grpczerolog.New(log.Logger))
 }
 

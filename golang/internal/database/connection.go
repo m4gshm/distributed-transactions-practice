@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	pgxZerolog "github.com/jackc/pgx-zerolog"
+	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	_ "github.com/lib/pq"
@@ -38,6 +39,41 @@ func NewConnection(ctx context.Context, cfg config.DatabaseConfig, opts ...ConCo
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 	return dbpool, nil
+}
+
+func RegfisterType(ctx context.Context, conn *pgx.Conn, enumType string) error {
+	dataType, err := conn.LoadType(ctx, enumType)
+	if err != nil {
+		return fmt.Errorf("failed to load type '%s': %w", enumType, err)
+	}
+	conn.TypeMap().RegisterType(dataType)
+
+	arrayType := "_" + enumType
+	arrayDataType, err := conn.LoadType(ctx, arrayType)
+	if err != nil {
+		return fmt.Errorf("failed to load type '%s': %w", arrayType, err)
+	}
+	conn.TypeMap().RegisterType(arrayDataType)
+	return nil
+}
+
+func WithCustomEnumType(types ...string) ConConfOpt {
+	return func(c *pgxpool.Config) error {
+		prev := c.AfterConnect
+		c.AfterConnect = func(ctx context.Context, conn *pgx.Conn) error {
+			for _, typ := range types {
+				ere := RegfisterType(ctx, conn, typ)
+				if ere != nil {
+					return ere
+				}
+			}
+			if prev != nil {
+				return prev(ctx, conn)
+			}
+			return nil
+		}
+		return nil
+	}
 }
 
 func WithLogger(log zerolog.Logger, logLevel tracelog.LogLevel) ConConfOpt {

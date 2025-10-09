@@ -3,13 +3,15 @@ package io.github.m4gshm.reserve.service;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage.ItemOp;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import lombok.experimental.UtilityClass;
-import reserve.v1.ReserveServiceOuterClass.ReserveApproveResponse;
+import reserve.data.access.jooq.enums.ReserveStatus;
 import reserve.v1.ReserveOuterClass;
+import reserve.v1.ReserveServiceOuterClass.ReserveApproveResponse;
 
 import java.util.List;
 
 import static reserve.v1.ReserveOuterClass.Reserve.Item;
 import static reserve.v1.ReserveOuterClass.Reserve.Status;
+import static reserve.v1.ReserveOuterClass.Reserve.Status.INSUFFICIENT;
 import static reserve.v1.ReserveOuterClass.Reserve.newBuilder;
 
 @UtilityClass
@@ -26,7 +28,7 @@ public class ReserveServiceUtils {
                 .addAllItems(reservedItems)
                 .setStatus(allReserved
                         ? Status.APPROVED
-                        : Status.INSUFFICIENT)
+                        : INSUFFICIENT)
                 .build();
     }
 
@@ -58,7 +60,7 @@ public class ReserveServiceUtils {
                 .build();
     }
 
-    public static Status toStatusProto(Reserve.Status status) {
+    public static Status toStatusProto(ReserveStatus status) {
         return status == null ? null : switch (status) {
             case CREATED -> Status.CREATED;
             case APPROVED -> Status.APPROVED;

@@ -28,8 +28,7 @@ func NewPaymentService(
 	db *pgxpool.Pool,
 ) *PaymentService {
 	return &PaymentService{
-		UnimplementedPaymentServiceServer: paymentpb.UnimplementedPaymentServiceServer{},
-		db:                                db,
+		db: db,
 	}
 }
 
@@ -120,6 +119,7 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 		)
 
 		if err := query.UpdatePaymentStatus(ctx, paymentsqlc.UpdatePaymentStatusParams{
+			ID:           req.Id,
 			Insufficient: &insufficientAmount,
 			Status:       paymentStatus,
 		}); err != nil {
@@ -197,7 +197,7 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 		}
 		// Check if payment can be paid
 		if payment.Status != paymentsqlc.PaymentStatusHOLD {
-			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be paid in current status")
+			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be paid in current status '%s'", payment.Status)
 		}
 
 		account, err := query.FindAccountByIdForUpdate(ctx, payment.ClientID)
@@ -219,9 +219,9 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 			ClientID: payment.ClientID,
 			Amount:   payment.Amount,
 		}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to write off account: clientId [%s]: %v", payment.ClientID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to write off account: clientId '%s': %v", payment.ClientID, err)
 		} else if account.Amount < 0 || account.Locked < 0 {
-			return nil, status.Errorf(codes.OutOfRange, "incorrect write off account: clientId [%s], newAmount [%f], newLocked [%f]: %v",
+			return nil, status.Errorf(codes.OutOfRange, "incorrect write off account: clientId '%s', newAmount '%f', newLocked '%f': %v",
 				payment.ClientID, account.Amount, account.Locked, err)
 		} else if err := query.UpdatePaymentStatus(ctx, paymentsqlc.UpdatePaymentStatusParams{
 			ID:        payment.ID,

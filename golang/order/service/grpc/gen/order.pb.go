@@ -143,7 +143,7 @@ type Order struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Id            string                 `protobuf:"bytes,1,opt,name=id,proto3" json:"id,omitempty"`
 	CreatedAt     *timestamppb.Timestamp `protobuf:"bytes,2,opt,name=created_at,json=createdAt,proto3" json:"created_at,omitempty"`
-	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3" json:"updated_at,omitempty"`
+	UpdatedAt     *timestamppb.Timestamp `protobuf:"bytes,3,opt,name=updated_at,json=updatedAt,proto3,oneof" json:"updated_at,omitempty"`
 	CustomerId    string                 `protobuf:"bytes,4,opt,name=customer_id,json=customerId,proto3" json:"customer_id,omitempty"`
 	PaymentId     *string                `protobuf:"bytes,5,opt,name=payment_id,json=paymentId,proto3,oneof" json:"payment_id,omitempty"`
 	ReserveId     *string                `protobuf:"bytes,6,opt,name=reserve_id,json=reserveId,proto3,oneof" json:"reserve_id,omitempty"`
@@ -319,22 +319,22 @@ var File_order_v1_model_order_proto protoreflect.FileDescriptor
 
 const file_order_v1_model_order_proto_rawDesc = "" +
 	"\n" +
-	"\x1aorder/v1/model/order.proto\x12\torders.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1epayment/v1/model/payment.proto\x1a\x1ereserve/v1/model/reserve.proto\"\xf2\x06\n" +
+	"\x1aorder/v1/model/order.proto\x12\torders.v1\x1a\x1bbuf/validate/validate.proto\x1a\x1cgoogle/api/annotations.proto\x1a\x1fgoogle/protobuf/timestamp.proto\x1a\x1epayment/v1/model/payment.proto\x1a\x1ereserve/v1/model/reserve.proto\"\x86\a\n" +
 	"\x05Order\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x129\n" +
 	"\n" +
-	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x129\n" +
+	"created_at\x18\x02 \x01(\v2\x1a.google.protobuf.TimestampR\tcreatedAt\x12>\n" +
 	"\n" +
-	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampR\tupdatedAt\x12\x1f\n" +
+	"updated_at\x18\x03 \x01(\v2\x1a.google.protobuf.TimestampH\x00R\tupdatedAt\x88\x01\x01\x12\x1f\n" +
 	"\vcustomer_id\x18\x04 \x01(\tR\n" +
 	"customerId\x12\"\n" +
 	"\n" +
-	"payment_id\x18\x05 \x01(\tH\x00R\tpaymentId\x88\x01\x01\x12\"\n" +
+	"payment_id\x18\x05 \x01(\tH\x01R\tpaymentId\x88\x01\x01\x12\"\n" +
 	"\n" +
-	"reserve_id\x18\x06 \x01(\tH\x01R\treserveId\x88\x01\x01\x12/\n" +
+	"reserve_id\x18\x06 \x01(\tH\x02R\treserveId\x88\x01\x01\x12/\n" +
 	"\x06status\x18\a \x01(\x0e2\x17.orders.v1.Order.StatusR\x06status\x12F\n" +
-	"\x0epayment_status\x18\b \x01(\x0e2\x1a.payment.v1.Payment.StatusH\x02R\rpaymentStatus\x88\x01\x01\x12:\n" +
-	"\bdelivery\x18\t \x01(\v2\x19.orders.v1.Order.DeliveryH\x03R\bdelivery\x88\x01\x01\x12.\n" +
+	"\x0epayment_status\x18\b \x01(\x0e2\x1a.payment.v1.Payment.StatusH\x03R\rpaymentStatus\x88\x01\x01\x12:\n" +
+	"\bdelivery\x18\t \x01(\v2\x19.orders.v1.Order.DeliveryH\x04R\bdelivery\x88\x01\x01\x12.\n" +
 	"\x05items\x18\n" +
 	" \x03(\v2\x18.reserve.v1.Reserve.ItemR\x05items\x1a\xc5\x01\n" +
 	"\bDelivery\x12<\n" +
@@ -358,6 +358,7 @@ const file_order_v1_model_order_proto_rawDesc = "" +
 	"\n" +
 	"CANCELLING\x10\a\x12\r\n" +
 	"\tCANCELLED\x10\bB\r\n" +
+	"\v_updated_atB\r\n" +
 	"\v_payment_idB\r\n" +
 	"\v_reserve_idB\x11\n" +
 	"\x0f_payment_statusB\v\n" +

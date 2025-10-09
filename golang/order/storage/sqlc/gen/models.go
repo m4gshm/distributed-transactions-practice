@@ -11,6 +11,48 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
+type DeliveryType string
+
+const (
+	DeliveryTypePICKUP  DeliveryType = "PICKUP"
+	DeliveryTypeCOURIER DeliveryType = "COURIER"
+)
+
+func (e *DeliveryType) Scan(src interface{}) error {
+	switch s := src.(type) {
+	case []byte:
+		*e = DeliveryType(s)
+	case string:
+		*e = DeliveryType(s)
+	default:
+		return fmt.Errorf("unsupported scan type for DeliveryType: %T", src)
+	}
+	return nil
+}
+
+type NullDeliveryType struct {
+	DeliveryType DeliveryType
+	Valid        bool // Valid is true if DeliveryType is not NULL
+}
+
+// Scan implements the Scanner interface.
+func (ns *NullDeliveryType) Scan(value interface{}) error {
+	if value == nil {
+		ns.DeliveryType, ns.Valid = "", false
+		return nil
+	}
+	ns.Valid = true
+	return ns.DeliveryType.Scan(value)
+}
+
+// Value implements the driver Valuer interface.
+func (ns NullDeliveryType) Value() (driver.Value, error) {
+	if !ns.Valid {
+		return nil, nil
+	}
+	return string(ns.DeliveryType), nil
+}
+
 type OrderStatus string
 
 const (
@@ -63,7 +105,7 @@ func (ns NullOrderStatus) Value() (driver.Value, error) {
 type Delivery struct {
 	OrderID string
 	Address string
-	Type    string
+	Type    DeliveryType
 }
 
 type Item struct {

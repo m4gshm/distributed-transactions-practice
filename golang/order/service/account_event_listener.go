@@ -58,7 +58,8 @@ func (a *AccountEventListener) Listen(ctx context.Context) error {
 				_ = err
 				log.Info().Msg("account balance event listener is finished")
 				return
-			case e := <-events:
+			case e, ok := <-events:
+				_ = ok
 				if err := a.ProcessEvent(ctx, e); err != nil {
 					log.Err(err).Msgf("failed to process account balance event")
 				}
@@ -71,13 +72,16 @@ func (a *AccountEventListener) Listen(ctx context.Context) error {
 func (a *AccountEventListener) ProcessEvent(ctx context.Context, e event.AccountBalance) error {
 	rows, err := gen.New(a.db).FindOrdersByClientAndStatuses(ctx, gen.FindOrdersByClientAndStatusesParams{
 		CustomerID:  e.ClientID,
-		Orderstatus: slice.Of(gen.OrderStatusINSUFFICIENT),
+		Orderstatus: slice.Of((gen.OrderStatusINSUFFICIENT)),
 	})
 	if err != nil {
 		//todo
-		return nil
+		return err
 	}
 	balance := e.Balance
+	if len(rows) == 0 {
+		log.Debug().Msgf("no incufficient orders to update  (clientID %s, balance %f)", e.ClientID, balance)
+	}
 	for _, row := range rows {
 		order := row.Order
 		paymentID := order.PaymentID

@@ -1,6 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
@@ -43,13 +44,13 @@ import java.util.function.Function;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
 import static io.github.m4gshm.ExceptionUtils.newStatusException;
-import static io.github.m4gshm.orders.data.model.Order.Status.APPROVED;
-import static io.github.m4gshm.orders.data.model.Order.Status.APPROVING;
-import static io.github.m4gshm.orders.data.model.Order.Status.CANCELLING;
-import static io.github.m4gshm.orders.data.model.Order.Status.CREATED;
-import static io.github.m4gshm.orders.data.model.Order.Status.CREATING;
-import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
-import static io.github.m4gshm.orders.data.model.Order.Status.RELEASING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.APPROVED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.APPROVING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CANCELLING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CREATED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CREATING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.RELEASING;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.getOrderStatus;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.newRollbackRequest;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toDelivery;
@@ -368,7 +369,7 @@ public class OrderServiceImpl implements OrderService {
         return orderStorage.getById(orderId).flatMap(order -> {
             var status = order.status();
             return switch (status) {
-                case CREATED, APPROVED, RELEASED, CANCELLED -> error(newStatusException(status.getCode(),
+                case CREATED, APPROVED, RELEASED, CANCELLED -> error(newStatusException(status.getLiteral(),
                         "already committed status"));
                 case CREATING -> create(order, twoPhaseCommit).map(o -> OrderServiceUtils.newOrderResumeResponse(
                         o.id(),
@@ -434,8 +435,8 @@ public class OrderServiceImpl implements OrderService {
                                                         String opName,
                                                         String orderId,
                                                         boolean twoPhaseCommit,
-                                                        Set<Order.Status> expectedFinal,
-                                                        Order.Status intermediateStatus,
+                                                        Set<OrderStatus> expectedFinal,
+                                                        OrderStatus intermediateStatus,
                                                         Function<Order, Mono<Payment.Status>> paymentOp,
                                                         Function<Order, Mono<Reserve.Status>> reserveOp,
                                                         Function<Order, T> responseBuilder

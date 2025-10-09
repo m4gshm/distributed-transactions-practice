@@ -39,7 +39,7 @@ public class AccountServiceImpl extends AccountServiceImplBase {
                         .setClientId(account.clientId())
                         .setAmount(account.amount())
                         .setLocked(account.locked())
-                        .setUpdatedAt(toTimestamp(account.updatedAt()))
+                        .mergeUpdatedAt(toTimestamp(account.updatedAt()))
                         .build();
             }).toList()).build();
         }));

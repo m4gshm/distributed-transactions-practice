@@ -21,13 +21,24 @@
             <column name="updated_at" type="timestamptz"/>
         </createTable>
     </changeSet>
+    <changeSet id="CREATE TYPE reserve_status" author="alex">
+        <sql>
+            CREATE TYPE reserve_status AS ENUM (
+            'CREATED',
+            'APPROVED',
+            'RELEASED',
+            'INSUFFICIENT',
+            'CANCELLED'
+            );
+        </sql>
+    </changeSet>
     <changeSet id="createTable-reserve" author="alex">
         <createTable tableName="reserve">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
             <column name="external_ref" type="text"/>
-            <column name="status" type="text">
+            <column name="status" type="reserve_status">
                 <constraints nullable="false"/>
             </column>
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">

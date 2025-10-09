@@ -10,6 +10,11 @@ CREATE TYPE order_status AS ENUM (
     'CANCELLED'
 );
 
+CREATE TYPE delivery_type AS ENUM (
+    'PICKUP', 
+    'COURIER'
+);
+
 CREATE TABLE orders (
     id TEXT PRIMARY KEY NOT NULL,
     created_at TIMESTAMPTZ DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -32,6 +37,6 @@ CREATE TABLE item (
 CREATE TABLE delivery (
     order_id TEXT PRIMARY KEY NOT NULL,
     address TEXT NOT NULL,
-    type TEXT NOT NULL,
+    type delivery_type NOT NULL,
     CONSTRAINT delivery_orders_id_fk FOREIGN KEY (order_id) REFERENCES orders(id)
 );

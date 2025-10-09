@@ -28,6 +28,17 @@
     <!--            </sql>-->
     <!--        </rollback>-->
     <!--    </changeSet>-->
+    <changeSet id="CREATE TYPE payment_status" author="alex">
+        <sql>
+            CREATE TYPE payment_status AS ENUM (
+            'CREATED',
+            'HOLD',
+            'INSUFFICIENT',
+            'PAID',
+            'CANCELLED'
+            );
+        </sql>
+    </changeSet>
     <changeSet id="createTable-payment" author="alex">
         <createTable tableName="payment">
             <column name="id" type="text">
@@ -45,7 +56,7 @@
                 <constraints nullable="false"/>
             </column>
             <column name="insufficient" type="float8"/>
-            <column name="status" type="text">
+            <column name="status" type="payment_status">
                 <constraints nullable="false"/>
             </column>
             <column name="created_at" type="timestamptz" defaultValueComputed="CURRENT_TIMESTAMP">

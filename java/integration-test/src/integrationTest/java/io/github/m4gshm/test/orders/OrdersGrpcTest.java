@@ -8,7 +8,7 @@ import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
 import orders.v1.OrderOuterClass.Order.Delivery;
-import orders.v1.OrderOuterClass.Order.Status;
+
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -138,7 +138,7 @@ public class OrdersGrpcTest {
         var orderId = orderCreateResponse.getId();
 
         var orderApproveResponse = ordersService.approve(newApproveRequest(orderId, twoPhaseCommit));
-        assertEquals(Status.APPROVED, orderApproveResponse.getStatus());
+        assertEquals(APPROVED, orderApproveResponse.getStatus());
 
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
         assertEquals(RELEASED, orderReleaseResponse.getStatus());

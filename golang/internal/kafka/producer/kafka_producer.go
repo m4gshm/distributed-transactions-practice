@@ -4,12 +4,16 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-
+	
+	"github.com/rs/zerolog/log"
 	"github.com/twmb/franz-go/pkg/kgo"
+	"github.com/twmb/franz-go/plugin/kzerolog"
 )
 
 func New[E any](clientID, topic string, servers []string) (*EventKafkaProducer[E], error) {
-	client, err := kgo.NewClient(kgo.SeedBrokers(servers...), kgo.AllowAutoTopicCreation(), kgo.ClientID(clientID))
+	client, err := kgo.NewClient(
+		kgo.WithLogger(kzerolog.New(&log.Logger)),
+		kgo.SeedBrokers(servers...), kgo.AllowAutoTopicCreation(), kgo.ClientID(clientID))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create kafka client: %w", err)
 	}

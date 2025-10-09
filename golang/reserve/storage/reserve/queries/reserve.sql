@@ -16,7 +16,7 @@ WHERE
 
 -- name: UpsertReserve :exec
 INSERT INTO
-  reserve (id, created_at, external_ref, status, updated_at)
+  reserve (id, external_ref, status, created_at, updated_at)
 VALUES
   ($1, $2, $3, $4, $5) ON CONFLICT (id) DO
 UPDATE
@@ -34,14 +34,13 @@ WHERE
 
 -- name: UpsertReserveItem :exec
 INSERT INTO
-  reserve_item (id, reserve_id, reserved, amount, insufficient)
+  reserve_item (id, reserve_id, amount, reserved, insufficient)
 VALUES
   ($1, $2, $3, $4, $5) ON CONFLICT (id, reserve_id) DO
 UPDATE
 SET
-  amount = COALESCE(EXCLUDED.amount, reserve_item.amount),
-  insufficient = COALESCE(EXCLUDED.insufficient, reserve_item.insufficient),
-  reserved = COALESCE(EXCLUDED.reserved, reserve_item.reserved);
+  reserved = COALESCE($4, reserve_item.reserved),
+  insufficient = COALESCE($5, reserve_item.insufficient);
 
 
 -- name: FindItemsByReserveID :many

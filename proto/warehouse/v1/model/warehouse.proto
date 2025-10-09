@@ -8,5 +8,5 @@ message Item {
   string id = 1;
   int32 amount = 2;
   int32 reserved = 3;
-  google.protobuf.Timestamp updated_at = 4;
+  optional google.protobuf.Timestamp updated_at = 4;
 }

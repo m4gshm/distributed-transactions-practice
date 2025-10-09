@@ -7,5 +7,5 @@ message Account {
   string client_id = 1;
   double amount = 2;
   double locked = 3;
-  google.protobuf.Timestamp updated_at = 4;
+  optional google.protobuf.Timestamp updated_at = 4;
 }

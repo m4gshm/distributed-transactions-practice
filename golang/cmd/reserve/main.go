@@ -11,15 +11,18 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	reserve "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/impl"
+	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
+	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
+	"github.com/m4gshm/gollections/slice"
 )
 
 func main() {
 	name := "reserve"
 	cfg := config.Load().Reserve
 
-	app.Run(name, cfg,
+	app.Run(name, cfg, slice.Of("reserve_status"),
 		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
-			service := reserve.NewReserveService(db)
+			service := reserve.NewReserveService(db, ressqlc.New, whsqlc.New)
 			reservepb.RegisterReserveServiceServer(s, service)
 			app.RegisterGateway[reservepb.ReserveServiceServer](ctx, mux, reservepb.RegisterReserveServiceHandlerServer, service)
 			return nil, nil

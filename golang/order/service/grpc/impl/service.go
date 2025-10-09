@@ -27,8 +27,7 @@ import (
 // generate.fieldr: new-full
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
-	db *pgxpool.Pool
-
+	db        *pgxpool.Pool
 	payment   paymentpb.PaymentServiceClient
 	reserve   reservepb.ReserveServiceClient
 	warehouse reservepb.WarehouseItemServiceClient
@@ -41,11 +40,10 @@ func NewOrderService(
 	warehouse reservepb.WarehouseItemServiceClient,
 ) *OrderService {
 	return &OrderService{
-		UnimplementedOrderServiceServer: orderspb.UnimplementedOrderServiceServer{},
-		db:                              db,
-		payment:                         payment,
-		reserve:                         reserve,
-		warehouse:                       warehouse,
+		db:        db,
+		payment:   payment,
+		reserve:   reserve,
+		warehouse: warehouse,
 	}
 }
 
@@ -67,151 +65,192 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 		}
 
 		if err := query.InsertOrUpdateOrder(ctx, orderEntity); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to create order [%s]: %v", orderID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to create order '%s': %v", orderID, err)
 		}
 
 		if delivery := body.Delivery; delivery != nil {
 			if err := query.InsertOrUpdateDelivery(ctx, sqlc.InsertOrUpdateDeliveryParams{
 				OrderID: orderID,
 				Address: delivery.Address,
-				Type:    delivery.Type.String(),
+				Type:    sqlc.DeliveryType(delivery.Type.String()),
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to create delivery (order [%s], address [%s]): %v", orderID, delivery.Address, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to create delivery (order '%s', address '%s'): %v", orderID, delivery.Address, err)
 			}
 		}
 
+		items := []sqlc.Item{}
 		for _, item := range body.Items {
-			if err := query.InsertOrUpdateItem(ctx, sqlc.InsertOrUpdateItemParams{
+			ins := sqlc.InsertOrUpdateItemParams{
 				OrderID: orderID,
 				ID:      item.Id,
-				Amount:  item.Amount}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to create item (order [%s], item [%s]): %v", orderID, item.Id, err)
+				Amount:  item.Amount,
 			}
-		}
-
-		cost := 0.0
-		reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
-		for _, item := range body.Items {
-			id := item.Id
-			itemCost, err := s.warehouse.GetItemCost(ctx, &reservepb.GetItemCostRequest{Id: id})
-			if err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to get item cost (order [%s], item [%s]): %v", orderID, id, err)
+			if err := query.InsertOrUpdateItem(ctx, ins); err != nil {
+				return nil, status.Errorf(grpc.Status(err), "failed to create item (order '%s', item '%s'): %v", ins.OrderID, ins.ID, err)
 			}
-			cost += itemCost.GetCost()
-			reserveItems = append(reserveItems, &reservepb.ReserveCreateRequest_Reserve_Item{
-				Id:     id,
-				Amount: item.Amount,
+			items = append(items, sqlc.Item{
+				ID:      item.Id,
+				OrderID: orderID,
+				Amount:  item.Amount,
 			})
 		}
-
-		if resp, err := s.payment.Create(ctx, &paymentpb.PaymentCreateRequest{Body: &paymentpb.PaymentCreateRequest_PaymentCreate{
-			ExternalRef: orderID,
-			ClientId:    customerId,
-			Amount:      cost,
-		}}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to create payment (order [%s]): %v", orderID, err)
-		} else {
-			orderEntity.PaymentID = pg.String(resp.Id)
+		if _, err := s.create(ctx, query, orderID, customerId, items); err != nil {
+			return nil, err
 		}
-
-		if resp, err := s.reserve.Create(ctx, &reservepb.ReserveCreateRequest{Body: &reservepb.ReserveCreateRequest_Reserve{
-			ExternalRef: orderID,
-			Items:       reserveItems,
-		}}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (order [%s]): %v", orderID, err)
-		} else {
-			orderEntity.ReserveID = pg.String(resp.Id)
-		}
-
-		orderEntity.CreatedAt = pg.Timestamptz(time.Now())
-		finalStatus := sqlc.OrderStatusCREATED
-		orderEntity.Status = finalStatus
-		if err := query.InsertOrUpdateOrder(ctx, orderEntity); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to update order [%s] by status [%s]: %v", orderID, finalStatus, err)
-		}
-
 		return &orderspb.OrderCreateResponse{Id: orderID}, nil
 	})
 }
 
+func (s *OrderService) create(
+	ctx context.Context, query *sqlc.Queries, orderID string, customerID string, items []sqlc.Item,
+) (sqlc.OrderStatus, error) {
+	cost := 0.0
+	reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
+	for _, item := range items {
+		id := item.ID
+		itemCost, err := s.warehouse.GetItemCost(ctx, &reservepb.GetItemCostRequest{Id: id})
+		if err != nil {
+			return "", status.Errorf(grpc.Status(err), "failed to get item cost (order '%s', item '%s'): %v", orderID, id, err)
+		}
+		cost += itemCost.GetCost()
+		reserveItems = append(reserveItems, &reservepb.ReserveCreateRequest_Reserve_Item{
+			Id:     id,
+			Amount: item.Amount,
+		})
+	}
+
+	paymentID := ""
+	if resp, err := s.payment.Create(ctx, &paymentpb.PaymentCreateRequest{Body: &paymentpb.PaymentCreateRequest_PaymentCreate{
+		ExternalRef: orderID,
+		ClientId:    customerID,
+		Amount:      cost,
+	}}); err != nil {
+		return "", status.Errorf(grpc.Status(err), "failed to create payment (order '%s'): %v", orderID, err)
+	} else {
+		paymentID = resp.Id
+	}
+
+	reserveID := ""
+	if resp, err := s.reserve.Create(ctx, &reservepb.ReserveCreateRequest{Body: &reservepb.ReserveCreateRequest_Reserve{
+		ExternalRef: orderID,
+		Items:       reserveItems,
+	}}); err != nil {
+		return "", status.Errorf(grpc.Status(err), "failed to create reserve (order '%s'): %v", orderID, err)
+	} else {
+		reserveID = resp.Id
+	}
+
+	finalStatus := sqlc.OrderStatusCREATED
+	if err := query.InsertOrUpdateOrder(ctx, sqlc.InsertOrUpdateOrderParams{
+		ID:        orderID,
+		Status:    finalStatus,
+		CreatedAt: pg.Timestamptz(time.Now()),
+		PaymentID: pg.String(paymentID),
+		ReserveID: pg.String(reserveID),
+	}); err != nil {
+		return "", status.Errorf(grpc.Status(err), "failed to update order '%s' by status '%s': %v", orderID, finalStatus, err)
+	}
+	return finalStatus, nil
+}
+
 func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRequest) (*orderspb.OrderApproveResponse, error) {
 	query := sqlc.New(s.db)
-
-	row, err := query.FindOrderById(ctx, req.Id)
+	finalStatus, err := s.appvove(ctx, query, req.Id, req.TwoPhaseCommit)
 	if err != nil {
 		return nil, err
 	}
+	return &orderspb.OrderApproveResponse{Id: req.Id, Status: toProtoOrderStatus(finalStatus)}, nil
+}
 
+func (s *OrderService) appvove(ctx context.Context, query *sqlc.Queries, orderID string, twoPhaseCommit bool) (sqlc.OrderStatus, error) {
 	intermediateStatus := sqlc.OrderStatusAPPROVING
 	finalStatus := sqlc.OrderStatusAPPROVED
 	expecteds := slice.Of(sqlc.OrderStatusCREATED, sqlc.OrderStatusINSUFFICIENT, intermediateStatus)
-
-	if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, req.TwoPhaseCommit, s.approve_); err != nil {
-		return nil, err
+	row, err := query.FindOrderById(ctx, orderID)
+	if err != nil {
+		return "", err
 	}
-
-	return &orderspb.OrderApproveResponse{Id: req.Id, Status: toProtoOrderStatus(finalStatus)}, nil
+	if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.approve_); err != nil {
+		return "", err
+	}
+	return finalStatus, nil
 }
 
 func (s *OrderService) Release(ctx context.Context, req *orderspb.OrderReleaseRequest) (*orderspb.OrderReleaseResponse, error) {
 	query := sqlc.New(s.db)
-
-	row, err := query.FindOrderById(ctx, req.Id)
+	finalStatus, err := s.release(ctx, query, req.Id, req.TwoPhaseCommit)
 	if err != nil {
-		return nil, err
-	}
-
-	intermediateStatus := sqlc.OrderStatusRELEASING
-	finalStatus := sqlc.OrderStatusRELEASED
-	expecteds := slice.Of(sqlc.OrderStatusAPPROVED, intermediateStatus)
-
-	if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, req.TwoPhaseCommit, s.release_); err != nil {
 		return nil, err
 	}
 	return &orderspb.OrderReleaseResponse{Id: req.Id, Status: toProtoOrderStatus(finalStatus)}, nil
 }
 
+func (s *OrderService) release(ctx context.Context, query *sqlc.Queries, orderID string, twoPhaseCommit bool) (sqlc.OrderStatus, error) {
+	intermediateStatus := sqlc.OrderStatusRELEASING
+	finalStatus := sqlc.OrderStatusRELEASED
+	expecteds := slice.Of(sqlc.OrderStatusAPPROVED, intermediateStatus)
+	if row, err := query.FindOrderById(ctx, orderID); err != nil {
+		return "", err
+	} else if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.release_); err != nil {
+		return "", err
+	}
+	return finalStatus, nil
+}
+
 func (s *OrderService) Cancel(ctx context.Context, req *orderspb.OrderCancelRequest) (*orderspb.OrderCancelResponse, error) {
 	query := sqlc.New(s.db)
+	_, err := s.cancel(ctx, query, req.Id, req.TwoPhaseCommit)
+	if err != nil {
+		return nil, err
+	}
+	return &orderspb.OrderCancelResponse{Id: req.Id}, nil
+}
 
-	row, err := query.FindOrderById(ctx, req.Id)
+func (s *OrderService) cancel(ctx context.Context, query *sqlc.Queries, orderID string, twoPhaseCommit bool) (sqlc.OrderStatus, error) {
+	intermediateStatus := sqlc.OrderStatusCANCELLING
+	finalStatus := sqlc.OrderStatusCANCELLED
+	expecteds := slice.Of(sqlc.OrderStatusCREATED, sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVED, intermediateStatus)
+	if row, err := query.FindOrderById(ctx, orderID); err != nil {
+		return "", err
+	} else if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.cancel_); err != nil {
+		return "", err
+	}
+	return finalStatus, nil
+}
+
+func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequest) (*orderspb.OrderResumeResponse, error) {
+	query := sqlc.New(s.db)
+
+	orderID := req.Id
+	row, err := query.FindOrderById(ctx, orderID)
+	if err != nil {
+		return nil, err
+	}
+	order := row.Order
+	items, err := query.FindItemsByOrderId(ctx, orderID)
 	if err != nil {
 		return nil, err
 	}
 
-	intermediateStatus := sqlc.OrderStatusCANCELLING
-	finalStatus := sqlc.OrderStatusCANCELLED
-	expecteds := slice.Of(sqlc.OrderStatusCREATED, sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVED, intermediateStatus)
-
-	if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, req.TwoPhaseCommit, s.cancel_); err != nil {
-		return nil, err
+	var orderStatus sqlc.OrderStatus
+	// var err error
+	switch order.Status {
+	case sqlc.OrderStatusCREATED, sqlc.OrderStatusAPPROVED, sqlc.OrderStatusRELEASED, sqlc.OrderStatusCANCELLED:
+		err = status.Error(codes.FailedPrecondition, "already committed status")
+	case sqlc.OrderStatusCREATING:
+		orderStatus, err = s.create(ctx, query, orderID, order.CustomerID, items)
+	case sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVING:
+		orderStatus, err = s.appvove(ctx, query, orderID, req.TwoPhaseCommit)
+	case sqlc.OrderStatusRELEASING:
+		orderStatus, err = s.release(ctx, query, orderID, req.TwoPhaseCommit)
+	case sqlc.OrderStatusCANCELLING:
+		orderStatus, err = s.cancel(ctx, query, orderID, req.TwoPhaseCommit)
 	}
 
-	return &orderspb.OrderCancelResponse{Id: req.Id}, nil
-}
-
-func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequest) (*orderspb.OrderResumeResponse, error) {
-	return nil, status.Error(codes.Internal, "unimplemented")
-	// query := sqlc.New(s.db)
-
-	// order, err := query.FindOrderById(ctx, req.Id)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	// if err := checkStatus(order, sqlc.OrderStatusCREATED); err != nil {
-	// 	return nil, err
-	// }
-
-	// // Update order status back to CREATED
-	// _, err = s.db.ExecContext(ctx, `
-	// 	UPDATE orders SET status = $1, updated_at = NOW() WHERE id = $2`,
-	// 	(orders.StatusCreated), req.Id)
-	// if err != nil {
-	// 	return nil, status.Errorf(grpc.Status(err), "failed to update order status: %w", err)
-	// }
-
-	// return &orderspb.OrderResumeResponse{Id: req.Id, Status: *toProtoOrderStatus(orders.StatusCreated)}, nil
+	if err != nil {
+		return nil, err
+	}
+	return &orderspb.OrderResumeResponse{Id: orderID, Status: *toProtoOrderStatus(orderStatus)}, nil
 }
 
 func (s *OrderService) Get(ctx context.Context, req *orderspb.OrderGetRequest) (*orderspb.OrderGetResponse, error) {
@@ -271,14 +310,14 @@ func (s *OrderService) approve_(ctx context.Context, order sqlc.Order, twoPhaseC
 		Id:                    paymentId,
 		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment approving failed (paymentId [%s]): %v", paymentId, err)
+		return status.Errorf(grpc.Status(err), "payment approving failed (paymentId '%s'): %v", paymentId, err)
 	}
 
 	if _, err := s.reserve.Approve(ctx, &reservepb.ReserveApproveRequest{
 		Id:                    reserveId,
 		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve approving failed (reserveId [%s]): %v", reserveId, err)
+		return status.Errorf(grpc.Status(err), "reserve approving failed (reserveId '%s'): %v", reserveId, err)
 	}
 
 	return nil
@@ -292,14 +331,14 @@ func (s *OrderService) cancel_(ctx context.Context, order sqlc.Order, twoPhaseCo
 		Id:                    paymentId,
 		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment cancelling failed (paymentId [%s]): %v", paymentId, err)
+		return status.Errorf(grpc.Status(err), "payment cancelling failed (paymentId '%s'): %v", paymentId, err)
 	}
 
 	if _, err := s.reserve.Cancel(ctx, &reservepb.ReserveCancelRequest{
 		Id:                    reserveId,
 		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve cancelling failed (reserveId [%s]): %v", reserveId, err)
+		return status.Errorf(grpc.Status(err), "reserve cancelling failed (reserveId '%s'): %v", reserveId, err)
 	}
 
 	return nil
@@ -313,14 +352,14 @@ func (s *OrderService) release_(ctx context.Context, order sqlc.Order, twoPhaseC
 		Id:                    paymentId,
 		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment pay failed (paymentId [%s]): %v", paymentId, err)
+		return status.Errorf(grpc.Status(err), "payment pay failed (paymentId '%s'): %v", paymentId, err)
 	}
 
 	if _, err := s.reserve.Release(ctx, &reservepb.ReserveReleaseRequest{
 		Id:                    reserveId,
 		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve release failed (reserveId [%s]): %v", reserveId, err)
+		return status.Errorf(grpc.Status(err), "reserve release failed (reserveId '%s'): %v", reserveId, err)
 	}
 
 	return nil
@@ -334,50 +373,18 @@ func toProtDelivery(delivery sqlc.Delivery) *orderspb.Order_Delivery {
 }
 
 func toProtoDeliveryType(delivery sqlc.Delivery) orderspb.Order_Delivery_Type {
-	return orderspb.Order_Delivery_Type(orderspb.Order_Delivery_Type_value[delivery.Type])
+	return orderspb.Order_Delivery_Type(orderspb.Order_Delivery_Type_value[string(delivery.Type)])
 }
 
 func toProtoOrder(order sqlc.Order, delivery sqlc.Delivery) *orderspb.Order {
-	// Get order items
-	// items, err := s.getOrderItems(ctx, order.ID)
-	// if err != nil {
-	// 	return nil, err
-	// }
-
-	orderProto := &orderspb.Order{
+	return &orderspb.Order{
 		Id:         order.ID,
 		CreatedAt:  timestamppb.New(order.CreatedAt.Time),
 		UpdatedAt:  timestamppb.New(order.UpdatedAt.Time),
 		CustomerId: order.CustomerID,
 		Delivery:   toProtDelivery(delivery),
-		// Status:     orderspb.Order_Status(order.Status),
-		// Items: items,
+		Status:     *toProtoOrderStatus(order.Status),
 	}
-
-	// if order.PaymentID != nil {
-	// 	orderProto.PaymentId = order.PaymentID
-	// }
-
-	// if order.ReserveID != nil {
-	// 	orderProto.ReserveId = order.ReserveID
-	// }
-
-	// if order.PaymentStatus != nil {
-	// 	paymentStatus := paymentpb.Payment_Status(*order.PaymentStatus)
-	// 	orderProto.PaymentStatus = paymentStatus
-	// }
-
-	// // Add delivery info
-	// orderProto.Delivery = &orderspb.Order_Delivery{
-	// 	Address: order.DeliveryAddress,
-	// 	Type:    orderspb.Order_Delivery_Type(order.DeliveryType),
-	// }
-
-	// if order.DeliveryDate != nil {
-	// 	orderProto.Delivery.DateTime = order.ToTimestamp(*order.DeliveryDate)
-	// }
-
-	return orderProto
 }
 
 func toProtoOrderStatus(status sqlc.OrderStatus) *orderspb.Order_Status {
@@ -395,7 +402,7 @@ func paymentTransactionID(support bool, order sqlc.Order) *string {
 func updateOrderStatus(ctx context.Context, query *sqlc.Queries, finalStatus sqlc.OrderStatus, orderId string) error {
 	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{Status: finalStatus})
 	if err != nil {
-		return status.Errorf(grpc.Status(err), "failed to update order status (orderId [%s], status [%s]): %v",
+		return status.Errorf(grpc.Status(err), "failed to update order status (orderId '%s', status '%s'): %v",
 			orderId, finalStatus, err)
 	}
 	return nil

@@ -10,7 +10,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reserve.data.access.jooq.tables.records.ReserveItemRecord;
 import io.github.m4gshm.reserve.data.model.Reserve;
-import io.github.m4gshm.reserve.data.model.Reserve.Status;
 
 import java.time.OffsetDateTime;
 import java.util.Collection;
@@ -71,7 +70,7 @@ public class ReserveStorageR2DBCUtils {
                 .externalRef(record.get(RESERVE.EXTERNAL_REF))
                 .createdAt(record.get(RESERVE.CREATED_AT))
                 .updatedAt(record.get(RESERVE.UPDATED_AT))
-                .status(Status.byCode(record.get(RESERVE.STATUS)))
+                .status(record.get(RESERVE.STATUS))
                 .items(items.stream()
                         .map(item -> Reserve.Item.builder()
                                 .id(item.get(RESERVE_ITEM.ID))

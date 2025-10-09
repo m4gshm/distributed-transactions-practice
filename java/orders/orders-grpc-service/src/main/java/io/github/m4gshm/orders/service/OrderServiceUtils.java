@@ -1,6 +1,8 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.UnexpectedEntityStatusException;
+import io.github.m4gshm.orders.data.access.jooq.enums.DeliveryType;
+import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
 import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
 import io.github.m4gshm.protobuf.TimestampUtils;
@@ -34,22 +36,11 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static io.github.m4gshm.orders.data.model.Order.Delivery.Type.courier;
-import static io.github.m4gshm.orders.data.model.Order.Delivery.Type.pickup;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.rollback;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
-import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
-import static orders.v1.OrderOuterClass.Order.Status.APPROVING;
-import static orders.v1.OrderOuterClass.Order.Status.CANCELLED;
-import static orders.v1.OrderOuterClass.Order.Status.CANCELLING;
-import static orders.v1.OrderOuterClass.Order.Status.CREATED;
-import static orders.v1.OrderOuterClass.Order.Status.CREATING;
-import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
-import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
-import static orders.v1.OrderOuterClass.Order.Status.RELEASING;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.just;
 
@@ -65,10 +56,10 @@ public class OrderServiceUtils {
         var builder = OrderOuterClass.Order.newBuilder()
                 .setId(order.id())
                 .setCreatedAt(toTimestamp(order.createdAt()))
-                .setUpdatedAt(toTimestamp(order.updatedAt()))
                 .setCustomerId(order.customerId())
-                .mergeDelivery(toDeliveryGrpc(order.delivery()))
-                .addAllItems(items != null ? items : List.of());
+                .addAllItems(items != null ? items : List.of())
+                .mergeUpdatedAt(toTimestamp(order.updatedAt()))
+                .mergeDelivery(toDeliveryGrpc(order.delivery()));
 
         ofNullable(toOrderStatusGrpc(order.status())).ifPresent(builder::setStatus);
         ofNullable(paymentStatus).ifPresent(builder::setPaymentStatus);
@@ -78,17 +69,17 @@ public class OrderServiceUtils {
         return builder.build();
     }
 
-    public static OrderOuterClass.Order.Status toOrderStatusGrpc(Order.Status status) {
+    public static OrderOuterClass.Order.Status toOrderStatusGrpc(OrderStatus status) {
         return status == null ? null : switch (status) {
-            case CREATING -> CREATING;
-            case CREATED -> CREATED;
-            case APPROVING -> APPROVING;
-            case APPROVED -> APPROVED;
-            case RELEASING -> RELEASING;
-            case RELEASED -> RELEASED;
-            case INSUFFICIENT -> INSUFFICIENT;
-            case CANCELLING -> CANCELLING;
-            case CANCELLED -> CANCELLED;
+            case CREATING -> OrderOuterClass.Order.Status.CREATING;
+            case CREATED -> OrderOuterClass.Order.Status.CREATED;
+            case APPROVING -> OrderOuterClass.Order.Status.APPROVING;
+            case APPROVED -> OrderOuterClass.Order.Status.APPROVED;
+            case RELEASING -> OrderOuterClass.Order.Status.RELEASING;
+            case RELEASED -> OrderOuterClass.Order.Status.RELEASED;
+            case INSUFFICIENT -> OrderOuterClass.Order.Status.INSUFFICIENT;
+            case CANCELLING -> OrderOuterClass.Order.Status.CANCELLING;
+            case CANCELLED -> OrderOuterClass.Order.Status.CANCELLED;
         };
     }
 
@@ -113,18 +104,18 @@ public class OrderServiceUtils {
                         .build();
     }
 
-    static Order.Delivery.Type toDeliveryType(OrderOuterClass.Order.Delivery.Type type) {
+    static DeliveryType toDeliveryType(OrderOuterClass.Order.Delivery.Type type) {
         return type == null ? null : switch (type) {
-            case PICKUP -> pickup;
-            case COURIER -> courier;
+            case PICKUP -> DeliveryType.PICKUP;
+            case COURIER -> DeliveryType.COURIER;
             case UNRECOGNIZED -> null;
         };
     }
 
-    private static OrderOuterClass.Order.Delivery.Type toType(Order.Delivery.Type type) {
+    private static OrderOuterClass.Order.Delivery.Type toType(DeliveryType type) {
         return type == null ? null : switch (type) {
-            case pickup -> OrderOuterClass.Order.Delivery.Type.PICKUP;
-            case courier -> OrderOuterClass.Order.Delivery.Type.COURIER;
+            case PICKUP -> OrderOuterClass.Order.Delivery.Type.PICKUP;
+            case COURIER -> OrderOuterClass.Order.Delivery.Type.COURIER;
         };
     }
 
@@ -169,14 +160,14 @@ public class OrderServiceUtils {
                 .build();
     }
 
-    static Order.Status getOrderStatus(Payment.Status paymentStatus, Reserve.Status reserveStatus) {
-        final Order.Status status;
+    static OrderStatus getOrderStatus(Payment.Status paymentStatus, Reserve.Status reserveStatus) {
+        final OrderStatus status;
         if (paymentStatus == Payment.Status.HOLD && reserveStatus == Reserve.Status.APPROVED) {
-            status = Order.Status.APPROVED;
+            status = OrderStatus.APPROVED;
         } else if (paymentStatus == Payment.Status.INSUFFICIENT || reserveStatus == Reserve.Status.INSUFFICIENT) {
-            status = Order.Status.INSUFFICIENT;
+            status = OrderStatus.INSUFFICIENT;
         } else if (paymentStatus == Payment.Status.PAID && reserveStatus == Reserve.Status.RELEASED) {
-            status = Order.Status.RELEASED;
+            status = OrderStatus.RELEASED;
         } else {
             status = null;
         }
@@ -235,7 +226,7 @@ public class OrderServiceUtils {
         log.trace("not transaction for {} {}", type, transactionId);
     }
 
-    public static Order orderWithStatus(Order order, Order.Status status) {
+    public static Order orderWithStatus(Order order, OrderStatus status) {
         return order.toBuilder()
                 .status(status)
                 .build();

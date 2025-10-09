@@ -20,7 +20,7 @@ import reactor.core.publisher.Mono;
 import javax.annotation.PostConstruct;
 import java.util.Set;
 
-import static io.github.m4gshm.orders.data.model.Order.Status.INSUFFICIENT;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.empty;

@@ -115,7 +115,7 @@ func (q *Queries) FindReserveByID(ctx context.Context, id string) (Reserve, erro
 
 const upsertReserve = `-- name: UpsertReserve :exec
 INSERT INTO
-  reserve (id, created_at, external_ref, status, updated_at)
+  reserve (id, external_ref, status, created_at, updated_at)
 VALUES
   ($1, $2, $3, $4, $5) ON CONFLICT (id) DO
 UPDATE
@@ -126,18 +126,18 @@ SET
 
 type UpsertReserveParams struct {
 	ID          string
-	CreatedAt   pgtype.Timestamptz
 	ExternalRef *string
 	Status      ReserveStatus
+	CreatedAt   pgtype.Timestamptz
 	UpdatedAt   pgtype.Timestamptz
 }
 
 func (q *Queries) UpsertReserve(ctx context.Context, arg UpsertReserveParams) error {
 	_, err := q.db.Exec(ctx, upsertReserve,
 		arg.ID,
-		arg.CreatedAt,
 		arg.ExternalRef,
 		arg.Status,
+		arg.CreatedAt,
 		arg.UpdatedAt,
 	)
 	return err
@@ -145,21 +145,20 @@ func (q *Queries) UpsertReserve(ctx context.Context, arg UpsertReserveParams) er
 
 const upsertReserveItem = `-- name: UpsertReserveItem :exec
 INSERT INTO
-  reserve_item (id, reserve_id, reserved, amount, insufficient)
+  reserve_item (id, reserve_id, amount, reserved, insufficient)
 VALUES
   ($1, $2, $3, $4, $5) ON CONFLICT (id, reserve_id) DO
 UPDATE
 SET
-  amount = COALESCE(EXCLUDED.amount, reserve_item.amount),
-  insufficient = COALESCE(EXCLUDED.insufficient, reserve_item.insufficient),
-  reserved = COALESCE(EXCLUDED.reserved, reserve_item.reserved)
+  reserved = COALESCE($4, reserve_item.reserved),
+  insufficient = COALESCE($5, reserve_item.insufficient)
 `
 
 type UpsertReserveItemParams struct {
 	ID           string
 	ReserveID    string
-	Reserved     *bool
 	Amount       int32
+	Reserved     *bool
 	Insufficient *int32
 }
 
@@ -167,8 +166,8 @@ func (q *Queries) UpsertReserveItem(ctx context.Context, arg UpsertReserveItemPa
 	_, err := q.db.Exec(ctx, upsertReserveItem,
 		arg.ID,
 		arg.ReserveID,
-		arg.Reserved,
 		arg.Amount,
+		arg.Reserved,
 		arg.Insufficient,
 	)
 	return err

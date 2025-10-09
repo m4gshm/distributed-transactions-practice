@@ -4,6 +4,7 @@ import io.github.m4gshm.payments.data.model.Payment;
 import lombok.experimental.UtilityClass;
 import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentServiceOuterClass.PaymentCreateRequest.PaymentCreate;
+import payments.data.access.jooq.enums.PaymentStatus;
 
 @UtilityClass
 public class PaymentServiceUtils {
@@ -16,7 +17,7 @@ public class PaymentServiceUtils {
                 .build();
     }
 
-    public static PaymentOuterClass.Payment.Status toStatusProto(Payment.Status status) {
+    public static PaymentOuterClass.Payment.Status toStatusProto(PaymentStatus status) {
         return switch (status) {
             case CREATED -> PaymentOuterClass.Payment.Status.CREATED;
             case HOLD -> PaymentOuterClass.Payment.Status.HOLD;
@@ -26,7 +27,7 @@ public class PaymentServiceUtils {
         };
     }
 
-    static Payment toPayment(String id, PaymentOuterClass.Payment payment, Payment.Status status) {
+    static Payment toPayment(String id, PaymentOuterClass.Payment payment, PaymentStatus status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())
@@ -36,7 +37,7 @@ public class PaymentServiceUtils {
                 .build();
     }
 
-    static Payment toPayment(String id, PaymentCreate payment, Payment.Status status) {
+    static Payment toPayment(String id, PaymentCreate payment, PaymentStatus status) {
         return Payment.builder()
                 .id(id)
                 .externalRef(payment.getExternalRef())

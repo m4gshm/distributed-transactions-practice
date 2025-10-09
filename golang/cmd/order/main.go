@@ -10,6 +10,7 @@ import (
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/app"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/order/service"
 	orderpb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"
 	order "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/impl"
 	payment "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
@@ -20,24 +21,25 @@ func main() {
 	name := "order"
 	cfg := config.Load().Order
 
-	app.Run(name, cfg.ServiceConfig, func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]app.Close, error) {
-		service, closes := NewOrderService(cfg, p)
-		orderpb.RegisterOrderServiceServer(s, service)
-		app.RegisterGateway[orderpb.OrderServiceServer](ctx, mux, orderpb.RegisterOrderServiceHandlerServer, service)
-		return closes, nil
-	})
-}
+	app.Run(name, cfg.ServiceConfig, slice.Of("order_status", "delivery_type"),
+		func(ctx context.Context, db *pgxpool.Pool, reg grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]app.Close, error) {
+			paymentConn := app.NewGrpcClient(cfg.PaymentServiceURL, "payment")
+			reserveConn := app.NewGrpcClient(cfg.ReserveServiceURL, "reserve")
+			closes := slice.Of(paymentConn.Close, reserveConn.Close)
 
-func NewOrderService(cfg config.OrderConfig, db *pgxpool.Pool) (*order.OrderService, []func() error) {
-	paymentConn := app.NewGrpcClient(cfg.PaymentServiceURL, "payment")
-	reserveConn := app.NewGrpcClient(cfg.ReserveServiceURL, "reserve")
-	closes := slice.Of(paymentConn.Close, reserveConn.Close)
+			payClient := payment.NewPaymentServiceClient(paymentConn)
+			resClient := reserve.NewReserveServiceClient(reserveConn)
+			whouseClient := reserve.NewWarehouseItemServiceClient(reserveConn)
 
-	orderService := order.NewOrderService(
-		db,
-		payment.NewPaymentServiceClient(paymentConn),
-		reserve.NewReserveServiceClient(reserveConn),
-		reserve.NewWarehouseItemServiceClient(reserveConn),
-	)
-	return orderService, closes
+			ordServ := order.NewOrderService(db, payClient, resClient, whouseClient)
+
+			orderpb.RegisterOrderServiceServer(reg, ordServ)
+			app.RegisterGateway[orderpb.OrderServiceServer](ctx, mux, orderpb.RegisterOrderServiceHandlerServer, ordServ)
+
+			kafka := cfg.KafkaConfig
+
+			err := service.NewAccountEventListener(name, slice.Of(kafka.Topic), kafka.Servers, db, ordServ, payClient, false).Listen(ctx)
+
+			return closes, err
+		})
 }

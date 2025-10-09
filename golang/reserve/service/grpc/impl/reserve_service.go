@@ -2,6 +2,8 @@ package impl
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -13,26 +15,32 @@ import (
 	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 	"github.com/m4gshm/gollections/convert"
+	"github.com/m4gshm/gollections/convert/val"
 	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/seq"
 	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
 
 type ReserveService struct {
 	reservepb.UnimplementedReserveServiceServer
-	db *pgxpool.Pool
+	db   *pgxpool.Pool
+	resq func(ressqlc.DBTX) *ressqlc.Queries
+	whq  func(whsqlc.DBTX) *whsqlc.Queries
 }
 
 func NewReserveService(
 	db *pgxpool.Pool,
+	resq func(ressqlc.DBTX) *ressqlc.Queries,
+	whq func(whsqlc.DBTX) *whsqlc.Queries,
 ) *ReserveService {
 	return &ReserveService{
-		UnimplementedReserveServiceServer: reservepb.UnimplementedReserveServiceServer{},
-		db:                                db,
+		db:   db,
+		resq: resq,
+		whq:  whq,
 	}
 }
 
@@ -42,7 +50,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 		return nil, status.Errorf(codes.InvalidArgument, "reserve body is required")
 	}
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCreateResponse, error) {
-		query := ressqlc.New(tx)
+		query := s.resq(tx)
 		reserveID := uuid.New().String()
 
 		// // Check if prepared transaction ID is provided for 2PC
@@ -59,7 +67,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 			CreatedAt:   pg.Timestamptz(time.Now()),
 			Status:      ressqlc.ReserveStatusCREATED,
 		}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (externalRef [%s]): %v", body.ExternalRef, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (externalRef '%s'): %v", body.ExternalRef, err)
 		}
 
 		for _, item := range body.Items {
@@ -68,7 +76,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 				ID:        item.Id,
 				Amount:    item.Amount,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to create reserve item (externalRef [%s], itemId [%s]): %v", body.ExternalRef, item.Id, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to create reserve item (externalRef '%s', itemId '%s'): %v", body.ExternalRef, item.Id, err)
 			}
 		}
 
@@ -85,8 +93,8 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 
 func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveApproveRequest) (*reservepb.ReserveApproveResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveApproveResponse, error) {
-		resQuery := ressqlc.New(tx)
-		whQuery := whsqlc.New(tx)
+		resQuery := s.resq(tx)
+		whQuery := s.whq(tx)
 
 		// Get reserve
 		reserve, err := resQuery.FindReserveByID(ctx, req.Id)
@@ -114,12 +122,11 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 		newStatus := ressqlc.ReserveStatusAPPROVED
 
 		// Check availability and reserve items
-		warehouseItems := []whsqlc.WarehouseItem{}
 		onUpdateItems := []ressqlc.ReserveItem{}
 		insufficients := map[string]int32{}
 		reservingAmounts := map[string]int32{}
 		for _, item := range reserveItems {
-			if r := item.Reserved; r != nil && *r {
+			if reserved := item.Reserved; reserved != nil && *reserved {
 				continue
 			}
 
@@ -135,7 +142,6 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 			canReserve := available >= item.Amount
 			if canReserve {
 				reservingAmounts[itemID] = item.Amount
-				warehouseItems = append(warehouseItems, warehouseItem)
 			} else {
 				// Mark as insufficient
 				insufficientQuantity := item.Amount - available
@@ -159,10 +165,11 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 
 			if err := resQuery.UpsertReserveItem(ctx, ressqlc.UpsertReserveItemParams{
 				ID:           item.ID,
+				ReserveID:    item.ReserveID,
 				Reserved:     item.Reserved,
 				Insufficient: item.Insufficient,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to update reserve item (itemId [%s]): %v", item.ID, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to update reserve item (itemId '%s'): %v", item.ID, err)
 			}
 		}
 
@@ -171,7 +178,7 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 				ID:       itemId,
 				Reserved: reserved,
 			}); err != nil {
-				return nil, status.Errorf(grpc.Status(err), "failed to increment reserve of warehouse item (itemId [%s]): %v", itemId, err)
+				return nil, status.Errorf(grpc.Status(err), "failed to increment reserve of warehouse item (itemId '%s'): %v", itemId, err)
 			}
 		}
 
@@ -195,8 +202,8 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 
 func (s *ReserveService) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
-		resQuery := ressqlc.New(tx)
-		whQuery := whsqlc.New(tx)
+		resQuery := s.resq(tx)
+		whQuery := s.whq(tx)
 
 		reserve, err := resQuery.FindReserveByID(ctx, req.Id)
 		if err != nil {
@@ -244,8 +251,8 @@ func (s *ReserveService) Release(ctx context.Context, req *reservepb.ReserveRele
 
 func (s *ReserveService) Cancel(ctx context.Context, req *reservepb.ReserveCancelRequest) (*reservepb.ReserveCancelResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCancelResponse, error) {
-		resQuery := ressqlc.New(tx)
-		whQuery := whsqlc.New(tx)
+		resQuery := s.resq(tx)
+		whQuery := s.whq(tx)
 
 		reserve, err := resQuery.FindReserveByID(ctx, req.Id)
 		if err != nil {
@@ -270,7 +277,7 @@ func (s *ReserveService) Cancel(ctx context.Context, req *reservepb.ReserveCance
 		// }
 
 		// Release reserved items back to warehouse
-		if err := releaseWarehouseItems(ctx, whQuery, reserveItems); err != nil {
+		if err := unreserveWarehouseItems(ctx, whQuery, reserveItems); err != nil {
 			return nil, err
 		}
 
@@ -293,7 +300,7 @@ func (s *ReserveService) Cancel(ctx context.Context, req *reservepb.ReserveCance
 }
 
 func (s *ReserveService) Get(ctx context.Context, req *reservepb.ReserveGetRequest) (*reservepb.ReserveGetResponse, error) {
-	resQuery := ressqlc.New(s.db)
+	resQuery := s.resq(s.db)
 
 	reserve, err := resQuery.FindReserveByID(ctx, req.Id)
 	if err != nil {
@@ -309,7 +316,7 @@ func (s *ReserveService) Get(ctx context.Context, req *reservepb.ReserveGetReque
 }
 
 func (s *ReserveService) List(ctx context.Context, req *reservepb.ReserveListRequest) (*reservepb.ReserveListResponse, error) {
-	resQuery := ressqlc.New(s.db)
+	resQuery := s.resq(s.db)
 
 	reserves, err := resQuery.FindAllReserves(ctx)
 	if err != nil {
@@ -341,27 +348,43 @@ func toProtoReserveItem(item ressqlc.ReserveItem) *reservepb.Reserve_Item {
 	}
 }
 
-func releaseWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, reserveItems []ressqlc.ReserveItem) error {
-	for _, item := range reserveItems {
-		if reserved := item.Reserved; reserved != nil && *reserved {
-			if err := whQuery.DecrementReserved(ctx, whsqlc.DecrementReservedParams{
-				ID:       item.ID,
-				Reserved: item.Amount,
-			}); err != nil {
-				return status.Errorf(grpc.Status(err), "failed to release item (itemID [%s]): %v", item.ID, err)
-			}
+func releaseWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, items []ressqlc.ReserveItem) error {
+	for item := range reservedOnly(items) {
+		if err := whQuery.DecrementAmountAndReserved(ctx, whsqlc.DecrementAmountAndReservedParams{
+			ID:     item.ID,
+			Amount: item.Amount,
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "failed to release item (itemID '%s'): %v", item.ID, err)
 		}
 	}
 	return nil
 }
 
+func unreserveWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, items []ressqlc.ReserveItem) error {
+	for item := range reservedOnly(items) {
+		if err := whQuery.DecrementReserved(ctx, whsqlc.DecrementReservedParams{
+			ID:       item.ID,
+			Reserved: item.Amount,
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "failed to unreserve item (itemID '%s'): %v", item.ID, err)
+		}
+	}
+	return nil
+}
+
+func reservedOnly(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveItem] {
+	return seq.Of(reserveItems...).Filter(func(item ressqlc.ReserveItem) bool { return val.Of(item.Reserved) })
+}
+
 func updateReserveStatus(ctx context.Context, resQuery *ressqlc.Queries, reserveID string, newStatus ressqlc.ReserveStatus) error {
+	timestamp := pg.Timestamptz(time.Now())
 	if err := resQuery.UpsertReserve(ctx, ressqlc.UpsertReserveParams{
 		ID:        reserveID,
 		Status:    newStatus,
-		UpdatedAt: pg.Timestamptz(time.Now()),
+		CreatedAt: timestamp,
+		UpdatedAt: timestamp,
 	}); err != nil {
-		return status.Errorf(grpc.Status(err), "failed to update reserve status (reserveId [%s]): %v", reserveID, err)
+		return status.Errorf(grpc.Status(err), "failed to update reserve status (reserveId '%s'): %v", reserveID, err)
 	}
 	return nil
 }

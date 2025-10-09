@@ -48,7 +48,7 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
                                     .setId(item.id())
                                     .setAmount(item.amount())
                                     .setReserved(item.reserved())
-                                    .setUpdatedAt(toTimestamp(item.updatedAt()))
+                                    .mergeUpdatedAt(toTimestamp(item.updatedAt()))
                                     .build())
                             .toList())
                     .build();

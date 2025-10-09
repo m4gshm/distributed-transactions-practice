@@ -49,7 +49,7 @@ type ServiceConfig struct {
 
 func Load() *Config {
 	kafka := KafkaConfig{
-		Topic:   "payment",
+		Topic:   "balance",
 		Servers: slice.Of("localhost:9092"),
 	}
 	payment := PaymentConfig{

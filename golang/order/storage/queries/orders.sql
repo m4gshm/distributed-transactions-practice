@@ -15,10 +15,7 @@ FROM
   LEFT JOIN delivery d ON o.id = d.order_id
 WHERE
   o.customer_id = $1
-  AND o.status IN (
-    SELECT
-      unnest(sqlc.arg(orderStatus):: order_status [])
-  );
+  AND o.status = ANY(sqlc.arg(orderStatus)::order_status[]);
 
 
 -- name: FindOrderById :one
@@ -30,6 +27,15 @@ FROM
   LEFT JOIN delivery d ON o.id = d.order_id
 WHERE
   o.id = $1;
+
+
+-- name: FindItemsByOrderId :many
+SELECT
+  *
+FROM
+  item i
+WHERE
+  i.order_id = $1;
 
 
 -- name: InsertOrUpdateOrder :exec

@@ -71,7 +71,7 @@ func (s *AccountService) TopUp(ctx context.Context, req *accountpb.AccountTopUpR
 			ClientID: clientID,
 			Amount:   topUp.Amount,
 		}); err != nil {
-			return nil, status.Errorf(grpc.Status(err), "failed to top up account (clientID [%s]): %v", clientID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to top up account (clientID '%s'): %v", clientID, err)
 		} else {
 			balance := resp.Amount - resp.Locked
 			if eventer := s.eventer; eventer != nil {
@@ -83,6 +83,8 @@ func (s *AccountService) TopUp(ctx context.Context, req *accountpb.AccountTopUpR
 				}
 				if err := eventer.Send(ctx, e); err != nil {
 					log.Err(err).Msgf("failed to send account event %v", e)
+				} else {
+					log.Debug().Msgf("account event successfully sent %v", e)
 				}
 			}
 			return &accountpb.AccountTopUpResponse{Balance: balance}, nil

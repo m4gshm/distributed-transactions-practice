@@ -70,6 +70,35 @@ func (q *Queries) FindAllOrders(ctx context.Context) ([]FindAllOrdersRow, error)
 	return items, nil
 }
 
+const findItemsByOrderId = `-- name: FindItemsByOrderId :many
+SELECT
+  id, order_id, amount
+FROM
+  item i
+WHERE
+  i.order_id = $1
+`
+
+func (q *Queries) FindItemsByOrderId(ctx context.Context, orderID string) ([]Item, error) {
+	rows, err := q.db.Query(ctx, findItemsByOrderId, orderID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Item
+	for rows.Next() {
+		var i Item
+		if err := rows.Scan(&i.ID, &i.OrderID, &i.Amount); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const findOrderById = `-- name: FindOrderById :one
 SELECT
   o.id, o.created_at, o.updated_at, o.status, o.customer_id, o.reserve_id, o.payment_id, o.payment_transaction_id, o.reserve_transaction_id,
@@ -115,10 +144,7 @@ FROM
   LEFT JOIN delivery d ON o.id = d.order_id
 WHERE
   o.customer_id = $1
-  AND o.status IN (
-    SELECT
-      unnest($2:: order_status [])
-  )
+  AND o.status = ANY($2::order_status[])
 `
 
 type FindOrdersByClientAndStatusesParams struct {
@@ -178,7 +204,7 @@ SET
 type InsertOrUpdateDeliveryParams struct {
 	OrderID string
 	Address string
-	Type    string
+	Type    DeliveryType
 }
 
 func (q *Queries) InsertOrUpdateDelivery(ctx context.Context, arg InsertOrUpdateDeliveryParams) error {

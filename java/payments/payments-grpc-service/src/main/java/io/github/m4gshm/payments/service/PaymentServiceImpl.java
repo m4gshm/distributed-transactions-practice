@@ -23,6 +23,7 @@ import payment.v1.PaymentServiceOuterClass.PaymentListRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentListResponse;
 import payment.v1.PaymentServiceOuterClass.PaymentPayRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentPayResponse;
+import payments.data.access.jooq.enums.PaymentStatus;
 import reactor.core.publisher.Mono;
 
 import java.util.Set;
@@ -30,11 +31,6 @@ import java.util.UUID;
 import java.util.function.BiFunction;
 
 import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.payments.data.model.Payment.Status.CANCELLED;
-import static io.github.m4gshm.payments.data.model.Payment.Status.CREATED;
-import static io.github.m4gshm.payments.data.model.Payment.Status.HOLD;
-import static io.github.m4gshm.payments.data.model.Payment.Status.INSUFFICIENT;
-import static io.github.m4gshm.payments.data.model.Payment.Status.PAID;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPayment;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPaymentProto;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toStatusProto;
@@ -42,6 +38,11 @@ import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction
 import static io.github.m4gshm.protobuf.Utils.getOrNull;
 import static lombok.AccessLevel.PRIVATE;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
+import static payments.data.access.jooq.enums.PaymentStatus.CANCELLED;
+import static payments.data.access.jooq.enums.PaymentStatus.CREATED;
+import static payments.data.access.jooq.enums.PaymentStatus.HOLD;
+import static payments.data.access.jooq.enums.PaymentStatus.INSUFFICIENT;
+import static payments.data.access.jooq.enums.PaymentStatus.PAID;
 import static reactor.core.publisher.Mono.defer;
 
 @Service
@@ -54,7 +55,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     PaymentStorage paymentStorage;
     AccountStorage accountStorage;
 
-    private static Payment withStatus(Payment payment, Payment.Status status) {
+    private static Payment withStatus(Payment payment, PaymentStatus status) {
         return payment.toBuilder().status(status).build();
     }
 
@@ -176,7 +177,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                     StreamObserver<T> responseObserver,
                                     String preparedTransactionId,
                                     String paymentId,
-                                    Set<Payment.Status> expected,
+                                    Set<PaymentStatus> expected,
                                     BiFunction<Payment, Account, Mono<T>> routine
     ) {
         grpc.subscribe(
