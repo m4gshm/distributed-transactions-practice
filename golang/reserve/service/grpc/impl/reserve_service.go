@@ -7,13 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
-	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
-	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
-	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 	"github.com/m4gshm/gollections/convert"
 	"github.com/m4gshm/gollections/convert/val"
 	"github.com/m4gshm/gollections/op"
@@ -21,6 +14,14 @@ import (
 	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
+	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
+	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
