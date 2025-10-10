@@ -9,7 +9,7 @@ import (
 	"context"
 )
 
-const decrementAmountAndReserved = `-- name: DecrementAmountAndReserved :exec
+const DecrementAmountAndReserved = `-- name: DecrementAmountAndReserved :exec
 UPDATE
   warehouse_item
 SET
@@ -25,11 +25,11 @@ type DecrementAmountAndReservedParams struct {
 }
 
 func (q *Queries) DecrementAmountAndReserved(ctx context.Context, arg DecrementAmountAndReservedParams) error {
-	_, err := q.db.Exec(ctx, decrementAmountAndReserved, arg.ID, arg.Amount)
+	_, err := q.db.Exec(ctx, DecrementAmountAndReserved, arg.ID, arg.Amount)
 	return err
 }
 
-const decrementReserved = `-- name: DecrementReserved :exec
+const DecrementReserved = `-- name: DecrementReserved :exec
 UPDATE
   warehouse_item
 SET
@@ -44,11 +44,11 @@ type DecrementReservedParams struct {
 }
 
 func (q *Queries) DecrementReserved(ctx context.Context, arg DecrementReservedParams) error {
-	_, err := q.db.Exec(ctx, decrementReserved, arg.ID, arg.Reserved)
+	_, err := q.db.Exec(ctx, DecrementReserved, arg.ID, arg.Reserved)
 	return err
 }
 
-const incrementReserved = `-- name: IncrementReserved :exec
+const IncrementReserved = `-- name: IncrementReserved :exec
 UPDATE
   warehouse_item
 SET
@@ -63,11 +63,11 @@ type IncrementReservedParams struct {
 }
 
 func (q *Queries) IncrementReserved(ctx context.Context, arg IncrementReservedParams) error {
-	_, err := q.db.Exec(ctx, incrementReserved, arg.ID, arg.Reserved)
+	_, err := q.db.Exec(ctx, IncrementReserved, arg.ID, arg.Reserved)
 	return err
 }
 
-const selectAllItems = `-- name: SelectAllItems :many
+const SelectAllItems = `-- name: SelectAllItems :many
 SELECT
   id, amount, reserved, unit_cost, updated_at
 FROM
@@ -75,7 +75,7 @@ FROM
 `
 
 func (q *Queries) SelectAllItems(ctx context.Context) ([]WarehouseItem, error) {
-	rows, err := q.db.Query(ctx, selectAllItems)
+	rows, err := q.db.Query(ctx, SelectAllItems)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +100,7 @@ func (q *Queries) SelectAllItems(ctx context.Context) ([]WarehouseItem, error) {
 	return items, nil
 }
 
-const selectItemByID = `-- name: SelectItemByID :one
+const SelectItemByID = `-- name: SelectItemByID :one
 SELECT
   id, amount, reserved, unit_cost, updated_at
 FROM
@@ -110,7 +110,7 @@ WHERE
 `
 
 func (q *Queries) SelectItemByID(ctx context.Context, id string) (WarehouseItem, error) {
-	row := q.db.QueryRow(ctx, selectItemByID, id)
+	row := q.db.QueryRow(ctx, SelectItemByID, id)
 	var i WarehouseItem
 	err := row.Scan(
 		&i.ID,
@@ -122,7 +122,7 @@ func (q *Queries) SelectItemByID(ctx context.Context, id string) (WarehouseItem,
 	return i, err
 }
 
-const selectItemByIDForUpdate = `-- name: SelectItemByIDForUpdate :one
+const SelectItemByIDForUpdate = `-- name: SelectItemByIDForUpdate :one
 SELECT
   id, amount, reserved, unit_cost, updated_at
 FROM
@@ -133,7 +133,7 @@ UPDATE
 `
 
 func (q *Queries) SelectItemByIDForUpdate(ctx context.Context, id string) (WarehouseItem, error) {
-	row := q.db.QueryRow(ctx, selectItemByIDForUpdate, id)
+	row := q.db.QueryRow(ctx, SelectItemByIDForUpdate, id)
 	var i WarehouseItem
 	err := row.Scan(
 		&i.ID,
@@ -145,7 +145,7 @@ func (q *Queries) SelectItemByIDForUpdate(ctx context.Context, id string) (Wareh
 	return i, err
 }
 
-const updateAmountAndReserved = `-- name: UpdateAmountAndReserved :exec
+const UpdateAmountAndReserved = `-- name: UpdateAmountAndReserved :exec
 UPDATE
   warehouse_item
 SET
@@ -162,6 +162,6 @@ type UpdateAmountAndReservedParams struct {
 }
 
 func (q *Queries) UpdateAmountAndReserved(ctx context.Context, arg UpdateAmountAndReservedParams) error {
-	_, err := q.db.Exec(ctx, updateAmountAndReserved, arg.ID, arg.Amount, arg.Reserved)
+	_, err := q.db.Exec(ctx, UpdateAmountAndReserved, arg.ID, arg.Amount, arg.Reserved)
 	return err
 }

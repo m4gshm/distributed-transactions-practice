@@ -154,9 +154,8 @@ public class OrderServiceImpl implements OrderService {
     private Mono<Order> create(Order order, boolean twoPhaseCommit) {
         var orderId = order.id();
         var items = order.items();
-        var itemIds = items.stream().map(Order.Item::id).toList();
         var paymentTransactionId = order.paymentTransactionId();
-        var paymentRoutine = itemService.getSumCost(itemIds).map(cost -> {
+        var paymentRoutine = itemService.getSumCost(items).map(cost -> {
             var paymentRequestBuilder = PaymentCreateRequest.newBuilder()
                     .setBody(PaymentCreateRequest.PaymentCreate.newBuilder()
                             .setExternalRef(orderId)

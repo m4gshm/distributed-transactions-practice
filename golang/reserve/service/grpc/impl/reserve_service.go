@@ -2,16 +2,10 @@ package impl
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
-	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
-	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
-	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 	"github.com/m4gshm/gollections/convert"
 	"github.com/m4gshm/gollections/convert/val"
 	"github.com/m4gshm/gollections/op"
@@ -19,31 +13,45 @@ import (
 	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
-	"time"
+
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
+	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
+	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
+//go:generate mockgen -destination mock_test.go -package impl . DB
+//go:generate mockgen -destination mock_pgx_test.go -package impl github.com/jackc/pgx/v5 Tx,Row
 
-type ReserveService struct {
+type ReserveService[RQ ressqlc.Querier, WQ whsqlc.Querier] struct {
 	reservepb.UnimplementedReserveServiceServer
-	db   *pgxpool.Pool
-	resq func(ressqlc.DBTX) *ressqlc.Queries
-	whq  func(whsqlc.DBTX) *whsqlc.Queries
+	db   DB
+	resq func(tx ressqlc.DBTX) RQ
+	whq  func(tx whsqlc.DBTX) WQ
 }
 
-func NewReserveService(
-	db *pgxpool.Pool,
-	resq func(ressqlc.DBTX) *ressqlc.Queries,
-	whq func(whsqlc.DBTX) *whsqlc.Queries,
-) *ReserveService {
-	return &ReserveService{
+type DB interface {
+	tx.DB
+	ressqlc.DBTX
+}
+
+func NewReserveService[RQ ressqlc.Querier, WQ whsqlc.Querier](
+	db DB,
+	resq func(tx ressqlc.DBTX) RQ,
+	whq func(tx whsqlc.DBTX) WQ,
+) *ReserveService[RQ, WQ] {
+	return &ReserveService[RQ, WQ]{
 		db:   db,
 		resq: resq,
 		whq:  whq,
 	}
 }
 
-func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreateRequest) (*reservepb.ReserveCreateResponse, error) {
+func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.ReserveCreateRequest) (*reservepb.ReserveCreateResponse, error) {
 	body := req.Body
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "reserve body is required")
@@ -90,7 +98,7 @@ func (s *ReserveService) Create(ctx context.Context, req *reservepb.ReserveCreat
 
 }
 
-func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveApproveRequest) (*reservepb.ReserveApproveResponse, error) {
+func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.ReserveApproveRequest) (*reservepb.ReserveApproveResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveApproveResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -199,7 +207,7 @@ func (s *ReserveService) Approve(ctx context.Context, req *reservepb.ReserveAppr
 	})
 }
 
-func (s *ReserveService) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
+func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -248,7 +256,7 @@ func (s *ReserveService) Release(ctx context.Context, req *reservepb.ReserveRele
 	})
 }
 
-func (s *ReserveService) Cancel(ctx context.Context, req *reservepb.ReserveCancelRequest) (*reservepb.ReserveCancelResponse, error) {
+func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.ReserveCancelRequest) (*reservepb.ReserveCancelResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCancelResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -298,7 +306,7 @@ func (s *ReserveService) Cancel(ctx context.Context, req *reservepb.ReserveCance
 	})
 }
 
-func (s *ReserveService) Get(ctx context.Context, req *reservepb.ReserveGetRequest) (*reservepb.ReserveGetResponse, error) {
+func (s *ReserveService[RQ, WQ]) Get(ctx context.Context, req *reservepb.ReserveGetRequest) (*reservepb.ReserveGetResponse, error) {
 	resQuery := s.resq(s.db)
 
 	reserve, err := resQuery.FindReserveByID(ctx, req.Id)
@@ -314,7 +322,7 @@ func (s *ReserveService) Get(ctx context.Context, req *reservepb.ReserveGetReque
 	return &reservepb.ReserveGetResponse{Reserve: toProtoReserve(reserve, reserveItems)}, nil
 }
 
-func (s *ReserveService) List(ctx context.Context, req *reservepb.ReserveListRequest) (*reservepb.ReserveListResponse, error) {
+func (s *ReserveService[RQ, WQ]) List(ctx context.Context, req *reservepb.ReserveListRequest) (*reservepb.ReserveListResponse, error) {
 	resQuery := s.resq(s.db)
 
 	reserves, err := resQuery.FindAllReserves(ctx)
@@ -347,7 +355,7 @@ func toProtoReserveItem(item ressqlc.ReserveItem) *reservepb.Reserve_Item {
 	}
 }
 
-func releaseWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, items []ressqlc.ReserveItem) error {
+func releaseWarehouseItems[WQ whsqlc.Querier](ctx context.Context, whQuery WQ, items []ressqlc.ReserveItem) error {
 	for item := range reservedOnly(items) {
 		if err := whQuery.DecrementAmountAndReserved(ctx, whsqlc.DecrementAmountAndReservedParams{
 			ID:     item.ID,
@@ -359,7 +367,7 @@ func releaseWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, items [
 	return nil
 }
 
-func unreserveWarehouseItems(ctx context.Context, whQuery *whsqlc.Queries, items []ressqlc.ReserveItem) error {
+func unreserveWarehouseItems[WQ whsqlc.Querier](ctx context.Context, whQuery WQ, items []ressqlc.ReserveItem) error {
 	for item := range reservedOnly(items) {
 		if err := whQuery.DecrementReserved(ctx, whsqlc.DecrementReservedParams{
 			ID:       item.ID,
@@ -375,7 +383,7 @@ func reservedOnly(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveIte
 	return seq.Of(reserveItems...).Filter(func(item ressqlc.ReserveItem) bool { return val.Of(item.Reserved) })
 }
 
-func updateReserveStatus(ctx context.Context, resQuery *ressqlc.Queries, reserveID string, newStatus ressqlc.ReserveStatus) error {
+func updateReserveStatus[RQ ressqlc.Querier](ctx context.Context, resQuery RQ, reserveID string, newStatus ressqlc.ReserveStatus) error {
 	timestamp := pg.Timestamptz(time.Now())
 	if err := resQuery.UpsertReserve(ctx, ressqlc.UpsertReserveParams{
 		ID:        reserveID,

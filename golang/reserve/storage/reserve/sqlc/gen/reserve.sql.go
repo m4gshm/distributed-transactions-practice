@@ -11,7 +11,7 @@ import (
 	"github.com/jackc/pgx/v5/pgtype"
 )
 
-const deleteReserveItems = `-- name: DeleteReserveItems :exec
+const DeleteReserveItems = `-- name: DeleteReserveItems :exec
 DELETE FROM
   reserve_item
 WHERE
@@ -19,11 +19,11 @@ WHERE
 `
 
 func (q *Queries) DeleteReserveItems(ctx context.Context, reserveID string) error {
-	_, err := q.db.Exec(ctx, deleteReserveItems, reserveID)
+	_, err := q.db.Exec(ctx, DeleteReserveItems, reserveID)
 	return err
 }
 
-const findAllReserves = `-- name: FindAllReserves :many
+const FindAllReserves = `-- name: FindAllReserves :many
 SELECT
   id, external_ref, status, created_at, updated_at
 FROM
@@ -31,7 +31,7 @@ FROM
 `
 
 func (q *Queries) FindAllReserves(ctx context.Context) ([]Reserve, error) {
-	rows, err := q.db.Query(ctx, findAllReserves)
+	rows, err := q.db.Query(ctx, FindAllReserves)
 	if err != nil {
 		return nil, err
 	}
@@ -56,7 +56,7 @@ func (q *Queries) FindAllReserves(ctx context.Context) ([]Reserve, error) {
 	return items, nil
 }
 
-const findItemsByReserveID = `-- name: FindItemsByReserveID :many
+const FindItemsByReserveID = `-- name: FindItemsByReserveID :many
 SELECT
   id, reserve_id, amount, insufficient, reserved
 FROM
@@ -66,7 +66,7 @@ WHERE
 `
 
 func (q *Queries) FindItemsByReserveID(ctx context.Context, reserveID string) ([]ReserveItem, error) {
-	rows, err := q.db.Query(ctx, findItemsByReserveID, reserveID)
+	rows, err := q.db.Query(ctx, FindItemsByReserveID, reserveID)
 	if err != nil {
 		return nil, err
 	}
@@ -91,7 +91,7 @@ func (q *Queries) FindItemsByReserveID(ctx context.Context, reserveID string) ([
 	return items, nil
 }
 
-const findReserveByID = `-- name: FindReserveByID :one
+const FindReserveByID = `-- name: FindReserveByID :one
 SELECT
   id, external_ref, status, created_at, updated_at
 FROM
@@ -101,7 +101,7 @@ WHERE
 `
 
 func (q *Queries) FindReserveByID(ctx context.Context, id string) (Reserve, error) {
-	row := q.db.QueryRow(ctx, findReserveByID, id)
+	row := q.db.QueryRow(ctx, FindReserveByID, id)
 	var i Reserve
 	err := row.Scan(
 		&i.ID,
@@ -113,7 +113,7 @@ func (q *Queries) FindReserveByID(ctx context.Context, id string) (Reserve, erro
 	return i, err
 }
 
-const upsertReserve = `-- name: UpsertReserve :exec
+const UpsertReserve = `-- name: UpsertReserve :exec
 INSERT INTO
   reserve (id, external_ref, status, created_at, updated_at)
 VALUES
@@ -133,7 +133,7 @@ type UpsertReserveParams struct {
 }
 
 func (q *Queries) UpsertReserve(ctx context.Context, arg UpsertReserveParams) error {
-	_, err := q.db.Exec(ctx, upsertReserve,
+	_, err := q.db.Exec(ctx, UpsertReserve,
 		arg.ID,
 		arg.ExternalRef,
 		arg.Status,
@@ -143,7 +143,7 @@ func (q *Queries) UpsertReserve(ctx context.Context, arg UpsertReserveParams) er
 	return err
 }
 
-const upsertReserveItem = `-- name: UpsertReserveItem :exec
+const UpsertReserveItem = `-- name: UpsertReserveItem :exec
 INSERT INTO
   reserve_item (id, reserve_id, amount, reserved, insufficient)
 VALUES
@@ -163,7 +163,7 @@ type UpsertReserveItemParams struct {
 }
 
 func (q *Queries) UpsertReserveItem(ctx context.Context, arg UpsertReserveItemParams) error {
-	_, err := q.db.Exec(ctx, upsertReserveItem,
+	_, err := q.db.Exec(ctx, UpsertReserveItem,
 		arg.ID,
 		arg.ReserveID,
 		arg.Amount,

@@ -4,7 +4,6 @@ import (
 	"context"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
@@ -27,14 +26,19 @@ import (
 // generate.fieldr: new-full
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
-	db        *pgxpool.Pool
+	db        DB
 	payment   paymentpb.PaymentServiceClient
 	reserve   reservepb.ReserveServiceClient
 	warehouse reservepb.WarehouseItemServiceClient
 }
 
+type DB interface {
+	tx.DB
+	sqlc.DBTX
+}
+
 func NewOrderService(
-	db *pgxpool.Pool,
+	db DB,
 	payment paymentpb.PaymentServiceClient,
 	reserve reservepb.ReserveServiceClient,
 	warehouse reservepb.WarehouseItemServiceClient,
@@ -112,7 +116,7 @@ func (s *OrderService) create(
 		if err != nil {
 			return "", status.Errorf(grpc.Status(err), "failed to get item cost (order '%s', item '%s'): %v", orderID, id, err)
 		}
-		cost += itemCost.GetCost()
+		cost += float64(item.Amount) * itemCost.GetCost()
 		reserveItems = append(reserveItems, &reservepb.ReserveCreateRequest_Reserve_Item{
 			Id:     id,
 			Amount: item.Amount,
