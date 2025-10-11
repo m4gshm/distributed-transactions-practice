@@ -8,7 +8,6 @@ import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
 import orders.v1.OrderOuterClass.Order.Delivery;
-
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,21 +16,19 @@ import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.test.context.ActiveProfiles;
+import warehouse.v1.Warehouse;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
+import warehouse.v1.WarehouseService;
 import warehouse.v1.WarehouseService.GetItemCostRequest;
 import warehouse.v1.WarehouseService.ItemTopUpRequest;
 import warehouse.v1.WarehouseService.ItemTopUpRequest.TopUp;
 
 import java.util.Map;
+import java.util.function.Function;
 
-import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
-import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
-import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
-import static orders.v1.OrderServiceOuterClass.OrderApproveRequest;
-import static orders.v1.OrderServiceOuterClass.OrderApproveResponse;
-import static orders.v1.OrderServiceOuterClass.OrderCreateRequest;
-import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
-import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
+import static java.util.stream.Collectors.toMap;
+import static orders.v1.OrderOuterClass.Order.Status.*;
+import static orders.v1.OrderServiceOuterClass.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 ;
@@ -124,8 +121,18 @@ public class OrdersGrpcTest {
     private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
         var items = getOrderItems();
 
+        var warehouseItems1 = getWarehouseVal(Warehouse.Item::getAmount);
+
         // populate warehouse
         populateWarehouse(items);
+
+        var warehouseItems2 = getWarehouseVal(Warehouse.Item::getAmount);
+
+        for (var itemID : items.keySet()) {
+            var before = warehouseItems1.get(itemID);
+            var after = warehouseItems2.get(itemID);
+            assertEquals(items.get(itemID), after - before);
+        }
 
         var sumCost = getSumCost(items);
 
@@ -140,16 +147,38 @@ public class OrdersGrpcTest {
         var orderApproveResponse = ordersService.approve(newApproveRequest(orderId, twoPhaseCommit));
         assertEquals(APPROVED, orderApproveResponse.getStatus());
 
+        var warehouseItems3 = getWarehouseVal(Warehouse.Item::getReserved);
+
+        for (var itemID : items.keySet()) {
+            var reserved = warehouseItems3.get(itemID);
+            assertEquals(items.get(itemID), reserved);
+        }
+
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
         assertEquals(RELEASED, orderReleaseResponse.getStatus());
+
+        var warehouseItems4 = getWarehouseVal(Warehouse.Item::getAmount);
+
+        for (var itemID : items.keySet()) {
+            var before = warehouseItems1.get(itemID);
+            var after = warehouseItems4.get(itemID);
+            assertEquals(0, after - before);
+        }
+    }
+
+    private Map<String, Integer> getWarehouseVal(Function<Warehouse.Item, Integer> getItemValue) {
+        return this.warehouseItemService.itemList(WarehouseService.ItemListRequest
+                .newBuilder()
+                .build()
+        ).getAccountsList().stream().collect(toMap(Warehouse.Item::getId, getItemValue));
     }
 
     private double getSumCost(Map<String, Integer> items) {
         return items.entrySet().stream().mapToDouble(e -> {
             var cost = warehouseItemService.getItemCost(
-                    GetItemCostRequest.newBuilder()
-                            .setId(e.getKey())
-                            .build())
+                            GetItemCostRequest.newBuilder()
+                                    .setId(e.getKey())
+                                    .build())
                     .getCost();
             return cost * (double) e.getValue();
         }).sum();

@@ -1,27 +1,5 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
-import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
-import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.summingInt;
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.from;
-import static reactor.core.publisher.Mono.just;
-import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
-
-import java.util.Collection;
-import java.util.List;
-
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Record3;
-import org.jooq.SelectJoinStep;
-import org.springframework.stereotype.Service;
-
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
@@ -30,8 +8,25 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Record3;
+import org.jooq.SelectJoinStep;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.List;
+
+import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
+import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.*;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.*;
+import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
 
 @Slf4j
 @Service
@@ -85,9 +80,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item", id, () -> {
-                                return resultBuilder.remainder(remainder)
-                                        .build();
-                            }));
+                        return resultBuilder.remainder(remainder)
+                                .build();
+                    }));
                 } else {
                     log.info("reserved cannot be less tah zero: item [{}], reserved [{}]", id, newReserved);
                     return error(new InvalidReserveValueException(id, newReserved));
@@ -133,13 +128,13 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                             .set(WAREHOUSE_ITEM.AMOUNT, WAREHOUSE_ITEM.AMOUNT.minus(amountForRelease))
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.minus(amountForRelease))
                             .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item",
-                                    id,
-                                    () -> {
-                                        return ItemOp.Result.builder()
-                                                .id(id)
-                                                .remainder(newTotalAmount)
-                                                .build();
-                                    }));
+                            id,
+                            () -> {
+                                return ItemOp.Result.builder()
+                                        .id(id)
+                                        .remainder(newTotalAmount)
+                                        .build();
+                            }));
                 }
             }).collectList().flatMap(l -> logTxId(dsl, "release", l));
         });
@@ -166,9 +161,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     return from(dsl.update(WAREHOUSE_ITEM)
                             .set(WAREHOUSE_ITEM.RESERVED, WAREHOUSE_ITEM.RESERVED.plus(amountForReserve))
                             .where(WAREHOUSE_ITEM.ID.eq(id))).flatMap(checkUpdateCount("item",
-                                    id,
-                                    () -> resultBuilder.reserved(true).build()
-                            ));
+                            id,
+                            () -> resultBuilder.reserved(true).build()
+                    ));
                 } else {
                     log.info("not enough item amount: item [{}], need [{}]", id, -remainder);
                     return just(resultBuilder.reserved(false).build());
@@ -186,9 +181,11 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
                 var newTotalAmount = totalAmount + amount;
                 var available = newTotalAmount - alreadyReserved;
-                return from(dsl.update(WAREHOUSE_ITEM)
-                        .set(WAREHOUSE_ITEM.AMOUNT, newTotalAmount))
-                        .flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
+                return from(
+                        dsl.update(WAREHOUSE_ITEM)
+                                .set(WAREHOUSE_ITEM.AMOUNT, newTotalAmount)
+                                .where(WAREHOUSE_ITEM.ID.eq(id))
+                ).flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
             });
         });
     }
