@@ -18,6 +18,7 @@ tasks:
     desc: "Install all protoc-gen plugins"
     cmds:
       - |
+        go install github.com/easyp-tech/easyp/cmd/easyp@v0.7.17-rc2
         go install google.golang.org/protobuf/cmd/protoc-gen-go@v1.36.9
         go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@v1.5.1
         go install github.com/envoyproxy/protoc-gen-validate@v1.2.1 
@@ -30,6 +31,7 @@ tasks:
     cmds:
       - |
         go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
+        go install github.com/m4gshm/fieldr@latest
 
   clean-gen:
     cmds:
