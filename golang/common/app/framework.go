@@ -15,6 +15,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/m4gshm/gollections/slice"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -26,7 +27,7 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpczerolog"
-	swagger "github.com/m4gshm/distributed-transactions-practice/golang/common/swagger-ui"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/swagger-ui"
 )
 
 type Close = func() error
@@ -101,7 +102,7 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 }
 
 func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, opts ...database.ConConfOpt) *pgxpool.Pool {
-	db, err := database.NewPool(ctx, cfg, database.WithLogger(log.Logger, tracelog.LogLevelDebug))
+	db, err := database.NewPool(ctx, cfg, append(slice.Of(database.WithLogger(log.Logger, tracelog.LogLevelDebug)), opts...)...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}

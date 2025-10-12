@@ -74,3 +74,21 @@ tasks:
     desc: "Clean generated files"
     cmds:
       - rm -rf {{.GO_OUT_DIR}}/*
+
+  goose-status:
+    cmds:
+      - task: goose-status-order
+      - task: goose-status-payment
+      - task: goose-status-reserve
+  goose-status-order:
+    dir: "order/storage/migrations"
+    cmds:
+      - goose postgres "host=localhost port=5000 user=postgres password=$DB_PASSWORD dbname=orders sslmode=disable" status
+  goose-status-payment:
+    dir: "payment/storage/migrations"
+    cmds:
+      - goose postgres "host=localhost port=5000 user=postgres password=$DB_PASSWORD dbname=payment sslmode=disable" status
+  goose-status-reserve:
+    dir: "reserve/storage/migrations"
+    cmds:
+      - goose postgres "host=localhost port=5000 user=postgres password=$DB_PASSWORD dbname=reserve sslmode=disable" status
