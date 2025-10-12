@@ -14,18 +14,16 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
-//go:generate mockgen -destination mock_test.go -package impl . DB
-//go:generate mockgen -destination mock_pgx_test.go -package impl github.com/jackc/pgx/v5 Tx,Row
 
 type ReserveService[RQ ressqlc.Querier, WQ whsqlc.Querier] struct {
 	reservepb.UnimplementedReserveServiceServer

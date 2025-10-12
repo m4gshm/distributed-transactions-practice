@@ -8,8 +8,8 @@ import (
 	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/app"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/app"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/order/service"
 	servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc"
 	orderpb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"

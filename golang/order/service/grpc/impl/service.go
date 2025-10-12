@@ -2,12 +2,14 @@ package impl
 
 import (
 	"context"
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/check"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/pg"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/tx"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	orderspb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"
 	sqlc "github.com/m4gshm/distributed-transactions-practice/golang/order/storage/sqlc/gen"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
@@ -18,7 +20,6 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
-	"time"
 )
 
 //go:generate fieldr -type OrderService -out . new-full

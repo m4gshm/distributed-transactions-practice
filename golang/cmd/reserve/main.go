@@ -7,8 +7,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/app"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/app"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	reserve "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/impl"

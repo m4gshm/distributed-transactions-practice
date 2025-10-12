@@ -2,8 +2,9 @@ package service
 
 import (
 	"context"
+
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/kafka/consumer"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/kafka/consumer"
 	orderspb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"
 	"github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/impl"
 	"github.com/m4gshm/distributed-transactions-practice/golang/order/storage/sqlc/gen"

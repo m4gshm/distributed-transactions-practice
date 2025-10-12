@@ -8,8 +8,8 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpc"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
 )
 

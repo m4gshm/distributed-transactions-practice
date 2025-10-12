@@ -11,7 +11,7 @@ import (
 	_ "github.com/lib/pq"
 	"github.com/rs/zerolog"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 )
 
 type ConConfOpt func(*pgxpool.Config) error

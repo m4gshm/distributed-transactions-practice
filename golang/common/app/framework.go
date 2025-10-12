@@ -21,10 +21,10 @@ import (
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/database"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpczerolog"
-	swagger "github.com/m4gshm/distributed-transactions-practice/golang/internal/swagger-ui"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpczerolog"
+	swagger "github.com/m4gshm/distributed-transactions-practice/golang/common/swagger-ui"
 )
 
 type Close = func() error
