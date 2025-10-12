@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="createTable_warehouse_item" author="alex">
-        <createTable tableName="warehouse_item">
+          <createTable tableName="warehouse_item" ifNotExists="true">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -22,7 +22,10 @@
         </createTable>
     </changeSet>
     <changeSet id="CREATE TYPE reserve_status" author="alex">
-        <sql>
+        <sql endDelimiter="$$$">
+            DO $$
+            BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'delivery_type') THEN
             CREATE TYPE reserve_status AS ENUM (
             'CREATED',
             'APPROVED',
@@ -30,10 +33,18 @@
             'INSUFFICIENT',
             'CANCELLED'
             );
+            END IF;
+            END$$;
+            $$$
         </sql>
+        <rollback>
+            <sql>
+                DROP TYPE reserve_status
+            </sql>
+        </rollback>
     </changeSet>
     <changeSet id="createTable-reserve" author="alex">
-        <createTable tableName="reserve">
+          <createTable tableName="reserve" ifNotExists="true">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -48,7 +59,7 @@
         </createTable>
     </changeSet>
     <changeSet id="createTable_reserve_item" author="alex">
-        <createTable tableName="reserve_item">
+          <createTable tableName="reserve_item" ifNotExists="true">
             <column name="reserve_id" type="text">
                 <constraints nullable="false"
                              primaryKey="true"

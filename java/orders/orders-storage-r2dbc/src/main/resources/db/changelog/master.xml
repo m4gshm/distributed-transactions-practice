@@ -5,7 +5,11 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="CREATE TYPE order_status" author="alex">
-        <sql>
+        <sql splitStatements="false">
+            DO
+            $$
+            BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN
             CREATE TYPE order_status AS ENUM (
             'CREATING',
             'CREATED',
@@ -17,19 +21,38 @@
             'CANCELLING',
             'CANCELLED'
             );
+            END IF;
+            END;
+            $$;
         </sql>
+        <rollback>
+            <sql>
+                DROP TYPE order_status
+            </sql>
+        </rollback>
     </changeSet>
 
     <changeSet id="CREATE TYPE delivery_type" author="alex">
-        <sql>
+        <sql endDelimiter="$$$">
+            DO $$
+            BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'delivery_type') THEN
             CREATE TYPE delivery_type AS ENUM (
             'PICKUP',
             'COURIER'
             );
+            END IF;
+            END$$;
+            $$$
         </sql>
+        <rollback>
+            <sql>
+                DROP TYPE delivery_type
+            </sql>
+        </rollback>
     </changeSet>
     <changeSet id="createTable-orders" author="alex">
-        <createTable tableName="orders">
+        <createTable tableName="orders" ifNotExists="true">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -48,7 +71,7 @@
         </createTable>
     </changeSet>
     <changeSet id="createTable-item" author="alex">
-        <createTable tableName="item">
+        <createTable tableName="item" ifNotExists="true">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -66,7 +89,7 @@
         </createTable>
     </changeSet>
     <changeSet id="createTable" author="alex">
-        <createTable tableName="delivery">
+        <createTable tableName="delivery" ifNotExists="true">
             <column name="order_id" type="text">
                 <constraints nullable="false"
                              primaryKey="true"

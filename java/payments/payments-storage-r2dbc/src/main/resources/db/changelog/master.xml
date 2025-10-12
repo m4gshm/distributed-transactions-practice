@@ -5,7 +5,7 @@
         xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
         http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
     <changeSet id="createTable-account" author="alex">
-        <createTable tableName="account">
+        <createTable tableName="account" ifNotExists="true">
             <column name="client_id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -29,7 +29,11 @@
     <!--        </rollback>-->
     <!--    </changeSet>-->
     <changeSet id="CREATE TYPE payment_status" author="alex">
-        <sql>
+        <sql endDelimiter="$$$">
+            DO
+            $$
+            BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN
             CREATE TYPE payment_status AS ENUM (
             'CREATED',
             'HOLD',
@@ -37,10 +41,19 @@
             'PAID',
             'CANCELLED'
             );
+            END IF;
+            END
+            $$;
+            $$$
         </sql>
+        <rollback>
+            <sql>
+                DROP TYPE payment_status
+            </sql>
+        </rollback>
     </changeSet>
     <changeSet id="createTable-payment" author="alex">
-        <createTable tableName="payment">
+        <createTable tableName="payment" ifNotExists="true">
             <column name="id" type="text">
                 <constraints nullable="false" primaryKey="true"/>
             </column>
@@ -66,6 +79,11 @@
         </createTable>
     </changeSet>
     <changeSet id="createIndex-payment" author="alex">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="payment_client_id" tableName="payment"/>
+            </not>
+        </preConditions>
         <createIndex tableName="payment" indexName="payment_client_id">
             <column name="client_id"/>
         </createIndex>
