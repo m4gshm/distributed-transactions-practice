@@ -16,18 +16,19 @@
 | Build tool | Gradle 8.14 | Task |
 | Code formatter | com.diffplug.spotless gradle plugin | _built-in_ |
 | Boilerplate recuder (code gen) | org.projectlombok:lombok | fieldr |
+| Logger | slf4j | zerolog |
 | Application framework | Spring Boot | _not used_ |
 | Dep. injection | Spring Context | _not used_ |
 | Postgres driver | R2DBC | pgx/v5 |
 | RDBC access layer generator | Jooq | Sqlc |
 | DB migration lib | Liquibase | Goose |
 | Tests engine | junit5 | _built-in_ |
-| Integration tests |   |   |
+| Integration tests | jvm-test-suite gradle plugin |   |
 | Mock lib | Mockito | Mockio |
-| REST engine |   |   |
-| GRPC engine |   |   |
-| GRPC code generator |   |   |
+| REST engine | Spring Webflux | _built-in http.Server_ |
+| GRPC engine lib | io.grpc:grpc-netty-shaded | google.golang.org/grpc |
+| GRPC code generator | com.google.protobuf grade plugin | easyp |
 | GRPC-REST transcoding | grpc-gateway protoc plugin | io.github.danielliu1123:grpc-server-boot-starter |
 | GRPC-REST Open API generator | openapiv2 protoc plugin | io.github.danielliu1123:grpc-starter-transcoding-springdoc |
 | Docker container builder |   |   |
-| Kafka lib |   |   |
+| Kafka lib | Spring Kafka, reactor-kafka | franz-go |

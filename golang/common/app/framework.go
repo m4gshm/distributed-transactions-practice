@@ -58,7 +58,6 @@ func Run(
 		if err != nil {
 			log.Fatal().Err(err).Msg("Failed to register service")
 		}
-
 	}
 	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux, swaggerJson)
 }
