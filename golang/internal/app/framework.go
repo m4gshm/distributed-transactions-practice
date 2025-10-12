@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"os"
@@ -13,15 +14,17 @@ import (
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/database"
-	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpczerolog"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
+
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/database"
+	"github.com/m4gshm/distributed-transactions-practice/golang/internal/grpczerolog"
+	swagger "github.com/m4gshm/distributed-transactions-practice/golang/internal/swagger-ui"
 )
 
 type Close = func() error
@@ -29,6 +32,7 @@ type Close = func() error
 func Run(
 	name string, cfg config.ServiceConfig,
 	postgresEnumTypes []string,
+	swaggerJson fs.FS,
 	registerServices ...func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]Close, error),
 ) {
 	ctx := context.Background()
@@ -51,12 +55,12 @@ func Run(
 		}
 
 	}
-	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux)
+	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux, swaggerJson)
 }
 
-func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcServer *grpc.Server, rmux *runtime.ServeMux) {
+func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcServer *grpc.Server, rmux *runtime.ServeMux, swaggerJson fs.FS) {
 	lis := NewNetListener(grpcPort)
-	httpServer := NewHttpServer(rmux, name, httpPort)
+	httpServer := NewHttpServer(rmux, name, httpPort, swaggerJson)
 
 	go func() {
 		log.Info().Msgf("%s http service listening on port %d", name, httpPort)
@@ -101,15 +105,15 @@ func Shutdown(ctx context.Context, grpcServer *grpc.Server, httpServer *http.Ser
 	}
 }
 
-func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int) *http.Server {
+func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJson fs.FS) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/", rmux)
 
 	mux.HandleFunc("/swagger-ui/swagger.json", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, fmt.Sprintf("../../%s/service/grpc/gen/apidocs.swagger.json", name))
+		http.ServeFileFS(w, r, swaggerJson, "apidocs.swagger.json")
 	})
 
-	mux.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServer(http.Dir("../../../swagger-ui/5.29.0/"))))
+	mux.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServerFS(swagger.UI)))
 
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),

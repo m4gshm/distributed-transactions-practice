@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"google.golang.org/grpc"
 
+		servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/app"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/internal/kafka/producer"
@@ -22,6 +23,7 @@ func main() {
 	cfg := config.Load().Payment
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("payment_status"),
+		servgrpc.SwaggerJson,
 		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
 			service := impl.NewPaymentService(db)
 			paymentpb.RegisterPaymentServiceServer(s, service)

@@ -27,8 +27,14 @@ import java.util.Map;
 import java.util.function.Function;
 
 import static java.util.stream.Collectors.toMap;
-import static orders.v1.OrderOuterClass.Order.Status.*;
-import static orders.v1.OrderServiceOuterClass.*;
+import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
+import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
+import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
+import static orders.v1.OrderServiceOuterClass.OrderApproveRequest;
+import static orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import static orders.v1.OrderServiceOuterClass.OrderCreateRequest;
+import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
+import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 ;
@@ -166,22 +172,22 @@ public class OrdersGrpcTest {
         }
     }
 
+    private double getSumCost(Map<String, Integer> items) {
+        return items.entrySet().stream().mapToDouble(e -> {
+            var cost = warehouseItemService.getItemCost(
+                    GetItemCostRequest.newBuilder()
+                            .setId(e.getKey())
+                            .build())
+                    .getCost();
+            return cost * (double) e.getValue();
+        }).sum();
+    }
+
     private Map<String, Integer> getWarehouseVal(Function<Warehouse.Item, Integer> getItemValue) {
         return this.warehouseItemService.itemList(WarehouseService.ItemListRequest
                 .newBuilder()
                 .build()
         ).getAccountsList().stream().collect(toMap(Warehouse.Item::getId, getItemValue));
-    }
-
-    private double getSumCost(Map<String, Integer> items) {
-        return items.entrySet().stream().mapToDouble(e -> {
-            var cost = warehouseItemService.getItemCost(
-                            GetItemCostRequest.newBuilder()
-                                    .setId(e.getKey())
-                                    .build())
-                    .getCost();
-            return cost * (double) e.getValue();
-        }).sum();
     }
 
     private void populateWarehouse(Map<String, Integer> items) {
