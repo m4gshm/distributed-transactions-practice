@@ -83,8 +83,6 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-            // -> 5.12.2
-//            mavenBom("org.junit:junit-bom:5.8.2")
             mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
 
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")

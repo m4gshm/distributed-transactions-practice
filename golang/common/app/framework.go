@@ -27,7 +27,7 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpczerolog"
-	"github.com/m4gshm/distributed-transactions-practice/golang/common/swagger-ui"
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/swagger"
 )
 
 type Close = func() error
