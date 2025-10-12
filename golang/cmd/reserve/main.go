@@ -5,6 +5,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/app"
@@ -12,9 +13,9 @@ import (
 	servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	reserve "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/impl"
+	"github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/migrations"
 	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
-	"github.com/m4gshm/gollections/slice"
 )
 
 func main() {
@@ -22,7 +23,7 @@ func main() {
 	cfg := config.Load().Reserve
 
 	app.Run(name, cfg, slice.Of("reserve_status"),
-		servgrpc.SwaggerJson,
+		servgrpc.SwaggerJson, migrations.FS,
 		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
 			service := reserve.NewReserveService(db, ressqlc.New, whsqlc.New)
 			reservepb.RegisterReserveServiceServer(s, service)

@@ -15,6 +15,7 @@ import (
 	servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	"github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/impl"
+	"github.com/m4gshm/distributed-transactions-practice/golang/payment/storage/migrations"
 	"github.com/m4gshm/gollections/slice"
 )
 
@@ -23,7 +24,7 @@ func main() {
 	cfg := config.Load().Payment
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("payment_status"),
-		servgrpc.SwaggerJson,
+		servgrpc.SwaggerJson, migrations.FS,
 		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
 			service := impl.NewPaymentService(db)
 			paymentpb.RegisterPaymentServiceServer(s, service)

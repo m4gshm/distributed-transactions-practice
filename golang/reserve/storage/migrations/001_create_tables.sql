@@ -1,5 +1,7 @@
+-- +goose Up
+-- +goose StatementBegin
 -- 1️⃣ warehouse_item
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
   warehouse_item (
     id text NOT NULL PRIMARY KEY,
     amount int4 NOT NULL,
@@ -19,7 +21,7 @@ CREATE TYPE reserve_status AS ENUM (
 );
 
 
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
   reserve (
     id text NOT NULL PRIMARY KEY,
     external_ref text,
@@ -30,7 +32,7 @@ CREATE TABLE
 
 
 -- 3️⃣ reserve_item
-CREATE TABLE
+CREATE TABLE IF NOT EXISTS
   reserve_item (
     id text NOT NULL,
     reserve_id text NOT NULL,
@@ -41,3 +43,12 @@ CREATE TABLE
     CONSTRAINT reserve_item_reserve_id_fk FOREIGN KEY (reserve_id) REFERENCES reserve(id),
     CONSTRAINT reserve_item_id_fk FOREIGN KEY (id) REFERENCES warehouse_item(id)
   );
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP TABLE IF EXISTS reserve_item;
+DROP TABLE IF EXISTS reserve;
+DROP TYPE IF EXISTS reserve_status;
+DROP TABLE IF EXISTS warehouse_item;
+-- +goose StatementEnd

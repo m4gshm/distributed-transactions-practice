@@ -1,5 +1,7 @@
+-- +goose Up
+-- +goose StatementBegin
 -- 1️⃣ Create table "account"
-CREATE TABLE account (
+CREATE TABLE IF NOT EXISTS account (
     client_id TEXT PRIMARY KEY NOT NULL,
     amount FLOAT8 NOT NULL,
     locked FLOAT8 NOT NULL DEFAULT 0,
@@ -17,7 +19,7 @@ CREATE TYPE payment_status AS ENUM (
     'CANCELLED'
 );
 
-CREATE TABLE payment (
+CREATE TABLE IF NOT EXISTS payment (
     id TEXT PRIMARY KEY NOT NULL,
     external_ref TEXT NOT NULL,
     client_id TEXT NOT NULL REFERENCES account (client_id) ON UPDATE NO ACTION ON DELETE NO ACTION,
@@ -30,3 +32,12 @@ CREATE TABLE payment (
 
 -- 3️⃣ Create index on payment.client_id
 CREATE INDEX payment_client_id ON payment (client_id);
+-- +goose StatementEnd
+
+-- +goose Down
+-- +goose StatementBegin
+DROP INDEX IF EXISTS payment_client_id;
+DROP TABLE IF EXISTS payment;
+DROP TYPE IF EXISTS payment_status;
+DROP TABLE IF EXISTS account;
+-- +goose StatementEnd

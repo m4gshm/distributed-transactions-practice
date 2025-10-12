@@ -14,6 +14,7 @@ import (
 	servgrpc "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc"
 	orderpb "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/gen"
 	order "github.com/m4gshm/distributed-transactions-practice/golang/order/service/grpc/impl"
+	"github.com/m4gshm/distributed-transactions-practice/golang/order/storage/migrations"
 	payment "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reserve "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 )
@@ -23,7 +24,7 @@ func main() {
 	cfg := config.Load().Order
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("order_status", "delivery_type"),
-		servgrpc.SwaggerJson,
+		servgrpc.SwaggerJson, migrations.FS,
 		func(ctx context.Context, db *pgxpool.Pool, reg grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]app.Close, error) {
 			paymentConn := app.NewGrpcClient(cfg.PaymentServiceURL, "payment")
 			reserveConn := app.NewGrpcClient(cfg.ReserveServiceURL, "reserve")

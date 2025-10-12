@@ -13,7 +13,9 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
@@ -32,7 +34,7 @@ type Close = func() error
 func Run(
 	name string, cfg config.ServiceConfig,
 	postgresEnumTypes []string,
-	swaggerJson fs.FS,
+	swaggerJson, mirgationsFS fs.FS,
 	registerServices ...func(ctx context.Context, p *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]Close, error),
 ) {
 	ctx := context.Background()
@@ -42,11 +44,13 @@ func Run(
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
 
-	db := NewDB(ctx, postgresEnumTypes, cfg.Database)
-	defer db.Close()
+	migrate(ctx, cfg.Database, mirgationsFS)
+
+	pool := NewDBPool(ctx, cfg.Database, database.WithCustomEnumType(postgresEnumTypes...))
+	defer pool.Close()
 
 	for _, buildService := range registerServices {
-		closes, err := buildService(ctx, db, grpcServer, rmux)
+		closes, err := buildService(ctx, pool, grpcServer, rmux)
 		for _, close := range closes {
 			defer close()
 		}
@@ -56,6 +60,21 @@ func Run(
 
 	}
 	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux, swaggerJson)
+}
+
+func migrate(ctx context.Context, conf config.DatabaseConfig, mirgationsFS fs.FS) {
+	mpool := NewDBPool(ctx, conf)
+	defer mpool.Close()
+	goose.SetBaseFS(mirgationsFS)
+	if err := goose.SetDialect("postgres"); err != nil {
+		log.Fatal().Err(err).Msgf("Failed to register goose dialect %s", "postgres")
+	}
+	db := stdlib.OpenDBFromPool(mpool)
+	if err := goose.Up(db, "."); err != nil {
+		log.Fatal().Err(err).Msgf("Failed to migrate DB")
+	} else if err := db.Close(); err != nil {
+		log.Fatal().Err(err).Msgf("Failed to close migrate DB connection")
+	}
 }
 
 func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcServer *grpc.Server, rmux *runtime.ServeMux, swaggerJson fs.FS) {
@@ -81,10 +100,8 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	Shutdown(ctx, grpcServer, httpServer)
 }
 
-func NewDB(ctx context.Context, postgresEnumTypes []string, cfg config.DatabaseConfig) *pgxpool.Pool {
-	db, err := database.NewConnection(ctx, cfg, database.WithLogger(log.Logger, tracelog.LogLevelDebug),
-		database.WithCustomEnumType(postgresEnumTypes...),
-	)
+func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, opts ...database.ConConfOpt) *pgxpool.Pool {
+	db, err := database.NewPool(ctx, cfg, database.WithLogger(log.Logger, tracelog.LogLevelDebug))
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
