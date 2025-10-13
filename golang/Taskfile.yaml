@@ -67,13 +67,39 @@ tasks:
   build:
     desc: "Build services"
     cmds:
-      - go build ./...
       - go vet ./...
+      - go build -o ./bin ./...
+
+  run-docker-requirements:
+    desc: "Run docker required services (postgres, kafka, etc.)"
+    dir: ../docker
+    cmds:
+      - docker-compose up -d
+
+  run:
+    desc: "Run services"
+    cmds:
+      - task: run-docker-requirements
+      - |
+        cd ./bin
+        ./order.exe &
+        ./payment.exe &
+        ./reserve.exe &
+        wait  
 
   clean:
     desc: "Clean generated files"
     cmds:
       - rm -rf {{.GO_OUT_DIR}}/*
+
+  recreate-docker-requirements:
+    desc: "Clean docker required services and restart"
+    dir: ../docker
+    cmds: 
+      - |
+        docker-compose down
+        docker volume rm distributed-transactions-practice_db-data
+      - task: run-docker-requirements 
 
   goose-status:
     cmds:

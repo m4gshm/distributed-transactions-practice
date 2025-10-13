@@ -12,14 +12,18 @@ CREATE TABLE IF NOT EXISTS
 
 
 -- 2️⃣ reserve
-CREATE TYPE reserve_status AS ENUM (
-  'CREATED',
-  'APPROVED',
-  'RELEASED',
-  'INSUFFICIENT',
-  'CANCELLED'
-);
-
+DO $$
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reserve_status') THEN 
+        CREATE TYPE reserve_status AS ENUM (
+          'CREATED',
+          'APPROVED',
+          'RELEASED',
+          'INSUFFICIENT',
+          'CANCELLED'
+        );
+    END IF;
+END$$;
 
 CREATE TABLE IF NOT EXISTS
   reserve (

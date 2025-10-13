@@ -11,13 +11,18 @@ CREATE TABLE IF NOT EXISTS account (
 ALTER TABLE account ADD CONSTRAINT lock_leq_amount CHECK (locked <= amount);
 
 -- 2️⃣ Create table "payment"
-CREATE TYPE payment_status AS ENUM (
-    'CREATED',
-    'HOLD', 
-    'INSUFFICIENT',
-    'PAID',
-    'CANCELLED'
-);
+DO $$
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'payment_status') THEN 
+        CREATE TYPE payment_status AS ENUM (
+            'CREATED',
+            'HOLD', 
+            'INSUFFICIENT',
+            'PAID',
+            'CANCELLED'
+        );
+    END IF;
+END$$;
 
 CREATE TABLE IF NOT EXISTS payment (
     id TEXT PRIMARY KEY NOT NULL,
@@ -31,7 +36,7 @@ CREATE TABLE IF NOT EXISTS payment (
 );
 
 -- 3️⃣ Create index on payment.client_id
-CREATE INDEX payment_client_id ON payment (client_id);
+CREATE INDEX IF NOT EXISTS payment_client_id ON payment (client_id);
 -- +goose StatementEnd
 
 -- +goose Down

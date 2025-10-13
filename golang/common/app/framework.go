@@ -2,12 +2,14 @@ package app
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"slices"
 	"syscall"
 	"time"
 
@@ -15,6 +17,8 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
 	"github.com/jackc/pgx/v5/tracelog"
+	"github.com/m4gshm/gollections/collection/immutable/ordered"
+	"github.com/m4gshm/gollections/k"
 	"github.com/m4gshm/gollections/slice"
 	"github.com/pressly/goose/v3"
 	"github.com/rs/zerolog"
@@ -40,7 +44,7 @@ func Run(
 ) {
 	ctx := context.Background()
 
-	InitLog(zerolog.InfoLevel)
+	InitLog(name, zerolog.InfoLevel)
 
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
@@ -84,7 +88,9 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	go func() {
 		log.Info().Msgf("%s http service listening on port %d", name, httpPort)
 		if err := httpServer.ListenAndServe(); err != nil {
-			log.Fatal().Err(err).Msg("Failed to serve http")
+			if !errors.Is(err, http.ErrServerClosed) {
+				log.Fatal().Err(err).Msg("Failed to serve http")
+			}
 		}
 	}()
 
@@ -176,11 +182,48 @@ func NewGrpcClient(url string, name string) *grpc.ClientConn {
 	return paymentConn
 }
 
-func InitLog(l zerolog.Level) {
+func InitLog(name string, l zerolog.Level) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
-	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339}
-	log.Logger = log.Output(output).Level(l)
+	colorized := ordered.NewMap(k.V("pid", colorDarkGray), k.V("name", colorCyan))
+	names := colorized.Keys().Slice()
+	log.Logger = log.
+		Output(zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339,
+			PartsOrder: slices.Concat(names, slice.Of(
+				zerolog.TimestampFieldName,
+				zerolog.LevelFieldName,
+				zerolog.CallerFieldName,
+				zerolog.MessageFieldName,
+			)),
+			FieldsExclude: names,
+			FormatPartValueByName: func(i any, s string) string {
+				if c, ok := colorized.Get(s); ok {
+					return colorize(i, c, false)
+				} else {
+					return fmt.Sprintf("%v", s)
+				}
+			},
+		}).
+		Level(l).
+		With().
+		Int("pid", os.Getpid()).
+		Str("name", name).
+		Logger()
 	grpclog.SetLoggerV2(grpczerolog.New(log.Logger))
+}
+
+const colorCyan = 36
+const colorDarkGray = 90
+
+func colorize(s any, c int, disabled bool) string {
+	e := os.Getenv("NO_COLOR")
+	if e != "" || c == 0 {
+		disabled = true
+	}
+
+	if disabled {
+		return fmt.Sprintf("%s", s)
+	}
+	return fmt.Sprintf("\x1b[%dm%v\x1b[0m", c, s)
 }
 
 func RegisterGateway[S any](ctx context.Context, mux *runtime.ServeMux, reg func(ctx context.Context, mux *runtime.ServeMux, server S) error, service S) {

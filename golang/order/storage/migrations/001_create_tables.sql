@@ -1,21 +1,32 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TYPE order_status AS ENUM (
-    'CREATING',
-    'CREATED',
-    'APPROVING',
-    'APPROVED',
-    'RELEASING',
-    'RELEASED',
-    'INSUFFICIENT',
-    'CANCELLING',
-    'CANCELLED'
-);
+DO $$
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'order_status') THEN 
+        CREATE TYPE order_status AS ENUM (
+            'CREATING',
+            'CREATED',
+            'APPROVING',
+            'APPROVED',
+            'RELEASING',
+            'RELEASED',
+            'INSUFFICIENT',
+            'CANCELLING',
+            'CANCELLED'
+        );
+    END IF;
+END$$;
 
-CREATE TYPE delivery_type AS ENUM (
-    'PICKUP', 
-    'COURIER'
-);
+DO $$
+BEGIN 
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'delivery_type') THEN 
+        CREATE TYPE delivery_type AS ENUM (
+            'PICKUP', 
+            'COURIER'
+        );
+    END IF;
+END$$;
+
 
 CREATE TABLE IF NOT EXISTS orders (
     id TEXT PRIMARY KEY NOT NULL,
