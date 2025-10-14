@@ -21,7 +21,6 @@ tasks:
         go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
         go install github.com/m4gshm/fieldr@latest
 
-
   clean-gen:
     cmds:
       - rm -rf order/service/grpc/gen

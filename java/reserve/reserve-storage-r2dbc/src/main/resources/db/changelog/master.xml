@@ -25,7 +25,7 @@
         <sql endDelimiter="$$$">
             DO $$
             BEGIN
-            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'delivery_type') THEN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'reserve_status') THEN
             CREATE TYPE reserve_status AS ENUM (
             'CREATED',
             'APPROVED',

@@ -15,7 +15,6 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.ActiveProfiles;
 import warehouse.v1.Warehouse;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
 import warehouse.v1.WarehouseService;
@@ -37,9 +36,6 @@ import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
 import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-;
-
-@ActiveProfiles("test")
 @SpringBootTest(classes = {
         OrdersGrpcTest.Config.class,
         AccountServiceConfig.class,
