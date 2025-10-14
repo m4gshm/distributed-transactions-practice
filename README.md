@@ -1,12 +1,14 @@
 # distributed-transactions-practice
 
+## Java start
+
 1.  cd ./docker && ./recreate.sh && cd ../
 2.  cd ./java
-3.  gradlew :payments:payments-grpc-service:bootRun
-4.  gradlew :reserve:reserve-grpc-service:bootRun
-5.  gradlew :orders:orders-grpc-service:bootRun
-6.  open in browser \<http://localhost:7080/swagger-ui/index.html>
-7.  use examples from the[request](request) directory to create an order
+3.  gradlew :payments:payments-grpc-service:bootRun &
+4.  gradlew :reserve:reserve-grpc-service:bootRun &
+5.  gradlew :orders:orders-grpc-service:bootRun &
+6.  open in browser http://localhost:7080/swagger-ui/index.html
+7.  use examples from the [request](request) directory to create an order
 
 ## Comparsion
 
@@ -27,8 +29,8 @@
 | Mock lib | Mockito | Mockio |
 | REST engine | Spring Webflux | _built-in http.Server_ |
 | GRPC engine lib | io.grpc:grpc-netty-shaded | google.golang.org/grpc |
-| GRPC code generator | com.google.protobuf grade plugin | easyp |
-| GRPC-REST transcoding | grpc-gateway protoc plugin | io.github.danielliu1123:grpc-server-boot-starter |
-| GRPC-REST Open API generator | openapiv2 protoc plugin | io.github.danielliu1123:grpc-starter-transcoding-springdoc |
+| GRPC code generator | com.google.protobuf gradle plugin | easyp |
+| GRPC-REST transcoding | io.github.danielliu1123:grpc-server-boot-starter | grpc-gateway protoc plugin |
+| GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
 | Docker container builder |   |   |
 | Kafka lib | Spring Kafka, reactor-kafka | franz-go |

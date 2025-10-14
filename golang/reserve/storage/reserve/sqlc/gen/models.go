@@ -71,11 +71,3 @@ type ReserveItem struct {
 	Insufficient *int32
 	Reserved     *bool
 }
-
-type WarehouseItem struct {
-	ID        string
-	Amount    int32
-	Reserved  int32
-	UnitCost  float64
-	UpdatedAt pgtype.Timestamptz
-}

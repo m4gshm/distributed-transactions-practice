@@ -4,18 +4,11 @@ version: "3"
 
 tasks:
   default:
-    desc: "Build Golang implementations of the services"
     cmds:
-      - task: install-plugins
-      - task: install-generators
-      - task: clean-gen
-      - task: generate-proto
-      - task: generate
-      - task: updep
-      - task: build
+      - task: rebuild
 
-  install-plugins:
-    desc: "Install all protoc-gen plugins"
+  install:
+    desc: "Install utils"
     cmds:
       - |
         go install github.com/easyp-tech/easyp/cmd/easyp@v0.7.17-rc2
@@ -25,13 +18,9 @@ tasks:
         go install github.com/pseudomuto/protoc-gen-doc/cmd/protoc-gen-doc@v1.5.1
         go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-grpc-gateway@v2.27.2
         go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@v2.27.2
-
-  install-generators:
-    desc: "Install code generators"
-    cmds:
-      - |
         go install github.com/sqlc-dev/sqlc/cmd/sqlc@v1.30.0
         go install github.com/m4gshm/fieldr@latest
+
 
   clean-gen:
     cmds:
@@ -63,6 +52,16 @@ tasks:
     desc: "Update dependencies"
     cmds:
       - go get -u ./...
+
+  rebuild:
+    desc: "Build Golang implementations of the services"  
+    cmds:
+      - task: install
+      - task: clean-gen
+      - task: generate-proto
+      - task: generate
+      - task: updep
+      - task: build
 
   build:
     desc: "Build services"
