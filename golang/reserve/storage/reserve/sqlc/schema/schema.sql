@@ -12,7 +12,7 @@ CREATE TABLE IF NOT EXISTS
     external_ref text,
     status reserve_status NOT NULL,
     created_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at timestamptz NOT NULL DEFAULT CURRENT_TIMESTAMP
+    updated_at timestamptz
   );
 
 CREATE TABLE IF NOT EXISTS

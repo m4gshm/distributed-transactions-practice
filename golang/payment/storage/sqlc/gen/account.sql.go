@@ -14,7 +14,7 @@ import (
 const addAmount = `-- name: AddAmount :one
 UPDATE account
 SET amount = amount + $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -22,8 +22,9 @@ RETURNING amount,
 `
 
 type AddAmountParams struct {
-	ClientID string
-	Amount   float64
+	ClientID  string
+	Amount    float64
+	UpdatedAt pgtype.Timestamptz
 }
 
 type AddAmountRow struct {
@@ -33,7 +34,7 @@ type AddAmountRow struct {
 }
 
 func (q *Queries) AddAmount(ctx context.Context, arg AddAmountParams) (AddAmountRow, error) {
-	row := q.db.QueryRow(ctx, addAmount, arg.ClientID, arg.Amount)
+	row := q.db.QueryRow(ctx, addAmount, arg.ClientID, arg.Amount, arg.UpdatedAt)
 	var i AddAmountRow
 	err := row.Scan(&i.Amount, &i.Locked, &i.UpdatedAt)
 	return i, err
@@ -42,7 +43,7 @@ func (q *Queries) AddAmount(ctx context.Context, arg AddAmountParams) (AddAmount
 const addLock = `-- name: AddLock :one
 UPDATE account
 SET locked = locked + $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -50,8 +51,9 @@ RETURNING amount,
 `
 
 type AddLockParams struct {
-	ClientID string
-	Locked   float64
+	ClientID  string
+	Locked    float64
+	UpdatedAt pgtype.Timestamptz
 }
 
 type AddLockRow struct {
@@ -61,7 +63,7 @@ type AddLockRow struct {
 }
 
 func (q *Queries) AddLock(ctx context.Context, arg AddLockParams) (AddLockRow, error) {
-	row := q.db.QueryRow(ctx, addLock, arg.ClientID, arg.Locked)
+	row := q.db.QueryRow(ctx, addLock, arg.ClientID, arg.Locked, arg.UpdatedAt)
 	var i AddLockRow
 	err := row.Scan(&i.Amount, &i.Locked, &i.UpdatedAt)
 	return i, err
@@ -136,7 +138,7 @@ func (q *Queries) FindAllAccounts(ctx context.Context) ([]Account, error) {
 const unlock = `-- name: Unlock :one
 UPDATE account
 SET locked = locked - $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -144,8 +146,9 @@ RETURNING amount,
 `
 
 type UnlockParams struct {
-	ClientID string
-	Locked   float64
+	ClientID  string
+	Locked    float64
+	UpdatedAt pgtype.Timestamptz
 }
 
 type UnlockRow struct {
@@ -155,7 +158,7 @@ type UnlockRow struct {
 }
 
 func (q *Queries) Unlock(ctx context.Context, arg UnlockParams) (UnlockRow, error) {
-	row := q.db.QueryRow(ctx, unlock, arg.ClientID, arg.Locked)
+	row := q.db.QueryRow(ctx, unlock, arg.ClientID, arg.Locked, arg.UpdatedAt)
 	var i UnlockRow
 	err := row.Scan(&i.Amount, &i.Locked, &i.UpdatedAt)
 	return i, err
@@ -165,7 +168,7 @@ const writeOff = `-- name: WriteOff :one
 UPDATE account
 SET amount = amount - $2,
     locked = locked - $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -173,8 +176,9 @@ RETURNING amount,
 `
 
 type WriteOffParams struct {
-	ClientID string
-	Amount   float64
+	ClientID  string
+	Amount    float64
+	UpdatedAt pgtype.Timestamptz
 }
 
 type WriteOffRow struct {
@@ -184,7 +188,7 @@ type WriteOffRow struct {
 }
 
 func (q *Queries) WriteOff(ctx context.Context, arg WriteOffParams) (WriteOffRow, error) {
-	row := q.db.QueryRow(ctx, writeOff, arg.ClientID, arg.Amount)
+	row := q.db.QueryRow(ctx, writeOff, arg.ClientID, arg.Amount, arg.UpdatedAt)
 	var i WriteOffRow
 	err := row.Scan(&i.Amount, &i.Locked, &i.UpdatedAt)
 	return i, err

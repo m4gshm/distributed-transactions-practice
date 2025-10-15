@@ -40,8 +40,8 @@ CREATE TYPE delivery_type AS ENUM (
 -- Orders table
 CREATE TABLE IF NOT EXISTS orders (
     id VARCHAR(36) PRIMARY KEY,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ,
     customer_id VARCHAR(36) NOT NULL,
     payment_id VARCHAR(36),
     reserve_id VARCHAR(36),
@@ -72,8 +72,8 @@ CREATE TABLE IF NOT EXISTS payments (
     amount DECIMAL(10,2) NOT NULL CHECK (amount > 0),
     insufficient DECIMAL(10,2),
     status payment_status NOT NULL DEFAULT 'CREATED',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ
 );
 
 -- Accounts table
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS accounts (
     client_id VARCHAR(36) PRIMARY KEY,
     amount DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (amount >= 0),
     locked DECIMAL(10,2) NOT NULL DEFAULT 0 CHECK (locked >= 0),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    updated_at TIMESTAMPTZ
 );
 
 -- Reserves table
@@ -89,8 +89,8 @@ CREATE TABLE IF NOT EXISTS reserves (
     id VARCHAR(36) PRIMARY KEY,
     external_ref VARCHAR(36) NOT NULL,
     status reserve_status NOT NULL DEFAULT 'CREATED',
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMPTZ
 );
 
 -- Reserve items table
@@ -108,7 +108,7 @@ CREATE TABLE IF NOT EXISTS warehouse_items (
     id VARCHAR(36) PRIMARY KEY,
     amount INTEGER NOT NULL DEFAULT 0 CHECK (amount >= 0),
     reserved INTEGER NOT NULL DEFAULT 0 CHECK (reserved >= 0),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ,
     CONSTRAINT check_reserved_not_exceeds_amount CHECK (reserved <= amount)
 );
 

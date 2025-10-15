@@ -91,7 +91,7 @@ WHERE
 INSERT INTO
   item (order_id, id, amount)
 VALUES
-  ($1, $2, $3) ON CONFLICT(order_id, id) DO
+  ($1, $2, $3) ON CONFLICT(id) DO
 UPDATE
 SET
   amount = EXCLUDED.amount;

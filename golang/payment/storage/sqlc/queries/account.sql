@@ -15,7 +15,7 @@ WHERE client_id = $1 FOR UPDATE;
 -- name: AddAmount :one
 UPDATE account
 SET amount = amount + $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -24,7 +24,7 @@ RETURNING amount,
 -- name: AddLock :one
 UPDATE account
 SET locked = locked + $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -33,7 +33,7 @@ RETURNING amount,
 -- name: Unlock :one
 UPDATE account
 SET locked = locked - $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,
@@ -43,7 +43,7 @@ RETURNING amount,
 UPDATE account
 SET amount = amount - $2,
     locked = locked - $2,
-    updated_at = NOW()
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE client_id = $1
 RETURNING amount,
     locked,

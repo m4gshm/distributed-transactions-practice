@@ -71,7 +71,7 @@ const updatePaymentStatus = `-- name: UpdatePaymentStatus :exec
 UPDATE payment
 SET status = $1,
     insufficient = $2,
-    updated_at = COALESCE($3, NOW())
+    updated_at = COALESCE($3, CURRENT_TIMESTAMP)
 WHERE id = $4
 `
 
@@ -104,7 +104,7 @@ INSERT INTO payment (
     )
 VALUES ($1, $2, $3, $4, $5, $6, $7) ON CONFLICT(id) DO
 UPDATE
-SET updated_at = COALESCE($8, NOW()),
+SET updated_at = COALESCE($8, CURRENT_TIMESTAMP),
     status = $5,
     amount = $6,
     insufficient = $7
