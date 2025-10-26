@@ -20,7 +20,7 @@ public class KafkaConfiguration {
     public ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate() {
         return new ReactiveKafkaConsumerTemplate<>(ReceiverOptions.<String,
                 AccountBalanceEvent>create(kafkaProperties.buildConsumerProperties())
-                .subscription(List.of("payments")));
+                .subscription(List.of("balance")));
     }
 
 }

@@ -1,5 +1,24 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
+import io.github.m4gshm.jooq.Jooq;
+import io.github.m4gshm.reserve.data.WarehouseItemStorage;
+import io.github.m4gshm.reserve.data.model.WarehouseItem;
+import jakarta.validation.constraints.Min;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Record3;
+import org.jooq.SelectJoinStep;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.List;
+
 import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
@@ -12,26 +31,6 @@ import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
 import static reactor.core.publisher.Mono.just;
 import static reserve.data.access.jooq.Tables.WAREHOUSE_ITEM;
-
-import java.util.Collection;
-import java.util.List;
-
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Record3;
-import org.jooq.SelectJoinStep;
-import org.springframework.stereotype.Service;
-
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.reserve.data.WarehouseItemStorage;
-import io.github.m4gshm.reserve.data.model.WarehouseItem;
-import jakarta.validation.constraints.Min;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Flux;
-import reactor.core.publisher.Mono;
 
 @Slf4j
 @Service
@@ -186,9 +185,11 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
                 var newTotalAmount = totalAmount + amount;
                 var available = newTotalAmount - alreadyReserved;
-                return from(dsl.update(WAREHOUSE_ITEM)
-                        .set(WAREHOUSE_ITEM.AMOUNT, newTotalAmount))
-                        .flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
+                return from(
+                        dsl.update(WAREHOUSE_ITEM)
+                                .set(WAREHOUSE_ITEM.AMOUNT, newTotalAmount)
+                                .where(WAREHOUSE_ITEM.ID.eq(id))
+                ).flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
             });
         });
     }

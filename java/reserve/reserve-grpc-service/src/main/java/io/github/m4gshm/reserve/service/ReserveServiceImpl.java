@@ -1,29 +1,5 @@
 package io.github.m4gshm.reserve.service;
 
-import static io.github.m4gshm.ExceptionUtils.checkStatus;
-import static io.github.m4gshm.ExceptionUtils.newValidateException;
-import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
-import static io.github.m4gshm.protobuf.Utils.getOrNull;
-import static io.github.m4gshm.reserve.data.model.Reserve.Item;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.APPROVED;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.CANCELLED;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.CREATED;
-import static io.github.m4gshm.reserve.data.model.Reserve.Status.RELEASED;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.newApproveResponse;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toItemOps;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserveProto;
-import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toStatusProto;
-import static java.util.Objects.requireNonNull;
-import static java.util.stream.Collectors.toMap;
-import static reactor.core.publisher.Mono.error;
-
-import java.util.Set;
-import java.util.UUID;
-import java.util.function.BiFunction;
-
-import org.jooq.DSLContext;
-import org.springframework.stereotype.Service;
-
 import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reactive.GrpcReactive;
@@ -35,20 +11,46 @@ import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
-import reserve.v1.ReserveOuterClass.ReserveApproveRequest;
-import reserve.v1.ReserveOuterClass.ReserveApproveResponse;
-import reserve.v1.ReserveOuterClass.ReserveCancelRequest;
-import reserve.v1.ReserveOuterClass.ReserveCancelResponse;
-import reserve.v1.ReserveOuterClass.ReserveCreateRequest;
-import reserve.v1.ReserveOuterClass.ReserveCreateResponse;
-import reserve.v1.ReserveOuterClass.ReserveGetRequest;
-import reserve.v1.ReserveOuterClass.ReserveGetResponse;
-import reserve.v1.ReserveOuterClass.ReserveListRequest;
-import reserve.v1.ReserveOuterClass.ReserveListResponse;
-import reserve.v1.ReserveOuterClass.ReserveReleaseRequest;
-import reserve.v1.ReserveOuterClass.ReserveReleaseResponse;
+import reserve.data.access.jooq.enums.ReserveStatus;
 import reserve.v1.ReserveServiceGrpc;
+import reserve.v1.ReserveServiceOuterClass;
+import reserve.v1.ReserveServiceOuterClass.ReserveApproveRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCancelRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCancelResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveCreateRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveCreateResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveGetRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveGetResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveListRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveListResponse;
+import reserve.v1.ReserveServiceOuterClass.ReserveReleaseRequest;
+import reserve.v1.ReserveServiceOuterClass.ReserveReleaseResponse;
+
+import java.util.Set;
+import java.util.UUID;
+import java.util.function.BiFunction;
+
+import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.ExceptionUtils.newValidateException;
+import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
+import static io.github.m4gshm.protobuf.Utils.getOrNull;
+import static io.github.m4gshm.reserve.data.model.Reserve.Item;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.newApproveResponse;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toItemOps;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserveProto;
+import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toStatusProto;
+import static java.util.Objects.requireNonNull;
+import static java.util.stream.Collectors.toMap;
+import static reactor.core.publisher.Mono.error;
+import static reserve.data.access.jooq.enums.ReserveStatus.APPROVED;
+import static reserve.data.access.jooq.enums.ReserveStatus.CANCELLED;
+import static reserve.data.access.jooq.enums.ReserveStatus.CREATED;
+import static reserve.data.access.jooq.enums.ReserveStatus.RELEASED;
+
+;
 
 @Slf4j
 @Service
@@ -61,12 +63,13 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     Jooq jooq;
     GrpcReactive grpc;
 
-    private static Reserve witStatus(Reserve reserve, Reserve.Status status) {
+    private static Reserve witStatus(Reserve reserve, ReserveStatus status) {
         return reserve.toBuilder().status(status).build();
     }
 
     @Override
-    public void approve(ReserveApproveRequest request, StreamObserver<ReserveApproveResponse> responseObserver) {
+    public void approve(ReserveApproveRequest request,
+                        StreamObserver<ReserveServiceOuterClass.ReserveApproveResponse> responseObserver) {
         var reserveId = request.getId();
         reserveInStatus("release", responseObserver, reserveId, Set.of(CREATED), (dsl, reserve) -> {
             var items = reserve.items();
@@ -202,7 +205,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     private <T> void reserveInStatus(String opName,
                                      StreamObserver<T> responseObserver,
                                      String id,
-                                     Set<Reserve.Status> expected,
+                                     Set<ReserveStatus> expected,
                                      BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
         grpc.subscribe(responseObserver,
                 log(opName, jooq.inTransaction(dsl -> reserveStorage.getById(id).flatMap(reserve -> {

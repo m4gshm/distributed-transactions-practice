@@ -1,37 +1,41 @@
 package io.github.m4gshm.test.orders;
 
-import static orders.v1.Orders.Order.Status.APPROVED;
-import static orders.v1.Orders.Order.Status.INSUFFICIENT;
-import static orders.v1.Orders.Order.Status.RELEASED;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-
-import java.util.Map;
-
+import account.v1.AccountServiceGrpc.AccountServiceBlockingStub;
+import account.v1.AccountServiceOuterClass.AccountTopUpRequest;
+import com.google.protobuf.util.Timestamps;
+import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.test.orders.config.AccountServiceConfig;
+import io.github.m4gshm.test.orders.config.OrderServiceConfig;
+import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
+import orders.v1.OrderOuterClass.Order.Delivery;
+import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.test.context.ActiveProfiles;
-
-import com.google.protobuf.util.Timestamps;
-
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.test.orders.config.AccountServiceConfig;
-import io.github.m4gshm.test.orders.config.OrderServiceConfig;
-import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
-import orders.v1.Orders;
-import orders.v1.Orders.Order.Status;
-import orders.v1.Orders.OrderCreateRequest;
-import orders.v1.OrdersServiceGrpc.OrdersServiceBlockingStub;
-import payment.v1.AccountOuterClass;
-import payment.v1.AccountServiceGrpc.AccountServiceBlockingStub;
 import warehouse.v1.Warehouse;
-import warehouse.v1.Warehouse.ItemTopUpRequest;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
+import warehouse.v1.WarehouseService;
+import warehouse.v1.WarehouseService.GetItemCostRequest;
+import warehouse.v1.WarehouseService.ItemTopUpRequest;
+import warehouse.v1.WarehouseService.ItemTopUpRequest.TopUp;
 
-@ActiveProfiles("test")
+import java.util.Map;
+import java.util.function.Function;
+
+import static java.util.stream.Collectors.toMap;
+import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
+import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
+import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
+import static orders.v1.OrderServiceOuterClass.OrderApproveRequest;
+import static orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import static orders.v1.OrderServiceOuterClass.OrderCreateRequest;
+import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
+import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
 @SpringBootTest(classes = {
         OrdersGrpcTest.Config.class,
         AccountServiceConfig.class,
@@ -44,7 +48,7 @@ public class OrdersGrpcTest {
     @Autowired
     AccountServiceBlockingStub accountService;
     @Autowired
-    OrdersServiceBlockingStub ordersService;
+    OrderServiceBlockingStub ordersService;
     @Autowired
     WarehouseItemServiceBlockingStub warehouseItemService;
     @Autowired
@@ -59,8 +63,8 @@ public class OrdersGrpcTest {
         );
     }
 
-    private static Orders.OrderApproveRequest newApproveRequest(String orderId, boolean twoPhaseCommit) {
-        return Orders.OrderApproveRequest.newBuilder()
+    private static OrderApproveRequest newApproveRequest(String orderId, boolean twoPhaseCommit) {
+        return OrderApproveRequest.newBuilder()
                 .setId(orderId)
                 .setTwoPhaseCommit(twoPhaseCommit)
                 .build();
@@ -83,32 +87,32 @@ public class OrdersGrpcTest {
                                 })
                                 .toList())
                         .setCustomerId(customerId)
-                        .setDelivery(Orders.Order.Delivery.newBuilder()
+                        .setDelivery(Delivery.newBuilder()
                                 .setDateTime(Timestamps.parseUnchecked("2025-07-26T17:03:13.475Z"))
                                 .setAddress("Lenina st., 1")
-                                .setType(Orders.Order.Delivery.Type.PICKUP)
+                                .setType(Delivery.Type.PICKUP)
                                 .build())
                         .build())
                 .setTwoPhaseCommit(twoPhaseCommit)
                 .build();
     }
 
-    private static Orders.OrderReleaseRequest newReleaseRequest(String orderId, boolean twoPhaseCommit) {
-        return Orders.OrderReleaseRequest.newBuilder()
+    private static OrderReleaseRequest newReleaseRequest(String orderId, boolean twoPhaseCommit) {
+        return OrderReleaseRequest.newBuilder()
                 .setId(orderId)
                 .setTwoPhaseCommit(twoPhaseCommit)
                 .build();
     }
 
-    private static Orders.OrderGetRequest orderGetRequest(Orders.OrderApproveResponse orderApproveResponse) {
-        return Orders.OrderGetRequest.newBuilder()
+    private static OrderGetRequest orderGetRequest(OrderApproveResponse orderApproveResponse) {
+        return OrderGetRequest.newBuilder()
                 .setId(orderApproveResponse.getId())
                 .build();
     }
 
     private void accountTopUp(String customerId, double sumCost) {
-        accountService.topUp(AccountOuterClass.AccountTopUpRequest.newBuilder()
-                .setTopUp(AccountOuterClass.AccountTopUpRequest.TopUp
+        accountService.topUp(AccountTopUpRequest.newBuilder()
+                .setTopUp(AccountTopUpRequest.TopUp
                         .newBuilder()
                         .setClientId(customerId)
                         .setAmount(sumCost)
@@ -119,8 +123,18 @@ public class OrdersGrpcTest {
     private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
         var items = getOrderItems();
 
+        var warehouseItems1 = getWarehouseVal(Warehouse.Item::getAmount);
+
         // populate warehouse
         populateWarehouse(items);
+
+        var warehouseItems2 = getWarehouseVal(Warehouse.Item::getAmount);
+
+        for (var itemID : items.keySet()) {
+            var before = warehouseItems1.get(itemID);
+            var after = warehouseItems2.get(itemID);
+            assertEquals(items.get(itemID), after - before);
+        }
 
         var sumCost = getSumCost(items);
 
@@ -133,16 +147,31 @@ public class OrdersGrpcTest {
         var orderId = orderCreateResponse.getId();
 
         var orderApproveResponse = ordersService.approve(newApproveRequest(orderId, twoPhaseCommit));
-        assertEquals(Status.APPROVED, orderApproveResponse.getStatus());
+        assertEquals(APPROVED, orderApproveResponse.getStatus());
+
+        var warehouseItems3 = getWarehouseVal(Warehouse.Item::getReserved);
+
+        for (var itemID : items.keySet()) {
+            var reserved = warehouseItems3.get(itemID);
+            assertEquals(items.get(itemID), reserved);
+        }
 
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
         assertEquals(RELEASED, orderReleaseResponse.getStatus());
+
+        var warehouseItems4 = getWarehouseVal(Warehouse.Item::getAmount);
+
+        for (var itemID : items.keySet()) {
+            var before = warehouseItems1.get(itemID);
+            var after = warehouseItems4.get(itemID);
+            assertEquals(0, after - before);
+        }
     }
 
     private double getSumCost(Map<String, Integer> items) {
         return items.entrySet().stream().mapToDouble(e -> {
             var cost = warehouseItemService.getItemCost(
-                    Warehouse.GetItemCostRequest.newBuilder()
+                    GetItemCostRequest.newBuilder()
                             .setId(e.getKey())
                             .build())
                     .getCost();
@@ -150,13 +179,21 @@ public class OrdersGrpcTest {
         }).sum();
     }
 
+    private Map<String, Integer> getWarehouseVal(Function<Warehouse.Item, Integer> getItemValue) {
+        return this.warehouseItemService.itemList(WarehouseService.ItemListRequest
+                .newBuilder()
+                .build()
+        ).getAccountsList().stream().collect(toMap(Warehouse.Item::getId, getItemValue));
+    }
+
     private void populateWarehouse(Map<String, Integer> items) {
-        items.forEach((itemId, amount) -> warehouseItemService.topUp(ItemTopUpRequest.newBuilder()
-                .setTopUp(ItemTopUpRequest.TopUp.newBuilder()
-                        .setId(itemId)
-                        .setAmount(amount)
-                        .build())
-                .build()));
+        items.forEach((itemId, amount) -> warehouseItemService.topUp(
+                ItemTopUpRequest.newBuilder()
+                        .setTopUp(TopUp.newBuilder()
+                                .setId(itemId)
+                                .setAmount(amount)
+                                .build())
+                        .build()));
     }
 
     @Test

@@ -63,9 +63,9 @@ public class ReserveStorageR2DBC implements ReserveStorage {
                     .set(RESERVE.ID, reserve.id())
                     .set(RESERVE.CREATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.createdAt()))
                     .set(RESERVE.EXTERNAL_REF, reserve.externalRef())
-                    .set(RESERVE.STATUS, reserve.status().getCode())
+                    .set(RESERVE.STATUS, reserve.status())
                     .onDuplicateKeyUpdate()
-                    .set(RESERVE.STATUS, reserve.status().getCode())
+                    .set(RESERVE.STATUS, reserve.status())
                     .set(RESERVE.UPDATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.updatedAt())))
                     .flatMap(count -> logTxId(dsl, "mergeReserve", count))
                     .doOnSuccess(count -> {

@@ -1,0 +1,51 @@
+syntax = "proto3";
+package tpc.v1;
+
+import "buf/validate/validate.proto";
+import "google/api/annotations.proto";
+
+service TwoPhaseCommitService {
+  rpc listActives(TwoPhaseListActivesRequest) returns (TwoPhaseListActivesResponse) {
+    option (google.api.http) = {get: "/api/v1/transaction"};
+  }
+
+  rpc commit(TwoPhaseCommitRequest) returns (TwoPhaseCommitResponse) {
+    option (google.api.http) = {
+      put: "/api/v1/transaction"
+      body: "*"
+    };
+  }
+
+  rpc rollback(TwoPhaseRollbackRequest) returns (TwoPhaseRollbackResponse) {
+    option (google.api.http) = {
+      delete: "/api/v1/transaction/{id}"
+    };
+  }
+}
+
+message TwoPhaseListActivesRequest {}
+
+message TwoPhaseListActivesResponse {
+  repeated Transaction transactions = 1;
+  message Transaction {
+    string id = 1 [(buf.validate.field).string.min_len = 1];
+  }
+}
+
+message TwoPhaseCommitRequest {
+  string id = 1;
+}
+
+message TwoPhaseCommitResponse {
+  string message = 1;
+  string id = 2;
+}
+
+message TwoPhaseRollbackRequest {
+  string id = 1;
+}
+
+message TwoPhaseRollbackResponse {
+  string message = 1;
+  string id = 2;
+}

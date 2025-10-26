@@ -1,0 +1,14 @@
+version: "2"
+sql:
+  - name: "orders"
+    engine: "postgresql"
+    queries: "./queries/"
+    schema: "./schema/"
+    gen:
+      go:
+        package: "gen"
+        out: "./gen"
+        sql_package: "pgx/v5"
+        emit_json_tags: false
+        emit_interface: true
+        emit_empty_slices: false

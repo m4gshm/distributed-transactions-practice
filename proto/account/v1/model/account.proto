@@ -1,0 +1,11 @@
+syntax = "proto3";
+package account.v1;
+
+import "google/protobuf/timestamp.proto";
+
+message Account {
+  string client_id = 1;
+  double amount = 2;
+  double locked = 3;
+  optional google.protobuf.Timestamp updated_at = 4;
+}
