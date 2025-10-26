@@ -2,6 +2,7 @@ package impl
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
@@ -14,9 +15,12 @@ import (
 	sqlc "github.com/m4gshm/distributed-transactions-practice/golang/order/storage/sqlc/gen"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
+	"github.com/m4gshm/expressions/expr/get"
 	"github.com/m4gshm/gollections/convert/ptr"
 	"github.com/m4gshm/gollections/op"
 	"github.com/m4gshm/gollections/slice"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -24,13 +28,14 @@ import (
 
 //go:generate fieldr -type OrderService -out . new-full
 
-// generate.fieldr: new-full
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
-	db        DB
-	payment   paymentpb.PaymentServiceClient
-	reserve   reservepb.ReserveServiceClient
-	warehouse reservepb.WarehouseItemServiceClient
+	db          DB
+	payment     paymentpb.PaymentServiceClient
+	paymentTpc  tpcpb.TwoPhaseCommitServiceClient
+	reserve     reservepb.ReserveServiceClient
+	reservetTpc tpcpb.TwoPhaseCommitServiceClient
+	warehouse   reservepb.WarehouseItemServiceClient
 }
 
 type DB interface {
@@ -41,14 +46,18 @@ type DB interface {
 func NewOrderService(
 	db DB,
 	payment paymentpb.PaymentServiceClient,
+	paymentTpc tpcpb.TwoPhaseCommitServiceClient,
 	reserve reservepb.ReserveServiceClient,
+	reservetTpc tpcpb.TwoPhaseCommitServiceClient,
 	warehouse reservepb.WarehouseItemServiceClient,
 ) *OrderService {
 	return &OrderService{
-		db:        db,
-		payment:   payment,
-		reserve:   reserve,
-		warehouse: warehouse,
+		db:          db,
+		payment:     payment,
+		paymentTpc:  paymentTpc,
+		reserve:     reserve,
+		reservetTpc: reservetTpc,
+		warehouse:   warehouse,
 	}
 }
 
@@ -62,11 +71,16 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 
 		orderID := uuid.New().String()
 		customerId := body.CustomerId
+		twoPhaseCommit := req.TwoPhaseCommit
+		paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
+		reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
 		orderEntity := sqlc.InsertOrUpdateOrderParams{
-			ID:         orderID,
-			CustomerID: customerId,
-			Status:     sqlc.OrderStatusCREATING,
-			CreatedAt:  pg.Timestamptz(time.Now()),
+			ID:                   orderID,
+			CustomerID:           customerId,
+			Status:               sqlc.OrderStatusCREATING,
+			CreatedAt:            pg.Timestamptz(time.Now()),
+			PaymentTransactionID: pg.FromStringPtr(paymentTransactionID),
+			ReserveTransactionID: pg.FromStringPtr(reserveTransactionID),
 		}
 
 		if err := query.InsertOrUpdateOrder(ctx, orderEntity); err != nil {
@@ -99,7 +113,8 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 				Amount:  item.Amount,
 			})
 		}
-		if _, err := s.create(ctx, query, orderID, customerId, items); err != nil {
+
+		if _, err := s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, customerId, items); err != nil {
 			return nil, err
 		}
 		return &orderspb.OrderCreateResponse{Id: orderID}, nil
@@ -107,7 +122,8 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 }
 
 func (s *OrderService) create(
-	ctx context.Context, query *sqlc.Queries, orderID string, customerID string, items []sqlc.Item,
+	ctx context.Context, paymentTransactionID, reserveTransactionID *string, query *sqlc.Queries,
+	orderID string, customerID string, items []sqlc.Item,
 ) (sqlc.OrderStatus, error) {
 	cost := 0.0
 	reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
@@ -124,38 +140,103 @@ func (s *OrderService) create(
 		})
 	}
 
-	paymentID := ""
-	if resp, err := s.payment.Create(ctx, &paymentpb.PaymentCreateRequest{Body: &paymentpb.PaymentCreateRequest_PaymentCreate{
-		ExternalRef: orderID,
-		ClientId:    customerID,
-		Amount:      cost,
-	}}); err != nil {
-		return "", status.Errorf(grpc.Status(err), "failed to create payment (order '%s'): %v", orderID, err)
-	} else {
-		paymentID = resp.Id
+	return s.doInDistributedTransaction(ctx, paymentTransactionID, reserveTransactionID, func() (sqlc.OrderStatus, error) {
+		paymentID := ""
+		if resp, err := s.payment.Create(ctx, &paymentpb.PaymentCreateRequest{
+			PreparedTransactionId: paymentTransactionID,
+			Body: &paymentpb.PaymentCreateRequest_PaymentCreate{
+				ExternalRef: orderID,
+				ClientId:    customerID,
+				Amount:      cost,
+			}}); err != nil {
+			return "", status.Errorf(grpc.Status(err), "failed to create payment (order '%s'): %v", orderID, err)
+		} else {
+			paymentID = resp.Id
+		}
+
+		reserveID := ""
+		if resp, err := s.reserve.Create(ctx, &reservepb.ReserveCreateRequest{
+			PreparedTransactionId: reserveTransactionID,
+			Body: &reservepb.ReserveCreateRequest_Reserve{
+				ExternalRef: orderID,
+				Items:       reserveItems,
+			}}); err != nil {
+			return "", status.Errorf(grpc.Status(err), "failed to create reserve (order '%s'): %v", orderID, err)
+		} else {
+			reserveID = resp.Id
+		}
+
+		finalStatus := sqlc.OrderStatusCREATED
+		if err := query.InsertOrUpdateOrder(ctx, sqlc.InsertOrUpdateOrderParams{
+			ID:        orderID,
+			Status:    finalStatus,
+			CreatedAt: pg.Timestamptz(time.Now()),
+			PaymentID: pg.FromString(paymentID),
+			ReserveID: pg.FromString(reserveID),
+		}); err != nil {
+			return "", status.Errorf(grpc.Status(err), "failed to update order '%s' by status '%s': %v", orderID, finalStatus, err)
+		}
+		return finalStatus, nil
+	})
+}
+
+func (s *OrderService) doInDistributedTransaction(
+	ctx context.Context, paymentTransactionID, reserveTransactionID *string,
+	routine func() (sqlc.OrderStatus, error)) (sqlc.OrderStatus, error) {
+	paymentTransactionRollback := paymentTransactionID != nil
+	defer func() {
+		if paymentTransactionRollback {
+			rollbackPrepared(ctx, "payment", paymentTransactionID, s.paymentTpc)
+		}
+	}()
+
+	reserveTransactionRollback := reserveTransactionID != nil
+	defer func() {
+		if reserveTransactionRollback {
+			rollbackPrepared(ctx, "reserve", reserveTransactionID, s.reservetTpc)
+		}
+	}()
+
+	finalStatus, err := routine()
+	if err != nil {
+		return "", err
 	}
 
-	reserveID := ""
-	if resp, err := s.reserve.Create(ctx, &reservepb.ReserveCreateRequest{Body: &reservepb.ReserveCreateRequest_Reserve{
-		ExternalRef: orderID,
-		Items:       reserveItems,
-	}}); err != nil {
-		return "", status.Errorf(grpc.Status(err), "failed to create reserve (order '%s'): %v", orderID, err)
-	} else {
-		reserveID = resp.Id
-	}
+	reserveTransactionRollback = false
+	reserveTransactionRollback = false
 
-	finalStatus := sqlc.OrderStatusCREATED
-	if err := query.InsertOrUpdateOrder(ctx, sqlc.InsertOrUpdateOrderParams{
-		ID:        orderID,
-		Status:    finalStatus,
-		CreatedAt: pg.Timestamptz(time.Now()),
-		PaymentID: pg.String(paymentID),
-		ReserveID: pg.String(reserveID),
-	}); err != nil {
-		return "", status.Errorf(grpc.Status(err), "failed to update order '%s' by status '%s': %v", orderID, finalStatus, err)
+	return finalStatus, errors.Join(
+		commitPrepared(ctx, "payment", paymentTransactionID, s.paymentTpc),
+		commitPrepared(ctx, "reserve", reserveTransactionID, s.reservetTpc),
+	)
+}
+
+func commitPrepared(ctx context.Context, name string, transactionID *string, service tpcpb.TwoPhaseCommitServiceClient) error {
+	if transactionID != nil {
+		if _, err := service.Commit(ctx, &tpcpb.TwoPhaseCommitRequest{
+			Id: *transactionID,
+		}); err != nil {
+			log.Err(err).Msgf("%s transaction commit failed (transactionID %s)", name, *transactionID)
+			return err
+		}
 	}
-	return finalStatus, nil
+	return nil
+}
+
+func rollbackPrepared(ctx context.Context, name string, transactionID *string, service tpcpb.TwoPhaseCommitServiceClient) error {
+	if transactionID != nil {
+		if _, err := service.Rollback(ctx, &tpcpb.TwoPhaseRollbackRequest{
+			Id: *transactionID,
+		}); err != nil {
+			log.Err(err).Msgf("%s transaction rollback failed (transactionID %s)", name, *transactionID)
+			return err
+		}
+	}
+	return nil
+}
+
+func generateID() *string {
+	return ptr.Of(uuid.New().String())
 }
 
 func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRequest) (*orderspb.OrderApproveResponse, error) {
@@ -167,7 +248,8 @@ func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRe
 	return &orderspb.OrderApproveResponse{Id: req.Id, Status: toProtoOrderStatus(finalStatus)}, nil
 }
 
-func (s *OrderService) appvove(ctx context.Context, query *sqlc.Queries, orderID string, twoPhaseCommit bool) (sqlc.OrderStatus, error) {
+func (s *OrderService) appvove(ctx context.Context,
+	query *sqlc.Queries, orderID string, twoPhaseCommit bool) (sqlc.OrderStatus, error) {
 	intermediateStatus := sqlc.OrderStatusAPPROVING
 	finalStatus := sqlc.OrderStatusAPPROVED
 	expecteds := slice.Of(sqlc.OrderStatusCREATED, sqlc.OrderStatusINSUFFICIENT, intermediateStatus)
@@ -238,12 +320,13 @@ func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequ
 	}
 
 	var orderStatus sqlc.OrderStatus
-	// var err error
+	paymentTransactionID := paymentTransactionID(req.TwoPhaseCommit, order)
+	reserveTransactionID := reserveTransactionID(req.TwoPhaseCommit, order)
 	switch order.Status {
 	case sqlc.OrderStatusCREATED, sqlc.OrderStatusAPPROVED, sqlc.OrderStatusRELEASED, sqlc.OrderStatusCANCELLED:
 		err = status.Error(codes.FailedPrecondition, "already committed status")
 	case sqlc.OrderStatusCREATING:
-		orderStatus, err = s.create(ctx, query, orderID, order.CustomerID, items)
+		orderStatus, err = s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, order.CustomerID, items)
 	case sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVING:
 		orderStatus, err = s.appvove(ctx, query, orderID, req.TwoPhaseCommit)
 	case sqlc.OrderStatusRELEASING:
@@ -310,64 +393,81 @@ func (s *OrderService) doWorkflow(ctx context.Context, query *sqlc.Queries, orde
 func (s *OrderService) approve_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
+	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
+	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
+	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
+		if _, err := s.payment.Approve(ctx, &paymentpb.PaymentApproveRequest{
+			Id:                    paymentId,
+			PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "payment approving failed (paymentId '%s'): %v", paymentId, err)
+		}
 
-	if _, err := s.payment.Approve(ctx, &paymentpb.PaymentApproveRequest{
-		Id:                    paymentId,
-		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment approving failed (paymentId '%s'): %v", paymentId, err)
-	}
+		if _, err := s.reserve.Approve(ctx, &reservepb.ReserveApproveRequest{
+			Id:                    reserveId,
+			PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "reserve approving failed (reserveId '%s'): %v", reserveId, err)
+		}
+		return nil
+	}))
 
-	if _, err := s.reserve.Approve(ctx, &reservepb.ReserveApproveRequest{
-		Id:                    reserveId,
-		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve approving failed (reserveId '%s'): %v", reserveId, err)
-	}
-
-	return nil
+	return err
 }
 
 func (s *OrderService) cancel_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
+	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
+	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
+	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
+		if _, err := s.payment.Cancel(ctx, &paymentpb.PaymentCancelRequest{
+			Id:                    paymentId,
+			PreparedTransactionId: paymentTransactionId,
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "payment cancelling failed (paymentId '%s'): %v", paymentId, err)
+		}
 
-	if _, err := s.payment.Cancel(ctx, &paymentpb.PaymentCancelRequest{
-		Id:                    paymentId,
-		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment cancelling failed (paymentId '%s'): %v", paymentId, err)
+		if _, err := s.reserve.Cancel(ctx, &reservepb.ReserveCancelRequest{
+			Id:                    reserveId,
+			PreparedTransactionId: reservedTransactionId,
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "reserve cancelling failed (reserveId '%s'): %v", reserveId, err)
+		}
+		return nil
+	}))
+	return err
+}
+
+func stubStatus(routine func() error) func() (sqlc.OrderStatus, error) {
+	return func() (sqlc.OrderStatus, error) {
+		return "", routine()
 	}
-
-	if _, err := s.reserve.Cancel(ctx, &reservepb.ReserveCancelRequest{
-		Id:                    reserveId,
-		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve cancelling failed (reserveId '%s'): %v", reserveId, err)
-	}
-
-	return nil
 }
 
 func (s *OrderService) release_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
+	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
+	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
+	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
+		if _, err := s.payment.Pay(ctx, &paymentpb.PaymentPayRequest{
+			Id:                    paymentId,
+			PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "payment pay failed (paymentId '%s'): %v", paymentId, err)
+		}
 
-	if _, err := s.payment.Pay(ctx, &paymentpb.PaymentPayRequest{
-		Id:                    paymentId,
-		PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "payment pay failed (paymentId '%s'): %v", paymentId, err)
-	}
+		if _, err := s.reserve.Release(ctx, &reservepb.ReserveReleaseRequest{
+			Id:                    reserveId,
+			PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
+		}); err != nil {
+			return status.Errorf(grpc.Status(err), "reserve release failed (reserveId '%s'): %v", reserveId, err)
+		}
+		return nil
+	}))
 
-	if _, err := s.reserve.Release(ctx, &reservepb.ReserveReleaseRequest{
-		Id:                    reserveId,
-		PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
-	}); err != nil {
-		return status.Errorf(grpc.Status(err), "reserve release failed (reserveId '%s'): %v", reserveId, err)
-	}
-
-	return nil
+	return err
 }
 
 func toProtDelivery(delivery sqlc.Delivery) *orderspb.Order_Delivery {
@@ -397,11 +497,11 @@ func toProtoOrderStatus(status sqlc.OrderStatus) *orderspb.Order_Status {
 }
 
 func reserveTransactionID(support bool, order sqlc.Order) *string {
-	return op.IfElse(support, &order.ReserveTransactionID.String, nil)
+	return op.IfElse(support, pg.ToString(order.ReserveTransactionID), nil)
 }
 
 func paymentTransactionID(support bool, order sqlc.Order) *string {
-	return op.IfElse(support, &order.PaymentTransactionID.String, nil)
+	return op.IfElse(support, pg.ToString(order.PaymentTransactionID), nil)
 }
 
 func updateOrderStatus(ctx context.Context, query *sqlc.Queries, finalStatus sqlc.OrderStatus, orderId string) error {

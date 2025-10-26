@@ -6,6 +6,7 @@ import (
 
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/app"
@@ -16,7 +17,8 @@ import (
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	"github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/impl"
 	"github.com/m4gshm/distributed-transactions-practice/golang/payment/storage/migrations"
-	"github.com/m4gshm/gollections/slice"
+	tpc "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc"
+	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
 )
 
 func main() {
@@ -25,6 +27,12 @@ func main() {
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("payment_status"),
 		servgrpc.SwaggerJson, migrations.FS,
+		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
+			service := tpc.NewService(db)
+			tpcpb.RegisterTwoPhaseCommitServiceServer(s, service)
+			app.RegisterGateway[tpcpb.TwoPhaseCommitServiceServer](ctx, mux, tpcpb.RegisterTwoPhaseCommitServiceHandlerServer, service)
+			return nil, nil
+		},
 		func(ctx context.Context, db *pgxpool.Pool, s grpc.ServiceRegistrar, mux *runtime.ServeMux) ([]func() error, error) {
 			service := impl.NewPaymentService(db)
 			paymentpb.RegisterPaymentServiceServer(s, service)

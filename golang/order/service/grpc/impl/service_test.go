@@ -13,6 +13,7 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/order/storage/sqlc/gen"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
 	"github.com/m4gshm/gollections/collection/immutable"
 )
 
@@ -30,7 +31,13 @@ func TestOrderCreate(t *testing.T) {
 		Id: "PaymentCreateResponse_1",
 	}, nil)
 
+	paymentTpc := Mock[tpcpb.TwoPhaseCommitServiceClient](ctrl)
+	WhenDouble(payment.Create(AnyContext(), Any[*paymentpb.PaymentCreateRequest]())).ThenReturn(&paymentpb.PaymentCreateResponse{
+		Id: "PaymentCreateResponse_1",
+	}, nil)
+
 	reserve := Mock[reservepb.ReserveServiceClient](ctrl)
+	reserveTpc := Mock[tpcpb.TwoPhaseCommitServiceClient](ctrl)
 	WhenDouble(reserve.Create(AnyContext(), Any[*reservepb.ReserveCreateRequest]())).ThenReturn(&reservepb.ReserveCreateResponse{
 		Id: "PReserveCreateResponse_1",
 	}, nil)
@@ -42,7 +49,7 @@ func TestOrderCreate(t *testing.T) {
 	}))
 	WhenDouble(warehouse.GetItemCost(AnyContext(), costReqMatch())).ThenReturn(&reservepb.GetItemCostResponse{Cost: 5}, nil)
 
-	orderService := NewOrderService(db, payment, reserve, warehouse)
+	orderService := NewOrderService(db, payment, paymentTpc, reserve, reserveTpc, warehouse)
 
 	reqBody := &orderspb.OrderCreateRequest_OrderCreate{
 		CustomerId: "1",

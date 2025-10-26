@@ -21,6 +21,7 @@ import (
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	ressqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/reserve/sqlc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
+	"github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/transaction"
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
@@ -58,14 +59,6 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 		query := s.resq(tx)
 		reserveID := uuid.New().String()
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %w", err)
-		// 	}
-		// }
-
 		if err := query.UpsertReserve(ctx, ressqlc.UpsertReserveParams{
 			ID:          reserveID,
 			ExternalRef: &body.ExternalRef,
@@ -85,11 +78,11 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 			}
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %w", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 
 		return &reservepb.ReserveCreateResponse{Id: reserveID}, nil
 	})
@@ -115,14 +108,6 @@ func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.Res
 		if err != nil {
 			return nil, err
 		}
-
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %w", err)
-		// 	}
-		// }
 
 		newStatus := ressqlc.ReserveStatusAPPROVED
 
@@ -191,11 +176,11 @@ func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.Res
 			return nil, err
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %w", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 
 		return &reservepb.ReserveApproveResponse{
 			Id:     req.Id,
@@ -224,14 +209,6 @@ func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.Res
 			return nil, err
 		}
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %w", err)
-		// 	}
-		// }
-
 		if err := releaseWarehouseItems(ctx, whQuery, reserveItems); err != nil {
 			return nil, err
 		}
@@ -241,11 +218,11 @@ func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.Res
 			return nil, err
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %w", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 
 		return &reservepb.ReserveReleaseResponse{
 			Id:     req.Id,
@@ -273,14 +250,6 @@ func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.Rese
 			return nil, err
 		}
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %w", err)
-		// 	}
-		// }
-
 		// Release reserved items back to warehouse
 		if err := unreserveWarehouseItems(ctx, whQuery, reserveItems); err != nil {
 			return nil, err
@@ -291,11 +260,11 @@ func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.Rese
 			return nil, err
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %w", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 
 		return &reservepb.ReserveCancelResponse{
 			Id:     req.Id,

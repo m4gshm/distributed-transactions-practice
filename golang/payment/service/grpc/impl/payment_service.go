@@ -7,15 +7,17 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/slice"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	paymentsqlc "github.com/m4gshm/distributed-transactions-practice/golang/payment/storage/sqlc/gen"
-	"github.com/m4gshm/gollections/op"
-	"github.com/m4gshm/gollections/slice"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
+	"github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/transaction"
 )
 
 //go:generate fieldr -type PaymentService -out . new-full
@@ -41,15 +43,6 @@ func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreat
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentCreateResponse, error) {
 		paymentID := uuid.New().String()
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	// Handle prepared transaction logic
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %v", err)
-		// 	}
-		// }
-
 		query := paymentsqlc.New(tx)
 		if err := query.UpsertPayment(ctx, paymentsqlc.UpsertPaymentParams{
 			ID:          paymentID,
@@ -62,11 +55,11 @@ func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreat
 			return nil, status.Errorf(grpc.Status(err), "failed to create payment: %v", err)
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(ctx); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %v", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, status.Errorf(grpc.Status(err), "%v", err)
+			}
+		}
 
 		return &paymentpb.PaymentCreateResponse{Id: paymentID}, nil
 	})
@@ -90,23 +83,10 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 			return nil, err
 		}
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %v", err)
-		// 	}
-		// }
-
 		// Check if account has sufficient funds
 		insufficientAmount := 0.0
 		if account.Amount-account.Locked < payment.Amount {
 			insufficientAmount = payment.Amount - (account.Amount - account.Locked)
-			// return &paymentpb.PaymentApproveResponse{
-			// 	Id: req.Id,
-			// 	Status: paymentpb.Payment_INSUFFICIENT,
-			// 	InsufficientAmount: insufficientAmount,
-			// }, nil
 		} else if _, err := query.AddLock(ctx, paymentsqlc.AddLockParams{
 			ClientID: payment.ClientID,
 			Locked:   payment.Amount,
@@ -127,11 +107,11 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 			return nil, status.Errorf(grpc.Status(err), "failed to update payment: %v", err)
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(ctx); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %v", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 		return &paymentpb.PaymentApproveResponse{
 			Id:                 req.Id,
 			Status:             toProtoPaymentStatus(paymentStatus),
@@ -148,14 +128,6 @@ func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCance
 		if err != nil {
 			return nil, err
 		}
-
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %v", err)
-		// 	}
-		// }
 
 		// If payment was in HOLD status, unlock the funds
 		if payment.Status == paymentsqlc.PaymentStatusHOLD {
@@ -175,11 +147,11 @@ func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCance
 			return nil, status.Errorf(grpc.Status(err), "failed to cancel payment: %v", err)
 		}
 
-		// if req.PreparedTransactionId == nil {
-		// 	if err = tx.Commit(); err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %v", err)
-		// 	}
-		// }
+		if transactionId := req.PreparedTransactionId; transactionId != nil {
+			if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+				return nil, err
+			}
+		}
 
 		return &paymentpb.PaymentCancelResponse{
 			Id:     payment.ID,
@@ -207,14 +179,6 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 			return nil, err
 		}
 
-		// // Check if prepared transaction ID is provided for 2PC
-		// if req.PreparedTransactionId != nil {
-		// 	_, err = tx.ExecContext(ctx, "PREPARE TRANSACTION $1", *req.PreparedTransactionId)
-		// 	if err != nil {
-		// 		return nil, status.Errorf(grpc.Status(err), "failed to prepare transaction: %v", err)
-		// 	}
-		// }
-
 		const finalStatus = paymentsqlc.PaymentStatusPAID
 		if account, err := query.WriteOff(ctx, paymentsqlc.WriteOffParams{
 			ClientID: payment.ClientID,
@@ -231,11 +195,11 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 		}); err != nil {
 			return nil, status.Errorf(grpc.Status(err), "failed to update payment: %v", err)
 		} else {
-			// if req.PreparedTransactionId == nil {
-			// 	if err = tx.Commit(); err != nil {
-			// 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %v", err)
-			// 	}
-			// }
+			if transactionId := req.PreparedTransactionId; transactionId != nil {
+				if err := transaction.Prepare(ctx, tx, *transactionId); err != nil {
+					return nil, err
+				}
+			}
 			return &paymentpb.PaymentPayResponse{
 				Id:      req.Id,
 				Status:  toProtoPaymentStatus(finalStatus),

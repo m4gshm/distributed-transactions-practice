@@ -2,33 +2,34 @@ package tpc
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
 )
 
+//go:generate fieldr -type Service -out . new-full
+
 type Service struct {
 	tpcpb.UnimplementedTwoPhaseCommitServiceServer
-	db  *sql.DB
-	cfg *config.Config
+	db *pgxpool.Pool
 }
 
-func NewService(db *sql.DB, cfg *config.Config) *Service {
+func NewService(
+	db *pgxpool.Pool,
+) *Service {
 	return &Service{
-		db:  db,
-		cfg: cfg,
+		db: db,
 	}
 }
 
 func (s *Service) ListActives(ctx context.Context, req *tpcpb.TwoPhaseListActivesRequest) (*tpcpb.TwoPhaseListActivesResponse, error) {
 	// Query for active prepared transactions
-	rows, err := s.db.QueryContext(ctx, `
+	rows, err := s.db.Query(ctx, `
 		SELECT gid FROM pg_prepared_xacts ORDER BY gid`)
 	if err != nil {
 		return nil, status.Errorf(grpc.Status(err), "failed to list active transactions: %v", err)
@@ -61,7 +62,7 @@ func (s *Service) Commit(ctx context.Context, req *tpcpb.TwoPhaseCommitRequest) 
 
 	// Check if the prepared transaction exists
 	var count int
-	err := s.db.QueryRowContext(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM pg_prepared_xacts WHERE gid = $1`, req.Id).Scan(&count)
 	if err != nil {
 		return nil, status.Errorf(grpc.Status(err), "failed to check transaction: %v", err)
@@ -76,7 +77,7 @@ func (s *Service) Commit(ctx context.Context, req *tpcpb.TwoPhaseCommitRequest) 
 	}
 
 	// Commit the prepared transaction
-	_, err = s.db.ExecContext(ctx, fmt.Sprintf("COMMIT PREPARED '%s'", req.Id))
+	_, err = s.db.Exec(ctx, fmt.Sprintf("COMMIT PREPARED '%s'", req.Id))
 	if err != nil {
 		return nil, status.Errorf(grpc.Status(err), "failed to commit transaction: %v", err)
 	}
@@ -94,7 +95,7 @@ func (s *Service) Rollback(ctx context.Context, req *tpcpb.TwoPhaseRollbackReque
 
 	// Check if the prepared transaction exists
 	var count int
-	err := s.db.QueryRowContext(ctx, `
+	err := s.db.QueryRow(ctx, `
 		SELECT COUNT(*) FROM pg_prepared_xacts WHERE gid = $1`, req.Id).Scan(&count)
 	if err != nil {
 		return nil, status.Errorf(grpc.Status(err), "failed to check transaction: %v", err)
@@ -109,7 +110,7 @@ func (s *Service) Rollback(ctx context.Context, req *tpcpb.TwoPhaseRollbackReque
 	}
 
 	// Rollback the prepared transaction
-	_, err = s.db.ExecContext(ctx, fmt.Sprintf("ROLLBACK PREPARED '%s'", req.Id))
+	_, err = s.db.Exec(ctx, fmt.Sprintf("ROLLBACK PREPARED '%s'", req.Id))
 	if err != nil {
 		return nil, status.Errorf(grpc.Status(err), "failed to rollback transaction: %v", err)
 	}

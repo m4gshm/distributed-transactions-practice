@@ -17,6 +17,7 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/order/storage/migrations"
 	payment "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reserve "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
+	tpc "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
 )
 
 func main() {
@@ -31,10 +32,12 @@ func main() {
 			closes := slice.Of(paymentConn.Close, reserveConn.Close)
 
 			payClient := payment.NewPaymentServiceClient(paymentConn)
+			payTpcClient := tpc.NewTwoPhaseCommitServiceClient(paymentConn)
 			resClient := reserve.NewReserveServiceClient(reserveConn)
+			resTpcClient := tpc.NewTwoPhaseCommitServiceClient(reserveConn)
 			whouseClient := reserve.NewWarehouseItemServiceClient(reserveConn)
 
-			ordServ := order.NewOrderService(db, payClient, resClient, whouseClient)
+			ordServ := order.NewOrderService(db, payClient, payTpcClient, resClient, resTpcClient, whouseClient)
 
 			orderpb.RegisterOrderServiceServer(reg, ordServ)
 			app.RegisterGateway[orderpb.OrderServiceServer](ctx, mux, orderpb.RegisterOrderServiceHandlerServer, ordServ)
