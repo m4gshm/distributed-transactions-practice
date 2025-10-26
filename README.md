@@ -34,3 +34,5 @@
 | GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
 | Docker container builder |   |   |
 | Kafka lib | Spring Kafka, reactor-kafka | franz-go |
+| Tracing | opentelemetry-spring-boot-starter |   |
+| Metrics for prometheus | actuator |   |
