@@ -1,7 +1,0 @@
-[package]
-name = "proto-build"
-version.workspace = true
-edition.workspace = true
-
-[dependencies]
-tonic-build.workspace = true
