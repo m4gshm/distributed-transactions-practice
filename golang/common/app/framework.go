@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/exaring/otelpgx"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -21,8 +22,16 @@ import (
 	"github.com/m4gshm/gollections/k"
 	"github.com/m4gshm/gollections/slice"
 	"github.com/pressly/goose/v3"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
@@ -46,6 +55,12 @@ func Run(
 
 	InitLog(name, zerolog.InfoLevel)
 
+	close, err := registerOtlpExporter(ctx, cfg.OtlpUrl, name)
+	if err != nil {
+		log.Fatal().Err(err).Msg("Failed to register Otlp exported")
+	}
+	defer close()
+
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
 
@@ -64,6 +79,33 @@ func Run(
 		}
 	}
 	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux, swaggerJson)
+}
+
+func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (func(), error) {
+	otlpConn := NewGrpcClient(otlpUrl, "otlp")
+	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create otel resource: %w", err)
+	}
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(otlpConn))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
+	)
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetTextMapPropagator(propagation.TraceContext{})
+	return func() {
+		if err := traceExporter.Shutdown(ctx); err != nil {
+			log.Err(err).Msg("Failed to shutdown otel trace exporter")
+		}
+		if err := tracerProvider.Shutdown(ctx); err != nil {
+			log.Err(err).Msg("Failed to shutdown otel trace provider")
+		}
+	}, nil
 }
 
 func migrate(ctx context.Context, conf config.DatabaseConfig, mirgationsFS fs.FS) {
@@ -107,7 +149,8 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 }
 
 func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, opts ...database.ConConfOpt) *pgxpool.Pool {
-	db, err := database.NewPool(ctx, cfg, append(slice.Of(database.WithLogger(log.Logger, tracelog.LogLevelDebug)), opts...)...)
+	tracer := database.WithTracers(database.NewTraceLog(log.Logger, tracelog.LogLevelDebug), otelpgx.NewTracer())
+	db, err := database.NewPool(ctx, cfg, append(slice.Of(tracer), opts...)...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
@@ -131,6 +174,7 @@ func Shutdown(ctx context.Context, grpcServer *grpc.Server, httpServer *http.Ser
 func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJson fs.FS) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/", rmux)
+	mux.Handle("/metrics", promhttp.Handler())
 
 	mux.HandleFunc("/swagger-ui/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFileFS(w, r, swaggerJson, "apidocs.swagger.json")
@@ -169,13 +213,17 @@ func NewServerMux() *runtime.ServeMux {
 }
 
 func NewGrpcServer() *grpc.Server {
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	reflection.Register(grpcServer)
 	return grpcServer
 }
 
 func NewGrpcClient(url string, name string) *grpc.ClientConn {
-	paymentConn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	paymentConn, err := grpc.NewClient(
+		url,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to connect to %s service", name)
 	}

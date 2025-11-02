@@ -11,11 +11,12 @@
 7.  use examples from the [request](request) directory to create an order
 
 ## Run Go
-1. Just reuse DB populated by gralde build
-2. `cd ./golang`
-3. `task`
-4. `task run`
-5. open in browser http://localhost:8001/swagger-ui/index.html
+
+1.  Just reuse DB populated by gralde build
+2.  `cd ./golang`
+3.  `task`
+4.  `task run`
+5.  open in browser http://localhost:8001/swagger-ui/index.html
 
 ## Comparsion
 
@@ -43,3 +44,4 @@
 | Kafka lib | Spring Kafka, reactor-kafka | franz-go |
 | Tracing | opentelemetry-spring-boot-starter |   |
 | Metrics for prometheus | actuator |   |
+| Config properties | Spring Boot (property files, env vars) | env vars |

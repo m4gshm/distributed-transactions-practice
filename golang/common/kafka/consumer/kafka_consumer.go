@@ -7,6 +7,7 @@ import (
 	"fmt"
 
 	"github.com/rs/zerolog/log"
+	"github.com/twmb/franz-go/pkg/kerr"
 	"github.com/twmb/franz-go/pkg/kgo"
 	"github.com/twmb/franz-go/plugin/kzerolog"
 
@@ -27,21 +28,20 @@ func Consume[T any](ctx context.Context, clientID string, topics, servers []stri
 }
 
 func ConsumeErr[T any](ctx context.Context, clientID string, topics, servers []string) (<-chan T, <-chan error, error) {
-
-	client, err := kgo.NewClient(
-		kgo.WithLogger(kzerolog.New(&log.Logger)),
-		kgo.SeedBrokers(servers...), kgo.AllowAutoTopicCreation(),
-		kgo.ConsumeTopics(topics...), kgo.ConsumerGroup(clientID), kgo.ClientID(clientID),
-	)
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create kafka consumer: %w", err)
-	} else if err = client.Ping(ctx); err != nil {
-		return nil, nil, fmt.Errorf("failed to ping kafka: %w", err)
-	}
 	out := make(chan T)
 	errOut := make(chan error, 1)
+
+	client, err := newConsumer(ctx, servers, topics, clientID)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	go func() {
 		log.Info().Msgf("start kafka consumer %s", clientID)
+		defer func() {
+			close(errOut)
+			close(out)
+		}()
 	loop:
 		for {
 			select {
@@ -56,7 +56,16 @@ func ConsumeErr[T any](ctx context.Context, clientID string, topics, servers []s
 				fetches := client.PollFetches(ctx)
 				if errs := fetches.Errors(); len(errs) > 0 {
 					if e := errors.Join(slice.Convert(errs, func(e kgo.FetchError) error { return e.Err })...); e != nil {
-						errOut <- e
+						if errors.Is(e, kerr.UnknownMemberID) || errors.Is(e, kerr.UnknownTopicID) {
+							log.Err(e).Msgf("reconnect kafka consumer")
+							client.Close()
+							if client, err = newConsumer(ctx, servers, topics, clientID); err != nil {
+								errOut <- err
+								break loop
+							}
+						} else {
+							errOut <- e
+						}
 					} else {
 						log.Error().Msg("kafka listener consume nil error")
 					}
@@ -76,8 +85,20 @@ func ConsumeErr[T any](ctx context.Context, clientID string, topics, servers []s
 		}
 		log.Info().Msgf("finish kafka consumer %s", clientID)
 		client.Close()
-		close(errOut)
-		close(out)
 	}()
 	return out, errOut, nil
+}
+
+func newConsumer(ctx context.Context, servers []string, topics []string, clientID string) (*kgo.Client, error) {
+	client, err := kgo.NewClient(
+		kgo.WithLogger(kzerolog.New(&log.Logger)),
+		kgo.SeedBrokers(servers...), kgo.AllowAutoTopicCreation(),
+		kgo.ConsumeTopics(topics...), kgo.ConsumerGroup(clientID), kgo.ClientID(clientID),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create kafka consumer: %w", err)
+	} else if err = client.Ping(ctx); err != nil {
+		return nil, fmt.Errorf("failed to ping kafka: %w", err)
+	}
+	return client, err
 }

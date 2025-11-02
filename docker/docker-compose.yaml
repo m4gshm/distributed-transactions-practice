@@ -71,7 +71,7 @@ services:
 #      - 8888:8888 # Prometheus metrics exposed by the Collector
 #      - 8889:8889 # Prometheus exporter metrics
 #      - 13133:13133 # health_check extension
-#      - 4317:4317 # OTLP gRPC receiver
+      - 4317:4317 # OTLP gRPC receiver
       - 4318:4318 # OTLP http receiver
 #      - 55679:55679 # zpages extension
   tempo_init:
@@ -100,7 +100,10 @@ services:
       - "3000:3000"
     volumes:
       - ./grafana/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards      
     environment:
+      DS_PROMETHEUS: prometheus
       GF_AUTH_ANONYMOUS_ENABLED: true
       GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
       GF_AUTH_BASIC_ENABLED: false

@@ -45,9 +45,11 @@ type ServiceConfig struct {
 	GrpcPort int
 	HttpPort int
 	Database DatabaseConfig
+	OtlpUrl  string
 }
 
 func Load() *Config {
+	otlpUrl := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
 	kafka := KafkaConfig{
 		Topic:   "balance",
 		Servers: slice.Of("localhost:9092"),
@@ -56,6 +58,7 @@ func Load() *Config {
 		ServiceConfig: ServiceConfig{
 			GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
 			HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
+			OtlpUrl:  otlpUrl,
 			Database: defDBConfig("payment"),
 		},
 		KafkaConfig: kafka,
@@ -63,6 +66,7 @@ func Load() *Config {
 	reserve := ServiceConfig{
 		GrpcPort: getEnvInt("RESERVE_PORT", 9003),
 		HttpPort: getEnvInt("RESERVE_PORT", 8003),
+		OtlpUrl:  otlpUrl,
 		Database: defDBConfig("reserve"),
 	}
 	return &Config{
@@ -70,6 +74,7 @@ func Load() *Config {
 			ServiceConfig: ServiceConfig{
 				GrpcPort: getEnvInt("ORDERS_PORT", 9001),
 				HttpPort: getEnvInt("ORDERS_PORT", 8001),
+				OtlpUrl:  otlpUrl,
 				Database: defDBConfig("orders"),
 			},
 			KafkaConfig:       kafka,

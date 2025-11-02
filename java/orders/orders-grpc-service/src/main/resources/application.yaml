@@ -116,6 +116,10 @@ management:
       probability: 1.0
   otlp:
     logging:
-      endpoint: http://localhost:4318/v1/logs
+      export:
+        enabled: false
+#      endpoint: http://localhost:4318/v1/logs
+#      endpoint: localhost:4317
     tracing:
-      endpoint: http://localhost:4318/v1/traces
+#      endpoint: http://localhost:4318/v1/traces
+      endpoint: localhost:4317

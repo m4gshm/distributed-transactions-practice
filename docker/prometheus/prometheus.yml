@@ -4,15 +4,46 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'orders'
+  - job_name: 'java_orders'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: [ "localhost:7080", "host.containers.internal:7080", "host.docker.internal:7080" ]
-  - job_name: 'reserve'
+        labels:
+          implementation: java
+          service: orders
+  - job_name: 'java_reserve'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: [ "localhost:7081", "host.containers.internal:7081", "host.docker.internal:7081" ]
-  - job_name: 'payments'
+        labels:
+          implementation: java
+          service: reserve
+  - job_name: 'java_payment'
     metrics_path: '/actuator/prometheus'
     static_configs:
       - targets: [ "localhost:7082", "host.containers.internal:7082", "host.docker.internal:7082" ]
+        labels:
+          implementation: java
+          service: payment
+  - job_name: 'go_orders'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: [ "localhost:8001", "host.containers.internal:8001", "host.docker.internal:8001" ]
+        labels:
+          implementation: go
+          service: orders
+  - job_name: 'go_reserve'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: [ "localhost:8003", "host.containers.internal:8003", "host.docker.internal:8003" ]
+        labels:
+          implementation: go
+          service: reserve
+  - job_name: 'go_payment'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: [ "localhost:8002", "host.containers.internal:8002", "host.docker.internal:8002" ]
+        labels:
+          implementation: go
+          service: payment
+
