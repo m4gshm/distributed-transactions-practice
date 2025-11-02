@@ -7,18 +7,18 @@ logging:
         boot:
           autoconfigure:
             logging:
-              ConditionEvaluationReportLogger: debug # auto configs report
+              ConditionEvaluationReportLogger: DEBUG # auto configs report
         r2dbc:
-          connection: TRACE # log sql
+          connection: INFO # log sql
         transaction:
-          reactive: TRACE # log sql
+          reactive: INFO # log sql
     io:
       github:
-        m4gshm: TRACE
+        m4gshm: INFO
       r2dbc:
         postgresql:
-          client: DEBUG # log sql
-          QUERY: DEBUG
+          client: INFO # log sql
+          QUERY: INFO
     java:
       io:
         serialization: INFO

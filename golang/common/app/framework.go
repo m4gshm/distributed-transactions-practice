@@ -53,7 +53,7 @@ func Run(
 ) {
 	ctx := context.Background()
 
-	InitLog(name, zerolog.InfoLevel)
+	InitLog(name, cfg.LogLevel.Root)
 
 	close, err := registerOtlpExporter(ctx, cfg.OtlpUrl, name)
 	if err != nil {
@@ -64,9 +64,9 @@ func Run(
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
 
-	migrate(ctx, cfg.Database, mirgationsFS)
+	migrate(ctx, cfg.Database, cfg.LogLevel.DB, mirgationsFS)
 
-	pool := NewDBPool(ctx, cfg.Database, database.WithCustomEnumType(postgresEnumTypes...))
+	pool := NewDBPool(ctx, cfg.Database, cfg.LogLevel.DB, database.WithCustomEnumType(postgresEnumTypes...))
 	defer pool.Close()
 
 	for _, buildService := range registerServices {
@@ -108,8 +108,8 @@ func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (fun
 	}, nil
 }
 
-func migrate(ctx context.Context, conf config.DatabaseConfig, mirgationsFS fs.FS) {
-	mpool := NewDBPool(ctx, conf)
+func migrate(ctx context.Context, conf config.DatabaseConfig, logLevel zerolog.Level, mirgationsFS fs.FS) {
+	mpool := NewDBPool(ctx, conf, logLevel)
 	defer mpool.Close()
 	goose.SetBaseFS(mirgationsFS)
 	if err := goose.SetDialect("postgres"); err != nil {
@@ -148,13 +148,32 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	Shutdown(ctx, grpcServer, httpServer)
 }
 
-func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, opts ...database.ConConfOpt) *pgxpool.Pool {
-	tracer := database.WithTracers(database.NewTraceLog(log.Logger, tracelog.LogLevelDebug), otelpgx.NewTracer())
+func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, logLevel zerolog.Level, opts ...database.ConConfOpt) *pgxpool.Pool {
+	tracer := database.WithTracers(database.NewTraceLog(log.Logger, toPgxLogLevel(logLevel)), otelpgx.NewTracer())
 	db, err := database.NewPool(ctx, cfg, append(slice.Of(tracer), opts...)...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
 	return db
+}
+
+func toPgxLogLevel(logLevel zerolog.Level) tracelog.LogLevel {
+	var pgxLogLevel = tracelog.LogLevelInfo
+	switch logLevel {
+	case zerolog.TraceLevel:
+		pgxLogLevel = tracelog.LogLevelTrace
+	case zerolog.DebugLevel:
+		pgxLogLevel = tracelog.LogLevelDebug
+	case zerolog.InfoLevel:
+		pgxLogLevel = tracelog.LogLevelInfo
+	case zerolog.WarnLevel:
+		pgxLogLevel = tracelog.LogLevelWarn
+	case zerolog.ErrorLevel:
+		pgxLogLevel = tracelog.LogLevelError
+	case zerolog.Disabled:
+		pgxLogLevel = tracelog.LogLevelNone
+	}
+	return pgxLogLevel
 }
 
 func WaitTermSig() {
@@ -230,7 +249,7 @@ func NewGrpcClient(url string, name string) *grpc.ClientConn {
 	return paymentConn
 }
 
-func InitLog(name string, l zerolog.Level) {
+func InitLog(name string, level zerolog.Level) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	colorized := ordered.NewMap(k.V("pid", colorDarkGray), k.V("name", colorCyan))
 	names := colorized.Keys().Slice()
@@ -251,7 +270,7 @@ func InitLog(name string, l zerolog.Level) {
 				}
 			},
 		}).
-		Level(l).
+		Level(level).
 		With().
 		Int("pid", os.Getpid()).
 		Str("name", name).

@@ -8,6 +8,7 @@ import static reactor.core.publisher.Mono.just;
 
 import java.time.OffsetDateTime;
 
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 
@@ -16,6 +17,7 @@ import lombok.experimental.UtilityClass;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
+@Slf4j
 @UtilityClass
 public class TwoPhaseTransaction {
 
@@ -57,9 +59,9 @@ public class TwoPhaseTransaction {
     }
 
     public static <T> Mono<T> prepare(DSLContext dsl, String id, Mono<T> routine) {
-        return id != null ? routine.flatMap(result -> {
+        return id != null ? routine/*.flatMap(result -> {
             return logTxId(dsl, "prepare2Pc", result);
-        }).flatMap(result -> {
+        })*/.flatMap(result -> {
             return prepare(dsl, id).onErrorResume(throwable -> {
                 return error(new PrepareTransactionException(id, throwable));
             }).thenReturn(result).switchIfEmpty(just(result));

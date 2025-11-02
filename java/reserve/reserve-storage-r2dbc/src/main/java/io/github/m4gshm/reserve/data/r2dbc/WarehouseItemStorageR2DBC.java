@@ -91,7 +91,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     log.info("reserved cannot be less tah zero: item [{}], reserved [{}]", id, newReserved);
                     return error(new InvalidReserveValueException(id, newReserved));
                 }
-            }).collectList().flatMap(l -> logTxId(dsl, "cancelReserve", l));
+            }).collectList()
+//                    .flatMap(l -> logTxId(dsl, "cancelReserve", l))
+                    ;
         });
     }
 
@@ -140,7 +142,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                                                 .build();
                                     }));
                 }
-            }).collectList().flatMap(l -> logTxId(dsl, "release", l));
+            }).collectList()
+//                    .flatMap(l -> logTxId(dsl, "release", l))
+                    ;
         });
     }
 
@@ -172,7 +176,9 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                     log.info("not enough item amount: item [{}], need [{}]", id, -remainder);
                     return just(resultBuilder.reserved(false).build());
                 }
-            }).collectList().flatMap(l -> logTxId(dsl, "reserve", l));
+            }).collectList()
+//                    .flatMap(l -> logTxId(dsl, "reserve", l))
+                    ;
         });
     }
 

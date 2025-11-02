@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/m4gshm/gollections/slice"
+	"github.com/rs/zerolog"
 )
 
 type Config struct {
@@ -46,6 +47,12 @@ type ServiceConfig struct {
 	HttpPort int
 	Database DatabaseConfig
 	OtlpUrl  string
+	LogLevel LogLevel
+}
+
+type LogLevel struct {
+	Root zerolog.Level
+	DB   zerolog.Level
 }
 
 func Load() *Config {
@@ -59,7 +66,8 @@ func Load() *Config {
 			GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
 			HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
 			OtlpUrl:  otlpUrl,
-			Database: defDBConfig("payment"),
+			Database: defaultDBConfig("payment"),
+			LogLevel: defaultLogLevel("PAYMENTS"),
 		},
 		KafkaConfig: kafka,
 	}
@@ -67,7 +75,8 @@ func Load() *Config {
 		GrpcPort: getEnvInt("RESERVE_PORT", 9003),
 		HttpPort: getEnvInt("RESERVE_PORT", 8003),
 		OtlpUrl:  otlpUrl,
-		Database: defDBConfig("reserve"),
+		Database: defaultDBConfig("reserve"),
+		LogLevel: defaultLogLevel("RESERVE"),
 	}
 	return &Config{
 		Order: OrderConfig{
@@ -75,7 +84,8 @@ func Load() *Config {
 				GrpcPort: getEnvInt("ORDERS_PORT", 9001),
 				HttpPort: getEnvInt("ORDERS_PORT", 8001),
 				OtlpUrl:  otlpUrl,
-				Database: defDBConfig("orders"),
+				Database: defaultDBConfig("orders"),
+				LogLevel: defaultLogLevel("ORDERS"),
 			},
 			KafkaConfig:       kafka,
 			PaymentServiceURL: getEnv("ORDERS_PAYMENT_SERVICE_URL", fmt.Sprintf("localhost:%d", payment.GrpcPort)),
@@ -86,7 +96,14 @@ func Load() *Config {
 	}
 }
 
-func defDBConfig(dbNameDefault string) DatabaseConfig {
+func defaultLogLevel(prefix string) LogLevel {
+	return LogLevel{
+		Root: getEnvInt(prefix+"_LOG_LEVEL_ROOT", zerolog.InfoLevel),
+		DB:   getEnvInt(prefix+"_LOG_LEVEL_DB", zerolog.InfoLevel),
+	}
+}
+
+func defaultDBConfig(dbNameDefault string) DatabaseConfig {
 	return DatabaseConfig{
 		Host:     getEnv("DB_HOST", "localhost"),
 		Port:     getEnvInt("DB_PORT", 5000),
@@ -104,10 +121,10 @@ func getEnv(key, defaultValue string) string {
 	return defaultValue
 }
 
-func getEnvInt(key string, defaultValue int) int {
+func getEnvInt[I ~int | ~int8](key string, defaultValue I) I {
 	if value := os.Getenv(key); value != "" {
 		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
+			return I(intValue)
 		}
 	}
 	return defaultValue

@@ -44,7 +44,7 @@ public class ReserveStorageR2DBCUtils {
         return Flux.from(dsl.batch(Stream.ofNullable(items).flatMap(Collection::stream).map(item -> {
             return mergeItem(dsl, reserveId, item);
         }).toList()))
-                .flatMap(count -> logTxId(dsl, "mergeItems", count))
+//                .flatMap(count -> logTxId(dsl, "mergeItems", count))
                 .collectList()
                 .map(l -> sumInt(l))
                 .doOnSuccess(count -> {
