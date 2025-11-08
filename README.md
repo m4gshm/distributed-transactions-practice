@@ -24,7 +24,7 @@
 | version | 24 | 1.25 |
 | Build tool | Gradle 8.14 | Task |
 | Code formatter | com.diffplug.spotless gradle plugin | _built-in_ |
-| Boilerplate recuder (code gen) | org.projectlombok:lombok | fieldr |
+| Boilerplate reducer (code gen) | org.projectlombok:lombok | fieldr |
 | Logger | slf4j | zerolog |
 | Application framework | Spring Boot | _not used_ |
 | Dep. injection | Spring Context | _not used_ |
