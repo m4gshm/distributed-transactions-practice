@@ -65,11 +65,11 @@ springdoc:
 spring:
   #for liquibase
   datasource:
-    url: jdbc:postgresql://localhost:5000/orders
+    url: jdbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
   r2dbc:
-    url: r2dbc:postgresql://localhost:5000/orders
+    url: r2dbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
   liquibase:

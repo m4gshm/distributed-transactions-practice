@@ -216,7 +216,7 @@ const insertOrUpdateItem = `-- name: InsertOrUpdateItem :exec
 INSERT INTO
   item (order_id, id, amount)
 VALUES
-  ($1, $2, $3) ON CONFLICT(id) DO
+  ($1, $2, $3) ON CONFLICT(id, order_id) DO
 UPDATE
 SET
   amount = EXCLUDED.amount

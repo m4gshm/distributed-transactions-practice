@@ -66,7 +66,7 @@ func Load() *Config {
 			GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
 			HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
 			OtlpUrl:  otlpUrl,
-			Database: defaultDBConfig("payment"),
+			Database: defaultDBConfig("go_payment"),
 			LogLevel: defaultLogLevel("PAYMENTS"),
 		},
 		KafkaConfig: kafka,
@@ -75,7 +75,7 @@ func Load() *Config {
 		GrpcPort: getEnvInt("RESERVE_PORT", 9003),
 		HttpPort: getEnvInt("RESERVE_PORT", 8003),
 		OtlpUrl:  otlpUrl,
-		Database: defaultDBConfig("reserve"),
+		Database: defaultDBConfig("go_reserve"),
 		LogLevel: defaultLogLevel("RESERVE"),
 	}
 	return &Config{
@@ -84,7 +84,7 @@ func Load() *Config {
 				GrpcPort: getEnvInt("ORDERS_PORT", 9001),
 				HttpPort: getEnvInt("ORDERS_PORT", 8001),
 				OtlpUrl:  otlpUrl,
-				Database: defaultDBConfig("orders"),
+				Database: defaultDBConfig("go_orders"),
 				LogLevel: defaultLogLevel("ORDERS"),
 			},
 			KafkaConfig:       kafka,

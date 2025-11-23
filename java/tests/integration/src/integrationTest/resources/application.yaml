@@ -4,7 +4,7 @@ logging:
     root: debug
 spring:
   r2dbc:
-    url: r2dbc:postgresql://localhost:5000/payment
+    url: r2dbc:postgresql://localhost:5000/jvm_payment
     username: postgres
     password: postgres
 service:

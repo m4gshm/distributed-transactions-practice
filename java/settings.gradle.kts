@@ -1,5 +1,3 @@
-import org.gradle.kotlin.dsl.project
-
 include(":storage-jooq")
 include(":storage-api")
 include(":grpc-webflux")
@@ -20,6 +18,7 @@ include(":payments:payments-grpc-api")
 include(":payments:payments-grpc-service")
 include(":payments:payments-storage-r2dbc")
 include(":idempotent-consumer")
-include(":integration-test")
 include(":reactive-utils")
 include(":r2dbc-postgres")
+include(":tests:integration")
+//include(":tests:stress")

@@ -88,6 +88,9 @@
             </column>
         </createTable>
     </changeSet>
+    <changeSet id="addUniqueConstraint-addUniqueConstraint" author="alex">
+        <addUniqueConstraint tableName="item" columnNames="id,order_id" constraintName="addUniqueConstraint"/>
+    </changeSet>
     <changeSet id="createTable" author="alex">
         <createTable tableName="delivery" ifNotExists="true">
             <column name="order_id" type="text">

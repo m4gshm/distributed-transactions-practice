@@ -16,7 +16,7 @@ require (
 	github.com/jackc/pgx-zerolog v0.0.0-20230315001418-f978528409eb
 	github.com/jackc/pgx/v5 v5.7.6
 	github.com/m4gshm/expressions v0.0.0-20230605220217-66f85e582662
-	github.com/m4gshm/gollections v0.0.18
+	github.com/m4gshm/gollections v0.0.19-0.20251115221619-6ed143bc11a4
 	github.com/ovechkin-dm/mockio/v2 v2.0.3
 	github.com/prometheus/client_golang v1.23.2
 	github.com/rs/zerolog v1.34.0

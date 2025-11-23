@@ -2,12 +2,7 @@
   <configuration default="false" name="OrdersApplication" type="Application" factoryName="Application" nameIsGenerated="true">
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.orders.OrdersApplication" />
     <module name="java.orders.orders-grpc-service.main" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="io.github.m4gshm.orders.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
+      <option name="VM_PARAMETERS" value="-Xmx1g" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

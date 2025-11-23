@@ -3,12 +3,7 @@
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.payments.PaymentsApplication" />
     <module name="java.payments.payments-grpc-service.main" />
     <shortenClasspath name="ARGS_FILE" />
-    <extension name="coverage">
-      <pattern>
-        <option name="PATTERN" value="io.github.m4gshm.payments.*" />
-        <option name="ENABLED" value="true" />
-      </pattern>
-    </extension>
+      <option name="VM_PARAMETERS" value="-Xmx1g" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>

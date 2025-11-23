@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
-import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static java.util.Optional.ofNullable;
 import static reserve.data.access.jooq.Tables.RESERVE;

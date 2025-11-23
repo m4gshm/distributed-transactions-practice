@@ -1,6 +1,5 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;
 import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
@@ -85,6 +84,6 @@ public class ReserveStorageR2DBC implements ReserveStorage {
         return jooq.inTransaction(dsl -> mergeItems(dsl, reserveId, items)
                 .map(c -> List.copyOf(items))
 //                .flatMap(l -> logTxId(dsl, "saveReservedItems", l))
-                );
+        );
     }
 }

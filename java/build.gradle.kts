@@ -92,7 +92,7 @@ subprojects {
         }
 
         dependencies {
-            dependency("org.projectlombok:lombok:1.18.38")
+            dependency("org.projectlombok:lombok:1.18.42")
 
             dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.15.0-alpha")
             dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")

@@ -29,7 +29,7 @@ protobuf {
         }
     }
     generateProtoTasks {
-        all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask?> {
+        all().configureEach(Action<com.google.protobuf.gradle.GenerateProtoTask> {
             plugins {
                 create("grpc") {}
             }

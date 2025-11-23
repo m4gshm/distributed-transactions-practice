@@ -19,7 +19,6 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 import java.util.List;
 
-import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static io.github.m4gshm.storage.jooq.Update.checkUpdateCount;
 import static java.util.Objects.requireNonNull;
@@ -93,7 +92,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 }
             }).collectList()
 //                    .flatMap(l -> logTxId(dsl, "cancelReserve", l))
-                    ;
+            ;
         });
     }
 
@@ -144,7 +143,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 }
             }).collectList()
 //                    .flatMap(l -> logTxId(dsl, "release", l))
-                    ;
+            ;
         });
     }
 
@@ -178,7 +177,7 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                 }
             }).collectList()
 //                    .flatMap(l -> logTxId(dsl, "reserve", l))
-                    ;
+            ;
         });
     }
 

@@ -1,6 +1,5 @@
 package io.github.m4gshm.postgres.prepared.transaction;
 
-import static io.github.m4gshm.postgres.prepared.transaction.Transaction.logTxId;
 import static reactor.core.publisher.Mono.defer;
 import static reactor.core.publisher.Mono.error;
 import static reactor.core.publisher.Mono.from;
@@ -59,9 +58,9 @@ public class TwoPhaseTransaction {
     }
 
     public static <T> Mono<T> prepare(DSLContext dsl, String id, Mono<T> routine) {
-        return id != null ? routine/*.flatMap(result -> {
-            return logTxId(dsl, "prepare2Pc", result);
-        })*/.flatMap(result -> {
+        return id != null ? routine/*
+                                    * .flatMap(result -> { return logTxId(dsl, "prepare2Pc", result); })
+                                    */.flatMap(result -> {
             return prepare(dsl, id).onErrorResume(throwable -> {
                 return error(new PrepareTransactionException(id, throwable));
             }).thenReturn(result).switchIfEmpty(just(result));
