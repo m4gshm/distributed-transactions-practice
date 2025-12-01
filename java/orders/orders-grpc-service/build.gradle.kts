@@ -1,6 +1,7 @@
 plugins {
     `java-library`
     id("org.springframework.boot")
+    id("com.bmuschko.docker-spring-boot-application")
 }
 apply(plugin = "io.spring.dependency-management")
 
@@ -20,4 +21,12 @@ dependencies {
 
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
+}
+
+docker {
+    springBootApplication {
+        baseImage.set("eclipse-temurin:25.0.1_8-jre-ubi10-minimal")
+        ports.set(listOf(7080, 9080))
+        images.set(setOf("jvm-" + project.name + ":latest"))
+    }
 }

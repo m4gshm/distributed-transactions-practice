@@ -171,7 +171,7 @@ public class OrderServiceUtils {
         } else {
             status = null;
         }
-        log.info("calc order status {} by payment {} and reserve {}", status, paymentStatus, reserveStatus);
+        log.debug("calc order status {} by payment {} and reserve {}", status, paymentStatus, reserveStatus);
         return status;
     }
 

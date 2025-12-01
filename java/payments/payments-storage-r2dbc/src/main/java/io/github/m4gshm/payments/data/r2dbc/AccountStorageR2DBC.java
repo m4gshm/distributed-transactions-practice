@@ -1,21 +1,5 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
-import static java.util.Optional.ofNullable;
-import static lombok.AccessLevel.PRIVATE;
-import static payments.data.access.jooq.Tables.ACCOUNT;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.from;
-
-import java.time.OffsetDateTime;
-import java.util.List;
-
-import org.jooq.DSLContext;
-import org.jooq.Record;
-import org.jooq.Record2;
-import org.jooq.SelectJoinStep;
-import org.jooq.UpdateSetMoreStep;
-import org.springframework.stereotype.Service;
-
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.model.Account;
@@ -26,9 +10,24 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.jooq.Record;
+import org.jooq.Record2;
+import org.jooq.SelectJoinStep;
+import org.jooq.UpdateSetMoreStep;
+import org.springframework.stereotype.Service;
 import payments.data.access.jooq.tables.records.AccountRecord;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.time.OffsetDateTime;
+import java.util.List;
+
+import static java.util.Optional.ofNullable;
+import static lombok.AccessLevel.PRIVATE;
+import static payments.data.access.jooq.Tables.ACCOUNT;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @Service
@@ -49,7 +48,8 @@ public class AccountStorageR2DBC implements AccountStorage {
                 .select(ACCOUNT.LOCKED, ACCOUNT.AMOUNT)
                 .from(ACCOUNT)
                 .where(ACCOUNT.CLIENT_ID.eq(clientId))
-                .forUpdate());
+                .orderBy(ACCOUNT.CLIENT_ID)
+                .forNoKeyUpdate());
     }
 
     public static Account toAccount(Record record) {
@@ -73,6 +73,12 @@ public class AccountStorageR2DBC implements AccountStorage {
                     .where(ACCOUNT.CLIENT_ID.eq(clientId))
                     .returning(ACCOUNT.fields())).map(accountRecord -> {
                         var balance = accountRecord.get(ACCOUNT.AMOUNT) - accountRecord.get(ACCOUNT.LOCKED);
+                        if (balance < 0) {
+                            throw new IllegalStateException("balance overflow " + balance
+                                    + " with replenishment "
+                                    +
+                                    replenishment);
+                        }
                         var timestamp = accountRecord.get(ACCOUNT.UPDATED_AT);
                         return BalanceResult.builder().balance(balance).timestamp(timestamp).build();
                     }).switchIfEmpty(Update.notFound("account", clientId));

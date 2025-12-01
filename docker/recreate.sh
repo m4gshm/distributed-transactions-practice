@@ -1,5 +1,7 @@
 #!/usr/bin/env sh
 
-docker-compose down
-docker volume rm distributed-transactions-practice_db-data
-docker-compose up -d
+DOCKER_COMPOSE_YAML=./docker-compose-java.yaml
+
+docker-compose -f $DOCKER_COMPOSE_YAML down
+docker volume rm -f distributed-transactions-practice_db-data
+docker-compose -f $DOCKER_COMPOSE_YAML up -d

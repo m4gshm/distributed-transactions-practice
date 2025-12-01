@@ -52,6 +52,7 @@ import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CREATIN
 import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
 import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.RELEASING;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.getOrderStatus;
+import static io.github.m4gshm.orders.service.OrderServiceUtils.logNoTransaction;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.newRollbackRequest;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toDelivery;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderGrpc;
@@ -454,7 +455,7 @@ public class OrderServiceImpl implements OrderService {
                                     .onErrorComplete(e -> {
                                         var noTransaction = e instanceof NotFoundException;
                                         if (noTransaction) {
-                                            OrderServiceUtils.logNoTransaction("order", order.id());
+                                            logNoTransaction("order", order.id());
                                         }
                                         return noTransaction;
                                     })
@@ -477,9 +478,9 @@ public class OrderServiceImpl implements OrderService {
                                 reserveOp.apply(order)
                                         .onErrorResume(OrderServiceUtils.statusError(Reserve.Status::valueOf)),
                                 (paymentStatus, reserveStatus) -> {
-                                    log.debug("payment op '{}' result [{}] ", opName, paymentStatus);
-                                    log.debug("reserve op '{}' result [{}] ", opName, reserveStatus);
-                                    log.info("order {} [{}]", opName, orderId);
+                                    log.trace("payment op '{}' result [{}] ", opName, paymentStatus);
+                                    log.trace("reserve op '{}' result [{}] ", opName, reserveStatus);
+                                    log.debug("order {} [{}]", opName, orderId);
                                     return getOrderStatus(paymentStatus, reserveStatus);
                                 }
                         )
@@ -500,7 +501,7 @@ public class OrderServiceImpl implements OrderService {
                                 );
                                 return just(order);
                             } else {
-                                log.info(
+                                log.debug(
                                         "order status has been changed: order [{}], status [{}]",
                                         order.id(),
                                         order.status()
@@ -529,6 +530,8 @@ public class OrderServiceImpl implements OrderService {
                         })
                         .map(responseBuilder);
             })));
+        }).doOnSuccess(t -> {
+            log.debug("{}, orderId [{}]", opName, orderId);
         });
     }
 

@@ -10,6 +10,7 @@ import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentApproveResponse;
@@ -45,6 +46,7 @@ import static payments.data.access.jooq.enums.PaymentStatus.INSUFFICIENT;
 import static payments.data.access.jooq.enums.PaymentStatus.PAID;
 import static reactor.core.publisher.Mono.defer;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
@@ -156,21 +158,21 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     public void pay(PaymentPayRequest request, StreamObserver<PaymentPayResponse> responseObserver) {
         paymentAccount("pay",
                 responseObserver,
-                getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
+                getOrNull(request,
+                        PaymentPayRequest::hasPreparedTransactionId,
+                        PaymentPayRequest::getPreparedTransactionId),
                 request.getId(),
                 Set.of(HOLD),
                 (payment, account) -> {
-                    return accountStorage.writeOff(account.clientId(), payment.amount())
-                            .flatMap(writeOffResult -> {
-                                return paymentStorage.save(withStatus(payment, PAID)).map(_ -> {
-                                    return PaymentPayResponse.newBuilder()
-                                            .setId(payment.id())
-                                            .setBalance(writeOffResult.balance())
-                                            .build();
-                                });
-                            });
-                }
-        );
+                    return accountStorage.writeOff(account.clientId(), payment.amount()).flatMap(writeOffResult -> {
+                        return paymentStorage.save(withStatus(payment, PAID)).map(_ -> {
+                            return PaymentPayResponse.newBuilder()
+                                    .setId(payment.id())
+                                    .setBalance(writeOffResult.balance())
+                                    .build();
+                        });
+                    });
+                });
     }
 
     private <T> void paymentAccount(String opName,
@@ -180,20 +182,19 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                     Set<PaymentStatus> expected,
                                     BiFunction<Payment, Account, Mono<T>> routine
     ) {
-        grpc.subscribe(
-                responseObserver,
-                log(opName, jooq.inTransaction(dsl -> {
-                    return prepare(
-                            dsl,
-                            preparedTransactionId,
-                            paymentStorage.getById(paymentId).flatMap(payment -> {
-                                return checkStatus(opName, payment.status(), expected, null).then(defer(() -> {
-                                    return accountStorage.getById(payment.clientId())
-                                            .flatMap(account -> routine.apply(payment, account));
-                                }));
-                            })
-                    );
-                })
-                ));
+        grpc.subscribe(responseObserver, log(opName, jooq.inTransaction(dsl -> {
+            return prepare(
+                    dsl,
+                    preparedTransactionId,
+                    paymentStorage.getById(paymentId).flatMap(payment -> {
+                        return checkStatus(opName, payment.status(), expected, null).then(defer(() -> {
+                            return accountStorage.getById(payment.clientId())
+                                    .flatMap(account -> routine.apply(payment, account));
+                        }));
+                    })
+            );
+        }).doOnSuccess(t -> {
+            log.debug("{}, paymentId [{}]", opName, paymentId);
+        })));
     }
 }

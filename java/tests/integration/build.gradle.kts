@@ -17,11 +17,12 @@ testing {
                 implementation("org.springframework.boot:spring-boot-starter-test")
                 implementation("com.google.protobuf:protobuf-java-util")
 
-                implementation(project(":orders:orders-grpc-api"))
-                implementation(project(":reserve:reserve-grpc-api"))
-                implementation(project(":payments:payments-grpc-api"))
-                implementation(project(":payments:payments-storage-r2dbc"))
-                implementation(project(":grpc-client"))
+                implementation(projects.tests.commons)
+                implementation(projects.orders.ordersGrpcApi)
+                implementation(projects.reserve.reserveGrpcApi)
+                implementation(projects.payments.paymentsGrpcApi)
+                implementation(projects.payments.paymentsStorageR2dbc)
+                implementation(projects.grpcClient)
             }
         }
     }

@@ -1,13 +1,11 @@
 package io.github.m4gshm.test.orders;
 
 import account.v1.AccountServiceGrpc.AccountServiceBlockingStub;
-import account.v1.AccountServiceOuterClass.AccountTopUpRequest;
-import com.google.protobuf.util.Timestamps;
 import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.test.commons.orders.OrderUtils;
 import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
-import orders.v1.OrderOuterClass.Order.Delivery;
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,21 +17,21 @@ import warehouse.v1.Warehouse;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
 import warehouse.v1.WarehouseService;
 import warehouse.v1.WarehouseService.GetItemCostRequest;
-import warehouse.v1.WarehouseService.ItemTopUpRequest;
-import warehouse.v1.WarehouseService.ItemTopUpRequest.TopUp;
 
 import java.util.Map;
 import java.util.function.Function;
 
+import static io.github.m4gshm.test.commons.orders.OrderUtils.CUSTOMER_ID;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.newAccountTopUpRequest;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.newApproveRequest;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.newCreateRequest;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.newItemTopUpRequest;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.newReleaseRequest;
+import static io.github.m4gshm.test.commons.orders.OrderUtils.orderGetRequest;
 import static java.util.stream.Collectors.toMap;
 import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
 import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
 import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
-import static orders.v1.OrderServiceOuterClass.OrderApproveRequest;
-import static orders.v1.OrderServiceOuterClass.OrderApproveResponse;
-import static orders.v1.OrderServiceOuterClass.OrderCreateRequest;
-import static orders.v1.OrderServiceOuterClass.OrderGetRequest;
-import static orders.v1.OrderServiceOuterClass.OrderReleaseRequest;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(classes = {
@@ -54,74 +52,12 @@ public class OrdersGrpcTest {
     @Autowired
     AccountStorage accountStorage;
 
-    private static Map<String, Integer> getOrderItems() {
-        return Map.of(
-                "f7c36185-f570-4e6b-b1b2-f3f0f9c46135",
-                1,
-                "374fabf8-dd31-4912-93b1-57d177b9f6c6",
-                3
-        );
-    }
-
-    private static OrderApproveRequest newApproveRequest(String orderId, boolean twoPhaseCommit) {
-        return OrderApproveRequest.newBuilder()
-                .setId(orderId)
-                .setTwoPhaseCommit(twoPhaseCommit)
-                .build();
-    }
-
-    private static OrderCreateRequest newCreateRequest(Map<String, Integer> items,
-                                                       String customerId,
-                                                       boolean twoPhaseCommit
-    ) {
-        return OrderCreateRequest.newBuilder()
-                .setBody(OrderCreateRequest.OrderCreate.newBuilder()
-                        .addAllItems(items
-                                .entrySet()
-                                .stream()
-                                .map(e -> {
-                                    return OrderCreateRequest.OrderCreate.Item.newBuilder()
-                                            .setId(e.getKey())
-                                            .setAmount(e.getValue())
-                                            .build();
-                                })
-                                .toList())
-                        .setCustomerId(customerId)
-                        .setDelivery(Delivery.newBuilder()
-                                .setDateTime(Timestamps.parseUnchecked("2025-07-26T17:03:13.475Z"))
-                                .setAddress("Lenina st., 1")
-                                .setType(Delivery.Type.PICKUP)
-                                .build())
-                        .build())
-                .setTwoPhaseCommit(twoPhaseCommit)
-                .build();
-    }
-
-    private static OrderReleaseRequest newReleaseRequest(String orderId, boolean twoPhaseCommit) {
-        return OrderReleaseRequest.newBuilder()
-                .setId(orderId)
-                .setTwoPhaseCommit(twoPhaseCommit)
-                .build();
-    }
-
-    private static OrderGetRequest orderGetRequest(OrderApproveResponse orderApproveResponse) {
-        return OrderGetRequest.newBuilder()
-                .setId(orderApproveResponse.getId())
-                .build();
-    }
-
-    private void accountTopUp(String customerId, double sumCost) {
-        accountService.topUp(AccountTopUpRequest.newBuilder()
-                .setTopUp(AccountTopUpRequest.TopUp
-                        .newBuilder()
-                        .setClientId(customerId)
-                        .setAmount(sumCost)
-                        .build())
-                .build());
+    public void accountTopUp(String customerId, double sumCost) {
+        accountService.topUp(newAccountTopUpRequest(customerId, sumCost));
     }
 
     private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
-        var items = getOrderItems();
+        var items = OrderUtils.getOrderItems();
 
         var warehouseItems1 = getWarehouseVal(Warehouse.Item::getAmount);
 
@@ -138,7 +74,7 @@ public class OrdersGrpcTest {
 
         var sumCost = getSumCost(items);
 
-        var customerId = "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2";
+        var customerId = CUSTOMER_ID;
 
         // populate account
         accountTopUp(customerId, sumCost);
@@ -188,12 +124,7 @@ public class OrdersGrpcTest {
 
     private void populateWarehouse(Map<String, Integer> items) {
         items.forEach((itemId, amount) -> warehouseItemService.topUp(
-                ItemTopUpRequest.newBuilder()
-                        .setTopUp(TopUp.newBuilder()
-                                .setId(itemId)
-                                .setAmount(amount)
-                                .build())
-                        .build()));
+                newItemTopUpRequest(itemId, amount)));
     }
 
     @Test
@@ -208,14 +139,14 @@ public class OrdersGrpcTest {
 
     @Test
     public void processOrderWithInsufficientMoneyAccountButWithDelayTopUp() throws InterruptedException {
-        var items = getOrderItems();
+        var items = OrderUtils.getOrderItems();
 
         // populate warehouse
         populateWarehouse(items);
 
         var sumCost = getSumCost(items);
 
-        var customerId = "f54e7dc2-f8aa-45bc-b632-ea0c15eaa5e2";
+        var customerId = CUSTOMER_ID;
 
         // reset account
         accountStorage.getById(customerId).flatMap(account -> {

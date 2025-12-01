@@ -49,13 +49,15 @@ public class WarehouseItemStorageR2DBC implements WarehouseItemStorage {
                                                                                  Collection<String> ids) {
         return Flux.from(selectAmount(dsl)
                 .where(WAREHOUSE_ITEM.ID.in(ids))
-                .forUpdate());
+                .orderBy(WAREHOUSE_ITEM.ID)
+                .forNoKeyUpdate());
     }
 
     private static Mono<Record3<String, Integer, Integer>> selectAmountForUpdate(DSLContext dsl, String id) {
         return Mono.from(selectAmount(dsl)
                 .where(WAREHOUSE_ITEM.ID.eq(id))
-                .forUpdate());
+                .orderBy(WAREHOUSE_ITEM.ID)
+                .forNoKeyUpdate());
     }
 
     private static SelectJoinStep<Record> selectItems(DSLContext dsl) {

@@ -38,7 +38,6 @@ logging:
       management: INFO
   pattern:
     level: '%5p [%X{trace_id:-},%X{span_id:-}]'
-
 server:
   port: 7080
   error:
@@ -72,9 +71,16 @@ spring:
     url: r2dbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
+    pool:
+      validation-depth: REMOTE
+      validationQuery: select 1;
   liquibase:
     enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
   kafka:
+    bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
@@ -83,8 +89,7 @@ spring:
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
-      bootstrap-servers:
-        - localhost:9092
+      bootstrap-servers: ${spring.kafka.bootstrap-servers}
       client-id: orders-1
       properties:
         spring:
@@ -115,11 +120,14 @@ management:
     sampling:
       probability: 1.0
   otlp:
+    metrics:
+      export:
+        enabled: false
     logging:
       export:
         enabled: false
-#      endpoint: http://localhost:4318/v1/logs
-#      endpoint: localhost:4317
+      endpoint: http://localhost:4317
+      transport: GRPC
     tracing:
-#      endpoint: http://localhost:4318/v1/traces
-      endpoint: localhost:4317
+      endpoint: http://localhost:4317
+      transport: GRPC

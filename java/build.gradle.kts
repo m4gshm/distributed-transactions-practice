@@ -1,3 +1,5 @@
+import com.bmuschko.gradle.docker.DockerExtension
+import com.bmuschko.gradle.docker.DockerSpringBootApplication
 import com.diffplug.gradle.spotless.SpotlessExtension
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
@@ -8,6 +10,7 @@ plugins {
     id("org.liquibase.gradle") version "3.0.2" apply false
     id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
     id("com.diffplug.spotless") version "7.2.1"
+    id("com.bmuschko.docker-spring-boot-application") version "10.0.0" apply false
 }
 
 buildscript {
@@ -27,9 +30,29 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "checkstyle")
 
+
     the<CheckstyleExtension>().apply {
         toolVersion = "11.0.0"
     }
+
+    val isService = project.path in setOf(
+        ":orders:orders-grpc-service",
+        ":payments:payments-grpc-service",
+        ":reserve:reserve-grpc-service"
+    )
+
+//    if (isService) {
+//        apply(plugin = "com.bmuschko.docker-spring-boot-application")
+//        fun DockerExtension.`springBootApplication`(configure: Action<DockerSpringBootApplication>): Unit =
+//            (this as ExtensionAware).extensions.configure("springBootApplication", configure)
+//        the<DockerExtension>().apply {
+//            springBootApplication {
+//                baseImage.set("eclipse-temurin:25.0.1_8-jre-ubi10-minimal")
+//                ports.set(listOf(8080))
+//                images.set(setOf("jvm-" + project.name + ":latest"))
+//            }
+//        }
+//    }
 
     dependencies {
         listOf("implementation", "annotationProcessor", "testAnnotationProcessor").forEach {
@@ -38,20 +61,18 @@ subprojects {
                 "org.projectlombok:lombok"
             )
         }
-        if (project.path in setOf(
-                ":orders:orders-grpc-service",
-                ":payments:payments-grpc-service",
-                ":reserve:reserve-grpc-service"
-            )
-        ) {
-            add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
-            add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+        if (isService) {
+//            add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
+//            add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
             add("runtimeOnly", "io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            add("runtimeOnly", "io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
 
             add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
             add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
 
             add("implementation", "org.springframework.boot:spring-boot-starter-actuator")
+            add("implementation", "io.micrometer:micrometer-tracing")
+            add("implementation", "io.micrometer:micrometer-tracing-bridge-otel")
             add("implementation", "io.micrometer:micrometer-registry-prometheus")
             add("implementation", "org.springframework.boot:spring-boot-starter-webflux")
             add("implementation", "org.springframework:spring-webflux")
