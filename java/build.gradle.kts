@@ -1,5 +1,3 @@
-import com.bmuschko.gradle.docker.DockerExtension
-import com.bmuschko.gradle.docker.DockerSpringBootApplication
 import com.diffplug.gradle.spotless.SpotlessExtension
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
@@ -10,7 +8,7 @@ plugins {
     id("org.liquibase.gradle") version "3.0.2" apply false
     id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
     id("com.diffplug.spotless") version "7.2.1"
-    id("com.bmuschko.docker-spring-boot-application") version "10.0.0" apply false
+//    id("com.bmuschko.docker-spring-boot-application") version "10.0.0" apply false
 }
 
 buildscript {
