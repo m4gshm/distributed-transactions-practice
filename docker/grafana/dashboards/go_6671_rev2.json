@@ -134,7 +134,7 @@
         {
           "disableTextWrap": false,
           "editorMode": "builder",
-          "expr": "rate(process_cpu_seconds_total{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "rate(process_cpu_seconds_total{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "fullMetaSearch": false,
           "includeNullMetadata": true,
           "legendFormat": "__auto",
@@ -194,19 +194,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "process_resident_memory_bytes{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "process_resident_memory_bytes{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - resident",
+          "legendFormat": "{{service}} - resident",
           "metric": "process_resident_memory_bytes",
           "refId": "A",
           "step": 4
         },
         {
-          "expr": "process_virtual_memory_bytes{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "process_virtual_memory_bytes{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - virtual",
+          "legendFormat": "{{service}} - virtual",
           "metric": "process_virtual_memory_bytes",
           "refId": "B",
           "step": 4
@@ -300,19 +300,19 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "rate(process_resident_memory_bytes{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "rate(process_resident_memory_bytes{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - resident",
+          "legendFormat": "{{service}} - resident",
           "metric": "process_resident_memory_bytes",
           "refId": "A",
           "step": 4
         },
         {
-          "expr": "deriv(process_virtual_memory_bytes{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "deriv(process_virtual_memory_bytes{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - virtual",
+          "legendFormat": "{{service}} - virtual",
           "metric": "process_virtual_memory_bytes",
           "refId": "B",
           "step": 4
@@ -406,40 +406,49 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "go_memstats_alloc_bytes{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "go_memstats_alloc_bytes{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - bytes allocated",
+          "legendFormat": "{{service}} - bytes allocated",
           "metric": "go_memstats_alloc_bytes",
           "refId": "A",
           "step": 4
         },
         {
-          "expr": "rate(go_memstats_alloc_bytes_total{service=\"$service\", implementation=\"$implementation\"}[30s])",
+          "expr": "rate(go_memstats_alloc_bytes_total{service=~\"$service\", implementation=\"$implementation\"}[30s])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - alloc rate",
+          "legendFormat": "{{service}} - alloc rate",
           "metric": "go_memstats_alloc_bytes_total",
           "refId": "B",
           "step": 4
         },
         {
-          "expr": "go_memstats_stack_inuse_bytes{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "go_memstats_stack_inuse_bytes{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - stack inuse",
+          "legendFormat": "{{service}} - stack inuse",
           "metric": "go_memstats_stack_inuse_bytes",
           "refId": "C",
           "step": 4
         },
         {
-          "expr": "go_memstats_heap_inuse_bytes{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "go_memstats_heap_inuse_bytes{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - heap inuse",
+          "legendFormat": "{{service}} - heap inuse",
           "metric": "go_memstats_heap_inuse_bytes",
           "refId": "D",
+          "step": 4
+        },
+        {
+          "expr": "go_gc_gomemlimit_bytes{service=~\"$service\", implementation=\"$implementation\"}",
+          "format": "time_series",
+          "intervalFactor": 2,
+          "legendFormat": "{{service}} - memlimit",
+          "metric": "go_gc_gomemlimit_bytes",
+          "refId": "E",
           "step": 4
         }
       ],
@@ -531,38 +540,38 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "deriv(go_memstats_alloc_bytes{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "deriv(go_memstats_alloc_bytes{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - bytes allocated",
+          "legendFormat": "{{service}} - bytes allocated",
           "metric": "go_memstats_alloc_bytes",
           "refId": "A",
           "step": 4
         },
         {
-          "expr": "rate(go_memstats_alloc_bytes_total{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "rate(go_memstats_alloc_bytes_total{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - alloc rate",
+          "legendFormat": "{{service}} - alloc rate",
           "metric": "go_memstats_alloc_bytes_total",
           "refId": "B",
           "step": 4
         },
         {
-          "expr": "deriv(go_memstats_stack_inuse_bytes{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "deriv(go_memstats_stack_inuse_bytes{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - stack inuse",
+          "legendFormat": "{{service}} - stack inuse",
           "metric": "go_memstats_stack_inuse_bytes",
           "refId": "C",
           "step": 4
         },
         {
-          "expr": "deriv(go_memstats_heap_inuse_bytes{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "deriv(go_memstats_heap_inuse_bytes{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "hide": false,
           "intervalFactor": 2,
-          "legendFormat": "{{pod}} - heap inuse",
+          "legendFormat": "{{service}} - heap inuse",
           "metric": "go_memstats_heap_inuse_bytes",
           "refId": "D",
           "step": 4
@@ -651,10 +660,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "process_open_fds{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "process_open_fds{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}}",
+          "legendFormat": "{{service}}",
           "metric": "process_open_fds",
           "refId": "A",
           "step": 4
@@ -743,10 +752,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "deriv(process_open_fds{service=\"$service\", implementation=\"$implementation\"}[$interval])",
+          "expr": "deriv(process_open_fds{service=~\"$service\", implementation=\"$implementation\"}[$interval])",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}}",
+          "legendFormat": "{{service}}",
           "metric": "process_open_fds",
           "refId": "A",
           "step": 4
@@ -835,10 +844,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "go_goroutines{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "go_goroutines{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}}",
+          "legendFormat": "{{service}}",
           "metric": "go_goroutines",
           "refId": "A",
           "step": 4
@@ -927,10 +936,10 @@
       "steppedLine": false,
       "targets": [
         {
-          "expr": "go_gc_duration_seconds{service=\"$service\", implementation=\"$implementation\"}",
+          "expr": "go_gc_duration_seconds{service=~\"$service\", implementation=\"$implementation\"}",
           "format": "time_series",
           "intervalFactor": 2,
-          "legendFormat": "{{pod}}: {{quantile}}",
+          "legendFormat": "{{service}}: {{quantile}}",
           "metric": "go_gc_duration_seconds",
           "refId": "A",
           "step": 4
@@ -1011,7 +1020,9 @@
         "label": "implementation",
         "multi": false,
         "name": "implementation",
-        "options": ["java"],
+        "options": [
+          "java"
+        ],
         "query": "label_values(implementation)",
         "refresh": 2,
         "regex": "/.*(go)/",

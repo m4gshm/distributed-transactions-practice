@@ -29,9 +29,9 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
-	"go.opentelemetry.io/otel/sdk/resource"
+	// "go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	// semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
@@ -82,18 +82,19 @@ func Run(
 }
 
 func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (func(), error) {
-	otlpConn := NewGrpcClient(otlpUrl, "otlp")
-	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
-	if err != nil {
-		return nil, fmt.Errorf("failed to create otel resource: %w", err)
-	}
-	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithGRPCConn(otlpConn))
+	// otlpConn := NewGrpcClient(otlpUrl, "otlp")
+	// res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
+	// if err != nil {
+		// return nil, fmt.Errorf("failed to create otel resource: %w", err)
+	// }
+	
+	traceExporter, err := otlptracegrpc.New(ctx/*, otlptracegrpc.WithEndpoint(otlpUrl)*/)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		sdktrace.WithResource(res),
+		// sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
 	)
 	otel.SetTracerProvider(tracerProvider)

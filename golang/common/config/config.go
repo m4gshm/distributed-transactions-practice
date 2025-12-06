@@ -4,16 +4,16 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 
-	"github.com/m4gshm/gollections/slice"
 	"github.com/rs/zerolog"
 )
 
 type Config struct {
-	Order   OrderConfig
-	Payment PaymentConfig
-	Reserve ServiceConfig
-	TPC     ServiceConfig
+	Orders   OrdersConfig
+	Payments PaymentsConfig
+	Reserve  ServiceConfig
+	TPC      ServiceConfig
 }
 
 type DatabaseConfig struct {
@@ -30,12 +30,12 @@ type KafkaConfig struct {
 	Servers []string
 }
 
-type PaymentConfig struct {
+type PaymentsConfig struct {
 	ServiceConfig
 	KafkaConfig
 }
 
-type OrderConfig struct {
+type OrdersConfig struct {
 	ServiceConfig
 	KafkaConfig
 	PaymentServiceURL string
@@ -59,47 +59,47 @@ func Load() *Config {
 	otlpUrl := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
 	kafka := KafkaConfig{
 		Topic:   "balance",
-		Servers: slice.Of("localhost:9092"),
+		Servers: strings.Split(getEnv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"), ","),
 	}
-	payment := PaymentConfig{
+	payment := PaymentsConfig{
 		ServiceConfig: ServiceConfig{
-			GrpcPort: getEnvInt("PAYMENTS_PORT", 9002),
-			HttpPort: getEnvInt("PAYMENTS_PORT", 8002),
+			GrpcPort: getEnvInt("GRPC_PORT", 9002),
+			HttpPort: getEnvInt("HTTP_PORT", 8002),
 			OtlpUrl:  otlpUrl,
 			Database: defaultDBConfig("go_payment"),
-			LogLevel: defaultLogLevel("PAYMENTS"),
+			LogLevel: defaultLogLevel(),
 		},
 		KafkaConfig: kafka,
 	}
 	reserve := ServiceConfig{
-		GrpcPort: getEnvInt("RESERVE_PORT", 9003),
-		HttpPort: getEnvInt("RESERVE_PORT", 8003),
+		GrpcPort: getEnvInt("GRPC_PORT", 9003),
+		HttpPort: getEnvInt("HTTP_PORT", 8003),
 		OtlpUrl:  otlpUrl,
 		Database: defaultDBConfig("go_reserve"),
-		LogLevel: defaultLogLevel("RESERVE"),
+		LogLevel: defaultLogLevel(),
 	}
 	return &Config{
-		Order: OrderConfig{
+		Orders: OrdersConfig{
 			ServiceConfig: ServiceConfig{
-				GrpcPort: getEnvInt("ORDERS_PORT", 9001),
-				HttpPort: getEnvInt("ORDERS_PORT", 8001),
+				GrpcPort: getEnvInt("GRPC_PORT", 9001),
+				HttpPort: getEnvInt("HTTP_PORT", 8001),
 				OtlpUrl:  otlpUrl,
 				Database: defaultDBConfig("go_orders"),
-				LogLevel: defaultLogLevel("ORDERS"),
+				LogLevel: defaultLogLevel(),
 			},
 			KafkaConfig:       kafka,
-			PaymentServiceURL: getEnv("ORDERS_PAYMENT_SERVICE_URL", fmt.Sprintf("localhost:%d", payment.GrpcPort)),
-			ReserveServiceURL: getEnv("ORDERS_RESERVE_SERVICE_URL", fmt.Sprintf("localhost:%d", reserve.GrpcPort)),
+			PaymentServiceURL: getEnv("SERVICE_PAYMENTS_ADDRESS", fmt.Sprintf("localhost:%d", payment.GrpcPort)),
+			ReserveServiceURL: getEnv("SERVICE_RESERVE_ADDRESS", fmt.Sprintf("localhost:%d", reserve.GrpcPort)),
 		},
-		Payment: payment,
-		Reserve: reserve,
+		Payments: payment,
+		Reserve:  reserve,
 	}
 }
 
-func defaultLogLevel(prefix string) LogLevel {
+func defaultLogLevel() LogLevel {
 	return LogLevel{
-		Root: getEnvInt(prefix+"_LOG_LEVEL_ROOT", zerolog.InfoLevel),
-		DB:   getEnvInt(prefix+"_LOG_LEVEL_DB", zerolog.InfoLevel),
+		Root: getEnvInt("LOG_LEVEL_ROOT", zerolog.InfoLevel),
+		DB:   getEnvInt("LOG_LEVEL_DB", zerolog.InfoLevel),
 	}
 }
 

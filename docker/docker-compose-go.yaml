@@ -1,0 +1,52 @@
+name: distributed-transactions-practice
+include:
+  - docker-compose-commons.yaml
+
+services:
+  go-orders-grpc-service:
+    depends_on:
+      - postgres
+      - kafka-1
+    mem_limit: 128m
+    memswap_limit: 0m
+    mem_swappiness: 0
+    hostname: go-orders-grpc-service
+    image: go-orders-grpc-service:latest
+    ports:
+      - "8001:8001"
+      - "9001:9001"
+    environment: &defaultEnvs
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
+      GOGC: off
+      GOMEMLIMIT: 64MiB
+      DB_HOST: distributed-transactions-practice-postgres-1
+      DB_PORT: 5432
+      SERVICE_RESERVE_ADDRESS: go-reserve-grpc-service:9003
+      SERVICE_PAYMENTS_ADDRESS: go-payments-grpc-service:9002
+      KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
+  go-payments-grpc-service:
+    depends_on:
+      - postgres
+      - kafka-1
+    mem_limit: 128m
+    memswap_limit: 0m
+    mem_swappiness: 0
+    hostname: go-payments-grpc-service
+    image: go-payments-grpc-service:latest
+    ports:
+      - "8002:8002"
+      - "9002:9002"
+    environment: *defaultEnvs
+  go-reserve-grpc-service:
+    depends_on:
+      - postgres
+      - kafka-1      
+    mem_limit: 128m
+    memswap_limit: 0m
+    mem_swappiness: 0
+    hostname: go-reserve-grpc-service
+    image: go-reserve-grpc-service:latest
+    ports:
+      - "8003:8003"
+      - "9003:9003"
+    environment: *defaultEnvs

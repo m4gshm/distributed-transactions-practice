@@ -23,7 +23,7 @@ import (
 
 func main() {
 	name := "payment"
-	cfg := config.Load().Payment
+	cfg := config.Load().Payments
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("payment_status"),
 		servgrpc.SwaggerJson, migrations.FS,

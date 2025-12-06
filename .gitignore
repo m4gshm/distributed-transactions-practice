@@ -12,3 +12,5 @@
 docker/tempo-data
 *.exe
 rust/target
+golang/docker/cmd/
+!golang/docker/cmd/.gitkeep

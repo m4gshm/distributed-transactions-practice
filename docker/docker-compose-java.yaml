@@ -4,10 +4,14 @@ include:
 
 services:
   jvm-orders-grpc-service:
-    deploy:
-      resources:
+    depends_on:
+      - postgres  
+    deploy: &defaultDeploy
+      resources: 
         limits:
-          memory: 512M
+          memory: 512m
+        reservations:
+          memory: 256m
     hostname: jvm-orders-grpc-service
     image: jvm-orders-grpc-service:latest
     ports:
@@ -23,10 +27,9 @@ services:
       SERVICE_PAYMENTS_ADDRESS: jvm-payments-grpc-service:9082
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
   jvm-payments-grpc-service:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+    depends_on:
+      - postgres  
+    deploy: *defaultDeploy
     hostname: jvm-payments-grpc-service
     image: jvm-payments-grpc-service:latest
     ports:
@@ -39,10 +42,9 @@ services:
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
   jvm-reserve-grpc-service:
-    deploy:
-      resources:
-        limits:
-          memory: 512M
+    depends_on:
+      - postgres  
+    deploy: *defaultDeploy
     hostname: jvm-reserve-grpc-service
     image: jvm-reserve-grpc-service:latest
     ports:

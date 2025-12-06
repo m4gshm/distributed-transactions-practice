@@ -9,10 +9,11 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/tracelog"
 	_ "github.com/lib/pq"
+	"github.com/m4gshm/expressions/expr/get"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
-	"github.com/m4gshm/expressions/expr/get"
 )
 
 type ConConfOpt func(*pgxpool.Config) error
@@ -20,6 +21,9 @@ type ConConfOpt func(*pgxpool.Config) error
 func NewPool(ctx context.Context, cfg config.DatabaseConfig, opts ...ConConfOpt) (*pgxpool.Pool, error) {
 	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
 		cfg.Host, cfg.Port, cfg.User, cfg.Password, cfg.DBName, cfg.SSLMode)
+
+	log.Info().Msgf("DB connection host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Host, cfg.Port, cfg.User, "*****", cfg.DBName, cfg.SSLMode)
 
 	config, err := pgxpool.ParseConfig(dsn)
 	if err != nil {

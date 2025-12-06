@@ -68,11 +68,38 @@ tasks:
       - go vet ./...
       - go build -o ./bin ./...
 
+  build-docker:
+    desc: "Build services"
+    cmds:
+      - go vet ./...
+      - GOOS=linux GOARCH=amd64 go build -o ./docker/cmd ./...
+      - docker buildx build --build-arg EXEC_NAME=orders -t go-orders-grpc-service:latest ./docker
+      - docker buildx build --build-arg EXEC_NAME=payments -t go-payments-grpc-service:latest ./docker
+      - docker buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest ./docker
+
   run-docker-requirements:
     desc: "Run docker required services (postgres, kafka, etc.)"
     dir: ../docker
     cmds:
       - docker-compose -f docker-compose-commons.yaml up -d
+
+  run-docker-java:
+    desc: "Run docker java services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-java.yaml up -d
+
+  stop-docker-go:
+    desc: "Run docker go services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-go.yaml down
+
+  run-docker-go:
+    desc: "Run docker go services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-go.yaml up -d
 
   run:
     desc: "Run services"
@@ -80,9 +107,9 @@ tasks:
       - task: run-docker-requirements
       - |
         cd ./bin
-        ./order.exe &
-        ./payment.exe &
-        ./reserve.exe &
+        GOMEMLIMIT=64MiB GOGC=off ./orders.exe &
+        GOMEMLIMIT=64MiB GOGC=off ./payments.exe &
+        GOMEMLIMIT=64MiB GOGC=off ./reserve.exe &
         wait  
 
   clean:

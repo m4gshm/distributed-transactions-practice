@@ -22,7 +22,7 @@ import (
 
 func main() {
 	name := "orders"
-	cfg := config.Load().Order
+	cfg := config.Load().Orders
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("order_status", "delivery_type"),
 		servgrpc.SwaggerJson, migrations.FS,
