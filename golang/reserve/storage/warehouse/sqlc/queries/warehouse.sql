@@ -20,8 +20,7 @@ SELECT
 FROM
   warehouse_item
 WHERE
-  id = $1 FOR
-UPDATE
+  id = $1 FOR NO KEY UPDATE
 ;
 
 

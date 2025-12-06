@@ -50,3 +50,13 @@ FROM
   reserve_item
 WHERE
   reserve_id = $1;
+
+
+-- name: FindItemsByReserveIDOrderByID :many
+SELECT
+  *
+FROM
+  reserve_item
+WHERE
+  reserve_id = $1
+ORDER BY id;

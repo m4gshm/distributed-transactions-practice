@@ -505,7 +505,7 @@ func paymentTransactionID(support bool, order sqlc.Order) *string {
 }
 
 func updateOrderStatus(ctx context.Context, query *sqlc.Queries, finalStatus sqlc.OrderStatus, orderId string) error {
-	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{Status: finalStatus})
+	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{ID: orderId, Status: finalStatus})
 	if err != nil {
 		return status.Errorf(grpc.Status(err), "failed to update order status (orderId '%s', status '%s'): %v",
 			orderId, finalStatus, err)

@@ -10,7 +10,7 @@ WHERE client_id = $1;
 -- name: FindAccountByIdForUpdate :one
 SELECT *
 FROM account
-WHERE client_id = $1 FOR UPDATE;
+WHERE client_id = $1 FOR NO KEY UPDATE;
 
 -- name: AddAmount :one
 UPDATE account

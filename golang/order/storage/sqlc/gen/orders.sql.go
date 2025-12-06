@@ -289,14 +289,16 @@ UPDATE
 SET
   status = $1,
   updated_at = COALESCE($2, CURRENT_TIMESTAMP)
+WHERE id = $3
 `
 
 type UpdateOrderStatusParams struct {
 	Status    OrderStatus
 	UpdatedAt pgtype.Timestamptz
+	ID        string
 }
 
 func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
-	_, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.UpdatedAt)
+	_, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.UpdatedAt, arg.ID)
 	return err
 }

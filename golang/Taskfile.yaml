@@ -72,7 +72,7 @@ tasks:
     desc: "Run docker required services (postgres, kafka, etc.)"
     dir: ../docker
     cmds:
-      - docker-compose up -d
+      - docker-compose -f docker-compose-commons.yaml up -d
 
   run:
     desc: "Run services"

@@ -66,7 +66,8 @@ UPDATE
   orders
 SET
   status = $1,
-  updated_at = COALESCE($2, CURRENT_TIMESTAMP);
+  updated_at = COALESCE($2, CURRENT_TIMESTAMP)
+WHERE id = $3;
 
 
 -- name: InsertOrUpdateDelivery :exec

@@ -128,8 +128,7 @@ SELECT
 FROM
   warehouse_item
 WHERE
-  id = $1 FOR
-UPDATE
+  id = $1 FOR NO KEY UPDATE
 `
 
 func (q *Queries) SelectItemByIDForUpdate(ctx context.Context, id string) (WarehouseItem, error) {

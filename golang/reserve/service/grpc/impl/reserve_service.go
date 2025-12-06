@@ -9,6 +9,7 @@ import (
 	"github.com/m4gshm/gollections/convert"
 	"github.com/m4gshm/gollections/convert/val"
 	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/predicate/is"
 	"github.com/m4gshm/gollections/seq"
 	"github.com/m4gshm/gollections/slice"
 	"google.golang.org/grpc/codes"
@@ -104,7 +105,7 @@ func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.Res
 			return nil, err
 		}
 
-		reserveItems, err := resQuery.FindItemsByReserveID(ctx, req.Id)
+		reserveItems, err := resQuery.FindItemsByReserveIDOrderByID(ctx, req.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -115,11 +116,10 @@ func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.Res
 		onUpdateItems := []ressqlc.ReserveItem{}
 		insufficients := map[string]int32{}
 		reservingAmounts := map[string]int32{}
-		for _, item := range reserveItems {
-			if reserved := item.Reserved; reserved != nil && *reserved {
-				continue
-			}
 
+		// itemIds := seq.Convert(isNotReserved(reserveItems), ressqlc.ReserveItem.GetID)
+
+		for item := range isNotReserved(reserveItems) {
 			itemID := item.ID
 
 			warehouseItem, err := whQuery.SelectItemByIDForUpdate(ctx, itemID)
@@ -190,6 +190,11 @@ func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.Res
 	})
 }
 
+func isNotReserved(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveItem] {
+	newVar := seq.Of(reserveItems...).Filter(is.Not(isReserved))
+	return newVar
+}
+
 func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
 		resQuery := s.resq(tx)
@@ -204,7 +209,7 @@ func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.Res
 			return nil, err
 		}
 
-		reserveItems, err := resQuery.FindItemsByReserveID(ctx, req.Id)
+		reserveItems, err := resQuery.FindItemsByReserveIDOrderByID(ctx, req.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -245,7 +250,7 @@ func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.Rese
 			return nil, err
 		}
 
-		reserveItems, err := resQuery.FindItemsByReserveID(ctx, req.Id)
+		reserveItems, err := resQuery.FindItemsByReserveIDOrderByID(ctx, req.Id)
 		if err != nil {
 			return nil, err
 		}
@@ -347,8 +352,10 @@ func unreserveWarehouseItems[WQ whsqlc.Querier](ctx context.Context, whQuery WQ,
 }
 
 func reservedOnly(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveItem] {
-	return seq.Of(reserveItems...).Filter(func(item ressqlc.ReserveItem) bool { return val.Of(item.Reserved) })
+	return seq.Of(reserveItems...).Filter(isReserved)
 }
+
+func isReserved(item ressqlc.ReserveItem) bool { return val.Of(item.Reserved) }
 
 func updateReserveStatus[RQ ressqlc.Querier](ctx context.Context, resQuery RQ, reserveID string, newStatus ressqlc.ReserveStatus) error {
 	timestamp := pg.Timestamptz(time.Now())

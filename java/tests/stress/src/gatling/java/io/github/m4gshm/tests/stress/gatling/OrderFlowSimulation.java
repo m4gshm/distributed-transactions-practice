@@ -52,18 +52,19 @@ import static warehouse.v1.WarehouseService.ItemListResponse;
 
 @Slf4j
 public class OrderFlowSimulation extends Simulation {
-    public static final String ORDER_URL = "http://localhost:7080";
-    public static final String WAREHOUSE_URL = "http://localhost:7081";
-    public static final String ACCOUNT_URL = "http://localhost:7082";
     public static final String API_V1 = "/api/v1";
+    private static final Map<String, String> env = System.getenv();
+    public static final String ORDER_URL = env.getOrDefault("ORDER_URL", "http://localhost:7080");
+    public static final String WAREHOUSE_URL = env.getOrDefault("WAREHOUSE_URL", "http://localhost:7081");
     public static final String WAREHOUSE_ITEM_URL = WAREHOUSE_URL + API_V1 + "/warehouse/item";
     public static final String WAREHOUSE_ITEM_COST_URL = WAREHOUSE_URL + API_V1 + "/warehouse/item/cost";
+    public static final String ACCOUNT_URL = env.getOrDefault("ACCOUNT_URL", "http://localhost:7082");
 
     {
         setUp(
                 newScenario("WarmUp", httpRequestActionBuilder -> {
-                    return httpRequestActionBuilder.silent().ignoreProtocolChecks();
-                }, constantConcurrentUsers(60).during(30)
+                            return httpRequestActionBuilder.silent().ignoreProtocolChecks();
+                        }, constantConcurrentUsers(60).during(30)
                 ).andThen(
                         newScenario("Order Flow", identity(), rampUsersPerSec(4).to(20).during(ofSeconds(30)))
                 )
@@ -102,7 +103,7 @@ public class OrderFlowSimulation extends Simulation {
         var uri = new URI(WAREHOUSE_ITEM_COST_URL + "/" + itemId);
 
         return parse(check(service, httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString()))
-                .body(),
+                        .body(),
                 GetItemCostResponse.newBuilder(),
                 GetItemCostResponse.Builder::build
         ).getCost();
@@ -116,8 +117,8 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static ScenarioBuilder newScenario(
-                                               String scenarioName,
-                                               Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
+            String scenarioName,
+            Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
     ) {
         var create = http("CreateOrder")
                 .post(API_V1 + "/order")
@@ -151,27 +152,27 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static PopulationBuilder newScenario(
-                                                 String scenarioName,
-                                                 Function<HttpRequestActionBuilder,
-                                                         HttpRequestActionBuilder> customizer,
-                                                 ClosedInjectionStep closedInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            ClosedInjectionStep closedInjectionStep) {
         return newScenario1(scenarioName, customizer, closedInjectionStep, null);
     }
 
     private static PopulationBuilder newScenario(
-                                                 String scenarioName,
-                                                 Function<HttpRequestActionBuilder,
-                                                         HttpRequestActionBuilder> customizer,
-                                                 OpenInjectionStep openInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            OpenInjectionStep openInjectionStep) {
         return newScenario1(scenarioName, customizer, null, openInjectionStep);
     }
 
     private static PopulationBuilder newScenario1(
-                                                  String scenarioName,
-                                                  Function<HttpRequestActionBuilder,
-                                                          HttpRequestActionBuilder> customizer,
-                                                  ClosedInjectionStep closedInjectionStep,
-                                                  OpenInjectionStep openInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            ClosedInjectionStep closedInjectionStep,
+            OpenInjectionStep openInjectionStep) {
         var scenarioBuilder = newScenario(scenarioName, customizer);
         return (closedInjectionStep != null
                 ? scenarioBuilder.injectClosed(closedInjectionStep)
@@ -215,7 +216,7 @@ public class OrderFlowSimulation extends Simulation {
 
         var uri = new URI(WAREHOUSE_ITEM_URL);
         var itemAmounts = parse(check(service,
-                httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString())).body(),
+                        httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString())).body(),
                 ItemListResponse.newBuilder(),
                 Builder::build
         ).getAccountsList().stream().collect(toMap(Item::getId, a -> a));
@@ -263,10 +264,10 @@ public class OrderFlowSimulation extends Simulation {
             if (balance < expectedUserBalance) {
                 check(service,
                         httpClient.send(newBuilder()
-                                .uri(accountUrl)
-                                .PUT(ofString(toJson(newAccountTopUpRequest(CUSTOMER_ID,
-                                        expectedUserBalance - balance)), UTF_8))
-                                .build(),
+                                        .uri(accountUrl)
+                                        .PUT(ofString(toJson(newAccountTopUpRequest(CUSTOMER_ID,
+                                                expectedUserBalance - balance)), UTF_8))
+                                        .build(),
                                 BodyHandlers.ofString())
                 );
             }

@@ -1,3 +1,4 @@
+import io.gatling.gradle.GatlingRunTask
 import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
@@ -21,9 +22,15 @@ the<DependencyManagementExtension>().apply {
 }
 
 gatling {
-//    jvmArgs = listOf(
-////    "-agentlib:jdwp=transport=dt_socket,server=y,suspend=y,address=*:5005",
-//    "--add-opens=java.base/java.lang=ALL-UNNAMED",
-//    "--add-opens=java.base/jdk.internal.misc=ALL-UNNAMED",
-//    )
+
+}
+
+tasks.register<GatlingRunTask>("gatlingRunGo") {
+    dependsOn(project.tasks.named("gatlingClasses"))
+    group = "Gatling"
+    environment = mapOf(
+        "ORDER_URL" to "http://localhost:8001",
+        "ACCOUNT_URL" to "http://localhost:8002",
+        "WAREHOUSE_URL" to "http://localhost:8003",
+    )
 }
