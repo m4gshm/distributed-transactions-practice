@@ -132,6 +132,8 @@ github.com/twmb/franz-go/plugin/kzerolog v1.0.0 h1:FGKpRx5Il7mDmOWb4Jjx96vSZjrcM
 github.com/twmb/franz-go/plugin/kzerolog v1.0.0/go.mod h1:mlFN0uM5drPZwyqqcjR0q1m/M7VUqQdVommj1FvRQdw=
 github.com/twmb/go-rbtree v1.0.0/go.mod h1:UlIAI8gu3KRPkXSobZnmJfVwCJgEhD/liWzT5ppzIyc=
 github.com/yuin/goldmark v1.3.5/go.mod h1:mwnBkeHKe2W/ZEtQ+71ViKU8L12m81fl3OWwC1Zlc8k=
+go.finelli.dev/gooseloggers v1.0.0 h1:bngW9wojVLRsC/m2rzzxi1lHeOqY+0U7++DJs7MWQzM=
+go.finelli.dev/gooseloggers v1.0.0/go.mod h1:2qS5GdGP1foWJ2oKVfo8zScsQBX+sOs2Z9QSges6eSs=
 go.opentelemetry.io/auto/sdk v1.2.1 h1:jXsnJ4Lmnqd11kwkBV2LgLoFMZKizbCi5fNZ/ipaZ64=
 go.opentelemetry.io/auto/sdk v1.2.1/go.mod h1:KRTj+aOaElaLi+wW1kO/DZRXwkF4C5xPbEe3ZiIhN7Y=
 go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.63.0 h1:YH4g8lQroajqUwWbq/tr2QX1JFmEXaDLgG+ew9bLMWo=

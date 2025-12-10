@@ -99,7 +99,7 @@ func Load() *Config {
 func defaultLogLevel() LogLevel {
 	return LogLevel{
 		Root: getEnvInt("LOG_LEVEL_ROOT", zerolog.InfoLevel),
-		DB:   getEnvInt("LOG_LEVEL_DB", zerolog.InfoLevel),
+		DB:   getEnvInt("LOG_LEVEL_DB", zerolog.WarnLevel),
 	}
 }
 

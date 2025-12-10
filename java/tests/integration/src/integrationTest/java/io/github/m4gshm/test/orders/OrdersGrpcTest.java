@@ -7,6 +7,7 @@ import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringBootConfiguration;
@@ -18,6 +19,7 @@ import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
 import warehouse.v1.WarehouseService;
 import warehouse.v1.WarehouseService.GetItemCostRequest;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -56,20 +58,28 @@ public class OrdersGrpcTest {
         accountService.topUp(newAccountTopUpRequest(customerId, sumCost));
     }
 
+    @BeforeEach
+    public void cleanDB() {
+
+    }
+
     private void createApproveReleaseOrderSuccess(boolean twoPhaseCommit) {
         var items = OrderUtils.getOrderItems();
 
-        var warehouseItems1 = getWarehouseVal(Warehouse.Item::getAmount);
+        var warehouseItems1 = getWarehouseItems();
+        var warehouseAmounts1 = getWarehouseVal(warehouseItems1, Warehouse.Item::getAmount);
+        var warehouseReserved1 = getWarehouseVal(warehouseItems1, Warehouse.Item::getReserved);
 
         // populate warehouse
         populateWarehouse(items);
 
-        var warehouseItems2 = getWarehouseVal(Warehouse.Item::getAmount);
+        var warehouseAmounts2 = getWarehouseVal(getWarehouseItems(), Warehouse.Item::getAmount);
 
         for (var itemID : items.keySet()) {
-            var before = warehouseItems1.get(itemID);
-            var after = warehouseItems2.get(itemID);
-            assertEquals(items.get(itemID), after - before);
+            var before = warehouseAmounts1.getOrDefault(itemID, 0);
+            var after = warehouseAmounts2.get(itemID);
+            var actual = after - before;
+            assertEquals(items.get(itemID), actual);
         }
 
         var sumCost = getSumCost(items);
@@ -85,20 +95,22 @@ public class OrdersGrpcTest {
         var orderApproveResponse = ordersService.approve(newApproveRequest(orderId, twoPhaseCommit));
         assertEquals(APPROVED, orderApproveResponse.getStatus());
 
-        var warehouseItems3 = getWarehouseVal(Warehouse.Item::getReserved);
+        var warehouseReserved2 = getWarehouseVal(getWarehouseItems(), Warehouse.Item::getReserved);
 
         for (var itemID : items.keySet()) {
-            var reserved = warehouseItems3.get(itemID);
-            assertEquals(items.get(itemID), reserved);
+            var before = warehouseReserved1.getOrDefault(itemID, 0);
+            var after = warehouseReserved2.get(itemID);
+            var actual = after - before;
+            assertEquals(items.get(itemID), actual);
         }
 
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
         assertEquals(RELEASED, orderReleaseResponse.getStatus());
 
-        var warehouseItems4 = getWarehouseVal(Warehouse.Item::getAmount);
+        var warehouseItems4 = getWarehouseVal(getWarehouseItems(), Warehouse.Item::getAmount);
 
         for (var itemID : items.keySet()) {
-            var before = warehouseItems1.get(itemID);
+            var before = warehouseAmounts1.get(itemID);
             var after = warehouseItems4.get(itemID);
             assertEquals(0, after - before);
         }
@@ -115,11 +127,16 @@ public class OrdersGrpcTest {
         }).sum();
     }
 
-    private Map<String, Integer> getWarehouseVal(Function<Warehouse.Item, Integer> getItemValue) {
+    private List<Warehouse.Item> getWarehouseItems() {
         return this.warehouseItemService.itemList(WarehouseService.ItemListRequest
                 .newBuilder()
                 .build()
-        ).getAccountsList().stream().collect(toMap(Warehouse.Item::getId, getItemValue));
+        ).getAccountsList();
+    }
+
+    private Map<String, Integer> getWarehouseVal(List<Warehouse.Item> warehouseItems,
+                                                 Function<Warehouse.Item, Integer> getItemValue) {
+        return warehouseItems.stream().collect(toMap(Warehouse.Item::getId, getItemValue));
     }
 
     private void populateWarehouse(Map<String, Integer> items) {

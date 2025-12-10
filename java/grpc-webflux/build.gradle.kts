@@ -15,6 +15,10 @@ dependencies {
     implementation("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
     implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
     implementation("io.opentelemetry.contrib:opentelemetry-samplers")
+//    implementation("io.opentelemetry.semconv:opentelemetry-semconv")
+//    implementation("io.micrometer:micrometer-core")
+//    implementation("io.projectreactor:reactor-core-micrometer")
+    implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
 
     //todo need refactor
     //for error handling

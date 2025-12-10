@@ -24,6 +24,8 @@ dependencies {
 
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
+
+    implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

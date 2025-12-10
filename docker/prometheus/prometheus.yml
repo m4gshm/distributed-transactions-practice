@@ -16,7 +16,7 @@ scrape_configs:
           ]
         labels:
           implementation: java
-          service: orders
+          service: jvm-orders
   - job_name: "java_reserve"
     metrics_path: "/actuator/prometheus"
     static_configs:
@@ -29,7 +29,7 @@ scrape_configs:
           ]
         labels:
           implementation: java
-          service: reserve
+          service: jvm-reserve
   - job_name: "java_payment"
     metrics_path: "/actuator/prometheus"
     static_configs:
@@ -42,7 +42,7 @@ scrape_configs:
           ]
         labels:
           implementation: java
-          service: payment
+          service: jvm-payments
   - job_name: "go_orders"
     metrics_path: "/metrics"
     static_configs:
@@ -55,7 +55,7 @@ scrape_configs:
           ]
         labels:
           implementation: go
-          service: orders
+          service: go-orders
   - job_name: "go_reserve"
     metrics_path: "/metrics"
     static_configs:
@@ -68,7 +68,7 @@ scrape_configs:
           ]
         labels:
           implementation: go
-          service: reserve
+          service: go-reserve
   - job_name: "go_payment"
     metrics_path: "/metrics"
     static_configs:
@@ -81,4 +81,4 @@ scrape_configs:
           ]
         labels:
           implementation: go
-          service: payment
+          service: go-payments

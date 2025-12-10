@@ -26,6 +26,7 @@ public class TwoPhaseCommitServiceImpl extends tpc.v1.TwoPhaseCommitServiceGrpc.
     public void commit(TwoPhaseCommitRequest request, StreamObserver<TpcService.TwoPhaseCommitResponse> response) {
         var requestId = request.getId();
         grpc.subscribe(
+                "commit",
                 response,
                 transactionService.commit(requestId)
                         .thenReturn(TwoPhaseCommitResponse.newBuilder()
@@ -37,6 +38,7 @@ public class TwoPhaseCommitServiceImpl extends tpc.v1.TwoPhaseCommitServiceGrpc.
     @Override
     public void listActives(TwoPhaseListActivesRequest request, StreamObserver<TwoPhaseListActivesResponse> response) {
         grpc.subscribe(
+                "listActives",
                 response,
                 transactionService.findAll().map(transactions -> {
                     return TwoPhaseListActivesResponse.newBuilder()
@@ -54,6 +56,7 @@ public class TwoPhaseCommitServiceImpl extends tpc.v1.TwoPhaseCommitServiceGrpc.
     public void rollback(TwoPhaseRollbackRequest request, StreamObserver<TwoPhaseRollbackResponse> response) {
         var requestId = request.getId();
         grpc.subscribe(
+                "rollback",
                 response,
                 transactionService.rollback(requestId)
                         .thenReturn(TwoPhaseRollbackResponse.newBuilder()

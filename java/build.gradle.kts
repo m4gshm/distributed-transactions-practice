@@ -53,6 +53,11 @@ subprojects {
 //    }
 
     dependencies {
+        fun implementation(notation: Any) = add("implementation", notation)
+        fun runtimeOnly(notation: Any) = add("runtimeOnly", notation)
+        fun testImplementation(notation: Any) = add("testImplementation", notation)
+        fun testRuntimeOnly(notation: Any) = add("testRuntimeOnly", notation)
+
         listOf("implementation", "annotationProcessor", "testAnnotationProcessor").forEach {
             add(
                 it,
@@ -60,44 +65,50 @@ subprojects {
             )
         }
         if (isService) {
-//            add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
-//            add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
-            add("runtimeOnly", "io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
-            add("runtimeOnly", "io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
+            implementation("org.aspectj:aspectjtools:1.9.25")
+//            runtimeOnly("org.aspectj:aspectjrt:1.9.25")
+            runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
-            add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
-            add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
+            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
+            implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+            runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
 
-            add("implementation", "org.springframework.boot:spring-boot-starter-actuator")
-            add("implementation", "io.micrometer:micrometer-tracing")
-            add("implementation", "io.micrometer:micrometer-tracing-bridge-otel")
-            add("implementation", "io.micrometer:micrometer-registry-prometheus")
-            add("implementation", "org.springframework.boot:spring-boot-starter-webflux")
-            add("implementation", "org.springframework:spring-webflux")
-            add("implementation", "org.springdoc:springdoc-openapi-starter-webflux-ui")
+            implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+            implementation("org.springframework.boot:spring-boot-starter-jooq")
 
-            add("implementation", "io.github.danielliu1123:grpc-server-boot-starter")
-            add("implementation", "io.github.danielliu1123:grpc-starter-protovalidate")
-            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding")
-            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+            implementation("org.springframework.boot:spring-boot-starter-actuator")
+//            implementation("io.micrometer:micrometer-tracing")
+//            implementation("io.micrometer:micrometer-tracing-bridge-otel")
+            implementation("io.micrometer:micrometer-registry-prometheus")
+//            implementation("io.projectreactor:reactor-core-micrometer")
+            implementation("org.springframework.boot:spring-boot-starter-webflux")
+            implementation("org.springframework:spring-webflux")
+            implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
 
-            add("implementation", "org.springframework.boot:spring-boot-autoconfigure")
+            implementation("io.github.danielliu1123:grpc-server-boot-starter")
+            implementation("io.github.danielliu1123:grpc-starter-protovalidate")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
 
+            implementation("org.springframework.boot:spring-boot-autoconfigure")
 
-            add("implementation", "io.grpc:grpc-netty-shaded")
+//            implementation("io.r2dbc:r2dbc-proxy")
+
+            implementation("io.grpc:grpc-netty-shaded")
             modules {
                 module("io.grpc:grpc-netty") {
                     replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")
                 }
             }
-            add("implementation", "io.projectreactor.kafka:reactor-kafka")
-            add("implementation", "org.springframework.kafka:spring-kafka")
+            implementation("io.projectreactor.kafka:reactor-kafka")
+            implementation("org.springframework.kafka:spring-kafka")
         }
 
-        add("testImplementation", "org.junit.jupiter:junit-jupiter-api")
-        add("testImplementation", "org.junit.jupiter:junit-jupiter")
-        add("testRuntimeOnly", "org.junit.platform:junit-platform-engine")
-        add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
+        testImplementation("org.junit.jupiter:junit-jupiter-api")
+        testImplementation("org.junit.jupiter:junit-jupiter")
+        testRuntimeOnly("org.junit.platform:junit-platform-engine")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     the<DependencyManagementExtension>().apply {
@@ -131,6 +142,7 @@ subprojects {
 
             dependency("org.springframework:spring-r2dbc:6.2.8")
             dependency("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+//            dependency("io.r2dbc:r2dbc-proxy:1.1.6.RELEASE")
 
             dependency("io.grpc:grpc-core:1.74.0")
             dependency("io.grpc:grpc-stub:1.74.0")

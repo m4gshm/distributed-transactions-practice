@@ -27,7 +27,7 @@ datasources:
   jsonData:
     httpMethod: GET
     serviceMap:
-      datasourceUid: prometheus
+      datasourceUid: 'prometheus'
     streamingEnabled:
       search: true
 

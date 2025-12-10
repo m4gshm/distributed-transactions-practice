@@ -29,7 +29,7 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
     @Override
     public void getItemCost(GetItemCostRequest request,
                             StreamObserver<GetItemCostResponse> responseObserver) {
-        grpc.subscribe(responseObserver, defer(() -> {
+        grpc.subscribe("getItemCost", responseObserver, defer(() -> {
             var id = request.getId();
             return warehouseItemStorage.getById(id);
         }).map(warehouseItem -> {
@@ -41,7 +41,7 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
 
     @Override
     public void itemList(ItemListRequest request, StreamObserver<ItemListResponse> responseObserver) {
-        grpc.subscribe(responseObserver, warehouseItemStorage.findAll().map(items -> {
+        grpc.subscribe("itemList", responseObserver, warehouseItemStorage.findAll().map(items -> {
             return ItemListResponse.newBuilder()
                     .addAllAccounts(items.stream()
                             .map(item -> Warehouse.Item.newBuilder()
@@ -57,7 +57,7 @@ public class WarehouseItemServiceImpl extends WarehouseItemServiceGrpc.Warehouse
 
     @Override
     public void topUp(ItemTopUpRequest request, StreamObserver<ItemTopUpResponse> responseObserver) {
-        grpc.subscribe(responseObserver, defer(() -> {
+        grpc.subscribe("topUp", responseObserver, defer(() -> {
             var topUp = request.getTopUp();
             var id = topUp.getId();
             int amount = topUp.getAmount();

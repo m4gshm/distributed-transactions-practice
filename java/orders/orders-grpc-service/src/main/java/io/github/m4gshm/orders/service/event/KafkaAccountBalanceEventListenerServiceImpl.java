@@ -6,6 +6,7 @@ import io.github.m4gshm.orders.service.OrderService;
 import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageImpl;
 import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
+import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -39,6 +40,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     MessageStorage messageStorage;
     // todo move to config of order table
     private final boolean twoPhaseCommit = true;
+    private ObservationRegistry observationRegistry;
 
     private static PaymentGetRequest paymentGetRequest(String paymentId) {
         return PaymentGetRequest.newBuilder()
@@ -47,7 +49,9 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     }
 
     private Mono<OrderApproveResponse> approveIfEnoughBalance(Order order, double balance) {
-        return toMono("paymentService::get", paymentGetRequest(order.paymentId()), paymentServiceStub::get)
+        return toMono("paymentService::get",
+                paymentGetRequest(order.paymentId()),
+                paymentServiceStub::get)
                 .map(response -> response.getPayment().getAmount())
                 .flatMap(paymentAmount -> {
                     if (paymentAmount < balance) {

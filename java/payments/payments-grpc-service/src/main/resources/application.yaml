@@ -13,6 +13,8 @@ logging:
         transaction:
           reactive: INFO # log sql
     io:
+#      opentelemetry: INFO
+      grpc: INFO
       github:
         m4gshm: INFO
       r2dbc:
@@ -96,8 +98,17 @@ management:
     logging:
       export:
         enabled: false
-      endpoint: http://localhost:4317
+      endpoint: ${management.otlp.tracing.endpoint}
       transport: GRPC
     tracing:
-      endpoint: http://localhost:4317
+      endpoint: ${otel.exporter.otlp.endpoint}
       transport: GRPC
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    common:
+      default-enabled: true
+

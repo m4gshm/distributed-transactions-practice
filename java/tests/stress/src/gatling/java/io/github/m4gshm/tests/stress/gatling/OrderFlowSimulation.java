@@ -29,7 +29,7 @@ import static io.gatling.javaapi.core.CoreDsl.StringBody;
 import static io.gatling.javaapi.core.CoreDsl.constantConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.jsonPath;
-import static io.gatling.javaapi.core.CoreDsl.rampUsersPerSec;
+import static io.gatling.javaapi.core.CoreDsl.rampConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static io.gatling.javaapi.http.HttpDsl.http;
 import static io.gatling.javaapi.http.HttpDsl.status;
@@ -63,10 +63,10 @@ public class OrderFlowSimulation extends Simulation {
     {
         setUp(
                 newScenario("WarmUp", httpRequestActionBuilder -> {
-                            return httpRequestActionBuilder.silent().ignoreProtocolChecks();
-                        }, constantConcurrentUsers(60).during(30)
+                    return httpRequestActionBuilder.silent().ignoreProtocolChecks();
+                }, constantConcurrentUsers(100).during(30)
                 ).andThen(
-                        newScenario("Order Flow", identity(), rampUsersPerSec(4).to(20).during(ofSeconds(30)))
+                        newScenario("Order Flow", identity(), rampConcurrentUsers(4).to(20).during(ofSeconds(30)))
                 )
         )
                 .assertions(global().failedRequests().count().lt(1L))
@@ -103,7 +103,7 @@ public class OrderFlowSimulation extends Simulation {
         var uri = new URI(WAREHOUSE_ITEM_COST_URL + "/" + itemId);
 
         return parse(check(service, httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString()))
-                        .body(),
+                .body(),
                 GetItemCostResponse.newBuilder(),
                 GetItemCostResponse.Builder::build
         ).getCost();
@@ -117,8 +117,8 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static ScenarioBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
+                                               String scenarioName,
+                                               Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
     ) {
         var create = http("CreateOrder")
                 .post(API_V1 + "/order")
@@ -152,27 +152,27 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static PopulationBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            ClosedInjectionStep closedInjectionStep) {
+                                                 String scenarioName,
+                                                 Function<HttpRequestActionBuilder,
+                                                         HttpRequestActionBuilder> customizer,
+                                                 ClosedInjectionStep closedInjectionStep) {
         return newScenario1(scenarioName, customizer, closedInjectionStep, null);
     }
 
     private static PopulationBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            OpenInjectionStep openInjectionStep) {
+                                                 String scenarioName,
+                                                 Function<HttpRequestActionBuilder,
+                                                         HttpRequestActionBuilder> customizer,
+                                                 OpenInjectionStep openInjectionStep) {
         return newScenario1(scenarioName, customizer, null, openInjectionStep);
     }
 
     private static PopulationBuilder newScenario1(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            ClosedInjectionStep closedInjectionStep,
-            OpenInjectionStep openInjectionStep) {
+                                                  String scenarioName,
+                                                  Function<HttpRequestActionBuilder,
+                                                          HttpRequestActionBuilder> customizer,
+                                                  ClosedInjectionStep closedInjectionStep,
+                                                  OpenInjectionStep openInjectionStep) {
         var scenarioBuilder = newScenario(scenarioName, customizer);
         return (closedInjectionStep != null
                 ? scenarioBuilder.injectClosed(closedInjectionStep)
@@ -216,7 +216,7 @@ public class OrderFlowSimulation extends Simulation {
 
         var uri = new URI(WAREHOUSE_ITEM_URL);
         var itemAmounts = parse(check(service,
-                        httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString())).body(),
+                httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString())).body(),
                 ItemListResponse.newBuilder(),
                 Builder::build
         ).getAccountsList().stream().collect(toMap(Item::getId, a -> a));
@@ -264,10 +264,10 @@ public class OrderFlowSimulation extends Simulation {
             if (balance < expectedUserBalance) {
                 check(service,
                         httpClient.send(newBuilder()
-                                        .uri(accountUrl)
-                                        .PUT(ofString(toJson(newAccountTopUpRequest(CUSTOMER_ID,
-                                                expectedUserBalance - balance)), UTF_8))
-                                        .build(),
+                                .uri(accountUrl)
+                                .PUT(ofString(toJson(newAccountTopUpRequest(CUSTOMER_ID,
+                                        expectedUserBalance - balance)), UTF_8))
+                                .build(),
                                 BodyHandlers.ofString())
                 );
             }

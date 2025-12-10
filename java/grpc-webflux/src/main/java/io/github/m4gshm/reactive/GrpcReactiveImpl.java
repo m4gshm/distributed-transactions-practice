@@ -1,11 +1,5 @@
 package io.github.m4gshm.reactive;
 
-import static lombok.AccessLevel.PRIVATE;
-
-import java.util.List;
-
-import org.reactivestreams.Subscription;
-
 import grpcstarter.server.feature.exceptionhandling.GrpcExceptionResolver;
 import io.github.m4gshm.GrpcConvertible;
 import io.grpc.StatusException;
@@ -14,7 +8,12 @@ import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.reactivestreams.Subscription;
 import reactor.core.CoreSubscriber;
+
+import java.util.List;
+
+import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,9 +44,8 @@ public class GrpcReactiveImpl implements GrpcReactive {
     }
 
     @Override
-    public <T> CoreSubscriber<T> newSubscriber(StreamObserver<T> observer) {
-        return new CoreSubscriber<>() {
-
+    public <T> CoreSubscriber<T> newSubscriber(String name, StreamObserver<T> observer) {
+        return new CoreSubscriber<T>() {
             volatile Throwable error;
 
             @Override
@@ -75,5 +73,4 @@ public class GrpcReactiveImpl implements GrpcReactive {
             }
         };
     }
-
 }

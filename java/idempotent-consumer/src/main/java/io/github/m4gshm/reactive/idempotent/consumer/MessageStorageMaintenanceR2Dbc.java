@@ -48,7 +48,7 @@ public class MessageStorageMaintenanceR2Dbc implements MessageStorageMaintenance
                 + partition.from().format(ISO_DATE)
                 + "') TO ('"
                 + partition.to().format(ISO_DATE)
-                + "')")).then());
+                + "')")).then()).name("addPartition");
     }
 
     @Override
@@ -68,7 +68,7 @@ public class MessageStorageMaintenanceR2Dbc implements MessageStorageMaintenance
             log.error("createTable error: {}", table.getQualifiedName(), t);
         }).doOnSuccess(_ -> {
             log.trace("createTable success {}", table.getQualifiedName());
-        });
+        }).name("createTable");
     }
 
     @Scheduled(cron = "${idempotent-consumer.create-partition-scheduler:" + CRON_DISABLED + "}")

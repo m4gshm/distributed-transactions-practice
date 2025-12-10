@@ -7,6 +7,7 @@ import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import io.grpc.stub.StreamObserver;
+import io.opentelemetry.context.Context;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -137,7 +138,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
 
     @Override
     public void create(ReserveCreateRequest request, StreamObserver<ReserveCreateResponse> response) {
-        grpc.subscribe(response, jooq.inTransaction(dsl -> {
+        grpc.subscribe("create", response, jooq.inTransaction(dsl -> {
             var paymentId = UUID.randomUUID().toString();
             var body = request.getBody();
             var items = body.getItemsList()
@@ -163,14 +164,14 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
 
     @Override
     public void get(ReserveGetRequest request, StreamObserver<ReserveGetResponse> responseObserver) {
-        grpc.subscribe(responseObserver, reserveStorage.getById(request.getId()).map(reserve -> {
+        grpc.subscribe("get", responseObserver, reserveStorage.getById(request.getId()).map(reserve -> {
             return ReserveGetResponse.newBuilder().setReserve(toReserveProto(reserve)).build();
         }));
     }
 
     @Override
     public void list(ReserveListRequest request, StreamObserver<ReserveListResponse> responseObserver) {
-        grpc.subscribe(responseObserver, reserveStorage.findAll().map(reserves -> {
+        grpc.subscribe("list", responseObserver, reserveStorage.findAll().map(reserves -> {
             return ReserveListResponse.newBuilder()
                     .addAllReserves(reserves.stream().map(reserve -> toReserveProto(reserve)).toList())
                     .build();
@@ -207,7 +208,8 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                                      String id,
                                      Set<ReserveStatus> expected,
                                      BiFunction<DSLContext, Reserve, Mono<? extends T>> routine) {
-        grpc.subscribe(responseObserver,
+        grpc.subscribe(opName,
+                responseObserver,
                 log(opName, jooq.inTransaction(dsl -> reserveStorage.getById(id).flatMap(reserve -> {
                     return checkStatus(opName, reserve.status(), expected, null).then(routine.apply(dsl, reserve));
                 }))));

@@ -7,6 +7,7 @@ import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
 import io.github.m4gshm.storage.NotFoundException;
+import io.opentelemetry.context.ContextKey;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -139,7 +140,9 @@ public class OrderServiceImpl implements OrderService {
                                                 String transactionId,
                                                 TwoPhaseCommitServiceStub paymentsClientTcp
     ) {
-        return toMono(operationName, OrderServiceUtils.newCommitRequest(transactionId), paymentsClientTcp::commit)
+        return toMono(operationName,
+                OrderServiceUtils.newCommitRequest(transactionId),
+                paymentsClientTcp::commit)
                 .onErrorComplete(e -> OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId))
                 .doOnError(e -> log.error("error on commit {} {}", operationName, transactionId));
     }
@@ -180,7 +183,9 @@ public class OrderServiceImpl implements OrderService {
                         .build());
         ofNullable(reserveTransactionId).ifPresent(reserveRequestBuilder::setPreparedTransactionId);
 
-        var reserveRoutine = toMono("reserveClient::create", reserveRequestBuilder.build(), reserveClient::create);
+        var reserveRoutine = toMono("reserveClient::create",
+                reserveRequestBuilder.build(),
+                reserveClient::create);
 
         return paymentRoutine.zipWith(reserveRoutine).flatMap(responses -> {
             var paymentResponse = responses.getT1();
@@ -280,14 +285,18 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<OrderGetResponse> get(String orderId) {
+        var current = io.opentelemetry.context.Context.current()
+                .with(ContextKey.named(getClass().getSimpleName() + ":get"), orderId);
         return orderStorage.getById(orderId).flatMap(order -> {
+            var current1 = io.opentelemetry.context.Context.current();
+            var c = current;
             return getItems(order.reserveId()).zipWith(
                     getPaymentStatus(order.paymentId()),
                     (items, paymentStatus) -> {
                         return toOrderGrpc(order, paymentStatus, items);
                     }
             );
-        }).map(order -> OrderGetResponse.newBuilder().setOrder(order).build());
+        }).map(order -> OrderGetResponse.newBuilder().setOrder(order).build()).name("get");
     }
 
     private Mono<List<Reserve.Item>> getItems(String reserveId) {

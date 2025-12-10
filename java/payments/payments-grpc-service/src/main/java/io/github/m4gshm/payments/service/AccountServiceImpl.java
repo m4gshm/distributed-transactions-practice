@@ -33,7 +33,7 @@ public class AccountServiceImpl extends AccountServiceImplBase {
     @Override
     public void list(AccountListRequest request,
                      StreamObserver<AccountServiceOuterClass.AccountListResponse> responseObserver) {
-        grpc.subscribe(responseObserver, accountStorage.findAll().map(accounts -> {
+        grpc.subscribe("list", responseObserver, accountStorage.findAll().map(accounts -> {
             return AccountListResponse.newBuilder().addAllAccounts(accounts.stream().map(account -> {
                 return AccountOuterClass.Account.newBuilder()
                         .setClientId(account.clientId())
@@ -47,7 +47,7 @@ public class AccountServiceImpl extends AccountServiceImplBase {
 
     @Override
     public void topUp(AccountTopUpRequest request, StreamObserver<AccountTopUpResponse> responseObserver) {
-        grpc.subscribe(responseObserver, Mono.defer(() -> {
+        grpc.subscribe("topUp", responseObserver, Mono.defer(() -> {
             var topUp = request.getTopUp();
             var plus = topUp.getAmount();
             var clientId = topUp.getClientId();

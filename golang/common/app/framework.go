@@ -36,6 +36,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
+	glog "go.finelli.dev/gooseloggers/zerolog"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
@@ -113,6 +114,7 @@ func migrate(ctx context.Context, conf config.DatabaseConfig, logLevel zerolog.L
 	mpool := NewDBPool(ctx, conf, logLevel)
 	defer mpool.Close()
 	goose.SetBaseFS(mirgationsFS)
+	goose.SetLogger(glog.GooseZerologLogger(&log.Logger))
 	if err := goose.SetDialect("postgres"); err != nil {
 		log.Fatal().Err(err).Msgf("Failed to register goose dialect %s", "postgres")
 	}

@@ -1,26 +1,26 @@
 package io.github.m4gshm.jooq;
 
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.deferContextual;
-
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.Function;
-
+import io.opentelemetry.context.ContextKey;
+import io.r2dbc.spi.Connection;
+import io.r2dbc.spi.ConnectionFactory;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
 import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.r2dbc.connection.ConnectionHolder;
 import org.springframework.transaction.reactive.TransactionContext;
 import org.springframework.transaction.reactive.TransactionalOperator;
-
-import io.r2dbc.spi.Connection;
-import io.r2dbc.spi.ConnectionFactory;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
+
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.defer;
+import static reactor.core.publisher.Mono.deferContextual;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -45,7 +45,11 @@ public class JooqImpl implements Jooq {
     }
 
     private <T> Mono<T> execute(TransactionalOperator operator, Function<DSLContext, Mono<T>> function) {
+        var current = io.opentelemetry.context.Context.current()
+                .with(ContextKey.named("jooq"), "execute");
         return defer(() -> operator.execute(transaction -> deferContextual(context -> {
+            var current1 = io.opentelemetry.context.Context.current();
+            var c = current;
             var dslContextHolder = context.get(DSLContextHolder.class);
             var connection = getConnection(context);
             for (;;) {

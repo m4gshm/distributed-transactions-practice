@@ -7,6 +7,7 @@ import io.github.m4gshm.reactive.MetadataFactory;
 import io.github.m4gshm.reactive.MetadataFactoryImpl;
 import io.github.m4gshm.reactive.StatusExtractor;
 import io.github.m4gshm.reactive.StatusExtractorImpl;
+import io.micrometer.observation.ObservationRegistry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -19,8 +20,11 @@ public class GrpcReactiveAutoConfiguration {
     @Bean
     public GrpcReactive grpcCoreSubscriberFactory(MetadataFactory metadataFactory,
                                                   StatusExtractor statusExtractor,
-                                                  List<GrpcExceptionResolver> grpcExceptionResolvers) {
-        return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers);
+                                                  List<GrpcExceptionResolver> grpcExceptionResolvers,
+                                                  ObservationRegistry observationRegistry) {
+        return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers
+//                , observationRegistry
+        );
     }
 
     @Bean

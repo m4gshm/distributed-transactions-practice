@@ -109,6 +109,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void create(PaymentCreateRequest request, StreamObserver<PaymentCreateResponse> responseObserver) {
         grpc.subscribe(
+                "create",
                 responseObserver,
                 defer(() -> {
                     var paymentId = UUID.randomUUID().toString();
@@ -129,6 +130,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void get(PaymentGetRequest request, StreamObserver<PaymentGetResponse> responseObserver) {
         grpc.subscribe(
+                "get",
                 responseObserver,
                 paymentStorage.getById(request.getId()).map(payment -> {
                     return PaymentGetResponse.newBuilder()
@@ -141,6 +143,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void list(PaymentListRequest request, StreamObserver<PaymentListResponse> responseObserver) {
         grpc.subscribe(
+                "list",
                 responseObserver,
                 paymentStorage.findAll().map(payments -> {
                     return PaymentListResponse.newBuilder()
@@ -182,7 +185,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                     Set<PaymentStatus> expected,
                                     BiFunction<Payment, Account, Mono<T>> routine
     ) {
-        grpc.subscribe(responseObserver, log(opName, jooq.inTransaction(dsl -> {
+        grpc.subscribe("paymentAccount", responseObserver, log(opName, jooq.inTransaction(dsl -> {
             return prepare(
                     dsl,
                     preparedTransactionId,

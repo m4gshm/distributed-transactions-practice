@@ -57,11 +57,22 @@ services:
     image: prom/prometheus:v3.5.0
     ports:
       - "9090:9090"
+    command:
+      - --web.enable-remote-write-receiver
+      - --web.enable-otlp-receiver
+      - --enable-feature=native-histograms
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus/prometheus.yml
     volumes:
       - './prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:z'
-#    network_mode: host
-#  grafana-alloy-otel-collector:
-#    image: grafana/alloy:v1.10.2
+#  alloy:
+#    image: grafana/alloy:v1.10.0
+#    ports:
+#      - 12345:12345
+#    volumes:
+#      - ./alloy/config.alloy:/etc/alloy/config.alloy
+#      - ./alloy-data:/var/lib/alloy/data
+#    command: run --server.http.listen-addr=0.0.0.0:12345 --storage.path=/var/lib/alloy/data /etc/alloy/config.alloy
   otel-collector:
     image: otel/opentelemetry-collector-contrib:0.133.0
     volumes:
@@ -94,6 +105,7 @@ services:
       - 4316:4317
     depends_on:
       - tempo_init
+      - prometheus
   grafana:
     image: grafana/grafana:12.0.0
     ports:
