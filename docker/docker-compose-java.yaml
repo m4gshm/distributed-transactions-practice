@@ -18,7 +18,7 @@ services:
       - "7080:7080"
       - "9080:9080"
     environment:
-      LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
@@ -37,7 +37,7 @@ services:
       - "7082:7082"
       - "9082:9082"
     environment:
-      LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
@@ -53,7 +53,7 @@ services:
       - "7081:7081"
       - "9081:9081"
     environment:
-      LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve

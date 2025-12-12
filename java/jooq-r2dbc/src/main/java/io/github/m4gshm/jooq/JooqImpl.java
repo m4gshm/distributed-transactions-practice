@@ -45,11 +45,7 @@ public class JooqImpl implements Jooq {
     }
 
     private <T> Mono<T> execute(TransactionalOperator operator, Function<DSLContext, Mono<T>> function) {
-        var current = io.opentelemetry.context.Context.current()
-                .with(ContextKey.named("jooq"), "execute");
         return defer(() -> operator.execute(transaction -> deferContextual(context -> {
-            var current1 = io.opentelemetry.context.Context.current();
-            var c = current;
             var dslContextHolder = context.get(DSLContextHolder.class);
             var connection = getConnection(context);
             for (;;) {

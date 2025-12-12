@@ -285,11 +285,7 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<OrderGetResponse> get(String orderId) {
-        var current = io.opentelemetry.context.Context.current()
-                .with(ContextKey.named(getClass().getSimpleName() + ":get"), orderId);
         return orderStorage.getById(orderId).flatMap(order -> {
-            var current1 = io.opentelemetry.context.Context.current();
-            var c = current;
             return getItems(order.reserveId()).zipWith(
                     getPaymentStatus(order.paymentId()),
                     (items, paymentStatus) -> {
