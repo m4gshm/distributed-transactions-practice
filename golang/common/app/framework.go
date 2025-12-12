@@ -25,18 +25,18 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	glog "go.finelli.dev/gooseloggers/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
-	// "go.opentelemetry.io/otel/sdk/resource"
+	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	// semconv "go.opentelemetry.io/otel/semconv/v1.26.0"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
-	glog "go.finelli.dev/gooseloggers/zerolog"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
@@ -83,23 +83,26 @@ func Run(
 }
 
 func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (func(), error) {
-	// otlpConn := NewGrpcClient(otlpUrl, "otlp")
-	// res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
-	// if err != nil {
-		// return nil, fmt.Errorf("failed to create otel resource: %w", err)
-	// }
-	
-	traceExporter, err := otlptracegrpc.New(ctx/*, otlptracegrpc.WithEndpoint(otlpUrl)*/)
+	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create otel resource: %w", err)
+	}
+
+	traceExporter, err := otlptracegrpc.New(ctx , otlptracegrpc.WithEndpointURL(otlpUrl))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
 	tracerProvider := sdktrace.NewTracerProvider(
 		sdktrace.WithSampler(sdktrace.AlwaysSample()),
-		// sdktrace.WithResource(res),
+		sdktrace.WithResource(res),
 		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
 	)
 	otel.SetTracerProvider(tracerProvider)
-	otel.SetTextMapPropagator(propagation.TraceContext{})
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+
 	return func() {
 		if err := traceExporter.Shutdown(ctx); err != nil {
 			log.Err(err).Msg("Failed to shutdown otel trace exporter")

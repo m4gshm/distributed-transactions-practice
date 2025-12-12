@@ -81,25 +81,25 @@ tasks:
     desc: "Run docker required services (postgres, kafka, etc.)"
     dir: ../docker
     cmds:
-      - docker-compose -f docker-compose-commons.yaml up -d
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
 
   run-docker-java:
     desc: "Run docker java services"
     dir: ../docker
     cmds:
-      - docker-compose -f docker-compose-java.yaml up -d
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml up -d
 
   stop-docker-go:
     desc: "Run docker go services"
     dir: ../docker
     cmds:
-      - docker-compose -f docker-compose-go.yaml down
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down
 
   run-docker-go:
     desc: "Run docker go services"
     dir: ../docker
     cmds:
-      - docker-compose -f docker-compose-go.yaml up -d
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml up -d
 
   run:
     desc: "Run services"

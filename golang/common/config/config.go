@@ -56,7 +56,7 @@ type LogLevel struct {
 }
 
 func Load() *Config {
-	otlpUrl := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "localhost:4317")
+	otlpUrl := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
 	kafka := KafkaConfig{
 		Topic:   "balance",
 		Servers: strings.Split(getEnv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"), ","),
