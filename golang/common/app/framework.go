@@ -23,11 +23,13 @@ import (
 	"github.com/m4gshm/gollections/k"
 	"github.com/m4gshm/gollections/slice"
 	"github.com/pressly/goose/v3"
+	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	glog "go.finelli.dev/gooseloggers/zerolog"
 	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/propagation"
@@ -38,7 +40,6 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
@@ -202,7 +203,9 @@ func Shutdown(ctx context.Context, grpcServer *grpc.Server, httpServer *http.Ser
 
 func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJson fs.FS) *http.Server {
 	mux := http.NewServeMux()
-	mux.Handle("/", rmux)
+	mux.Handle("/", otelhttp.NewHandler(rmux, "", otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+		return r.Method + ":" + r.RequestURI
+	})))
 	mux.Handle("/metrics", promhttp.Handler())
 
 	mux.HandleFunc("/swagger-ui/swagger.json", func(w http.ResponseWriter, r *http.Request) {

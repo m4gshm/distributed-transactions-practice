@@ -1,6 +1,5 @@
 package io.github.m4gshm.jooq;
 
-import io.opentelemetry.context.ContextKey;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.RequiredArgsConstructor;
