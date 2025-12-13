@@ -13,6 +13,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/cmackenzie1/pgxpool-prometheus"
 	"github.com/exaring/otelpgx"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -37,6 +38,7 @@ import (
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
 	"google.golang.org/grpc/reflection"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/config"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/database"
@@ -70,6 +72,8 @@ func Run(
 	pool := NewDBPool(ctx, cfg.Database, cfg.LogLevel.DB, database.WithCustomEnumType(postgresEnumTypes...))
 	defer pool.Close()
 
+	prometheus.MustRegister(pgxpool_prometheus.NewPgxPoolStatsCollector(pool, "mainDB"))
+
 	for _, buildService := range registerServices {
 		closes, err := buildService(ctx, pool, grpcServer, rmux)
 		for _, close := range closes {
@@ -88,7 +92,7 @@ func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (fun
 		return nil, fmt.Errorf("failed to create otel resource: %w", err)
 	}
 
-	traceExporter, err := otlptracegrpc.New(ctx , otlptracegrpc.WithEndpointURL(otlpUrl))
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(otlpUrl))
 	if err != nil {
 		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
 	}
@@ -156,11 +160,11 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 
 func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, logLevel zerolog.Level, opts ...database.ConConfOpt) *pgxpool.Pool {
 	tracer := database.WithTracers(database.NewTraceLog(log.Logger, toPgxLogLevel(logLevel)), otelpgx.NewTracer())
-	db, err := database.NewPool(ctx, cfg, append(slice.Of(tracer), opts...)...)
+	pool, err := database.NewPool(ctx, cfg, append(slice.Of(tracer), opts...)...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
-	return db
+	return pool
 }
 
 func toPgxLogLevel(logLevel zerolog.Level) tracelog.LogLevel {

@@ -141,7 +141,7 @@ subprojects {
             dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
 
             dependency("org.springframework:spring-r2dbc:6.2.8")
-            dependency("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+            dependency("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
 //            dependency("io.r2dbc:r2dbc-proxy:1.1.6.RELEASE")
 
             dependency("io.grpc:grpc-core:1.74.0")

@@ -23,6 +23,7 @@ type DatabaseConfig struct {
 	Password string
 	DBName   string
 	SSLMode  string
+	MaxConns int32
 }
 
 type KafkaConfig struct {

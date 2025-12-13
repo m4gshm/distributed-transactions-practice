@@ -1,0 +1,5 @@
+name: distributed-transactions-practice
+include:
+ - docker-compose-commons.yaml
+ - docker-compose-java.yaml
+ - docker-compose-go.yaml

@@ -33,15 +33,19 @@
 | RDBC access layer generator | Jooq | Sqlc |
 | DB migration lib | Liquibase | Goose |
 | Tests engine | junit5 | _built-in_ |
-| Integration tests | jvm-test-suite gradle plugin |   |
+| Integration tests | jvm-test-suite gradle plugin | \- |
 | Mock lib | Mockito | Mockio |
 | REST engine | Spring Webflux | _built-in http.Server_ |
 | GRPC engine lib | io.grpc:grpc-netty-shaded | google.golang.org/grpc |
 | GRPC code generator | com.google.protobuf gradle plugin | easyp |
 | GRPC-REST transcoding | io.github.danielliu1123:grpc-server-boot-starter | grpc-gateway protoc plugin |
 | GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
-| Docker container builder |   |   |
+| Docker container builder | Gradle plugin com.bmuschko.docker-java-application | native |
 | Kafka lib | Spring Kafka, reactor-kafka | franz-go |
-| Tracing | opentelemetry-spring-boot-starter |   |
-| Metrics for prometheus | actuator |   |
+| Tracing (Otel) | opentelemetry-spring-boot-starter | ? |
+| Otel exporter | ? | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrp |
+| DB connection tracing | ? | ? |
+| GRPC connection tracing | ? | ? |
+| Prometheus http api provider | actuator | github.com/prometheus/client\_golang/prometheus/promhttp |
+| Prometheus DB connection collector | actuator | github.com/cmackenzie1/pgxpool-prometheus |
 | Config properties | Spring Boot (property files, env vars) | env vars |

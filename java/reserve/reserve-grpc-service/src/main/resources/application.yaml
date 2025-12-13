@@ -64,8 +64,12 @@ spring:
     username: postgres
     password: postgres
     pool:
+      initial-size: 1
+#      max-size: 50
+      min-idle: 1
+      max-idle-time: 30s
       validation-depth: REMOTE
-      validationQuery: select 1;
+      validation-query: select 1;
   liquibase:
     enabled: true
     url: ${spring.datasource.url}

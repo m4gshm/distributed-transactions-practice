@@ -36,6 +36,7 @@ func NewPool(ctx context.Context, cfg config.DatabaseConfig, opts ...ConConfOpt)
 		}
 	}
 	dbpool, err := pgxpool.NewWithConfig(ctx, config)
+	config.MaxConns = cfg.MaxConns
 	if err != nil {
 		return nil, fmt.Errorf("unable to create connection pool: %w", err)
 	} else if err = dbpool.Ping(ctx); err != nil {

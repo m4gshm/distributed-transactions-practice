@@ -9,7 +9,7 @@ services:
     deploy: &defaultDeploy
       resources: 
         limits:
-          memory: 512m
+          memory: 612m
         reservations:
           memory: 256m
     hostname: jvm-orders-grpc-service
@@ -22,6 +22,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
+      SPRING_R2DBC_POOL_MAX_SIZE: 16
       SERVICE_RESERVE_ADDRESS: jvm-reserve-grpc-service:9081
       SERVICE_WAREHOUSE_ADDRESS: jvm-reserve-grpc-service:9081
       SERVICE_PAYMENTS_ADDRESS: jvm-payments-grpc-service:9082
@@ -41,6 +42,7 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
+      SPRING_R2DBC_POOL_MAX_SIZE: 16
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-payments
   jvm-reserve-grpc-service:
@@ -57,5 +59,6 @@ services:
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
+      SPRING_R2DBC_POOL_MAX_SIZE: 16
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-reserve
