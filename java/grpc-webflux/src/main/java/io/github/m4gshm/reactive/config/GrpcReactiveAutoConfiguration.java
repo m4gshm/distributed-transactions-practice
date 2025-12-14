@@ -7,7 +7,8 @@ import io.github.m4gshm.reactive.MetadataFactory;
 import io.github.m4gshm.reactive.MetadataFactoryImpl;
 import io.github.m4gshm.reactive.StatusExtractor;
 import io.github.m4gshm.reactive.StatusExtractorImpl;
-import io.micrometer.observation.ObservationRegistry;
+import io.opentelemetry.api.OpenTelemetry;
+import io.opentelemetry.api.trace.Tracer;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -21,10 +22,9 @@ public class GrpcReactiveAutoConfiguration {
     public GrpcReactive grpcCoreSubscriberFactory(MetadataFactory metadataFactory,
                                                   StatusExtractor statusExtractor,
                                                   List<GrpcExceptionResolver> grpcExceptionResolvers,
-                                                  ObservationRegistry observationRegistry) {
-        return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers
-//                , observationRegistry
-        );
+                                                  OpenTelemetry openTelemetry) {
+        return new GrpcReactiveImpl(metadataFactory, statusExtractor, grpcExceptionResolvers,
+                openTelemetry.getTracer("grpc-reactive"));
     }
 
     @Bean

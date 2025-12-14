@@ -11,14 +11,12 @@ import reactor.core.publisher.Mono;
 import reserve.data.access.jooq.tables.records.ReserveItemRecord;
 import io.github.m4gshm.reserve.data.model.Reserve;
 
-import java.time.OffsetDateTime;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 import java.util.stream.Stream;
 
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
-import static java.util.Optional.ofNullable;
 import static reserve.data.access.jooq.Tables.RESERVE;
 import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 
@@ -49,10 +47,6 @@ public class ReserveStorageR2DBCUtils {
                 .doOnSuccess(count -> {
                     log.debug("stored items count {}, reserveId {}", count, reserveId);
                 });
-    }
-
-    public static OffsetDateTime orNow(OffsetDateTime value) {
-        return ofNullable(value).orElseGet(OffsetDateTime::now);
     }
 
     public static SelectJoinStep<Record> selectReserves(DSLContext dsl) {

@@ -6,19 +6,28 @@ import (
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/m4gshm/gollections/slice"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	"github.com/m4gshm/distributed-transactions-practice/golang/payment/event"
 	accountpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	accountsqlc "github.com/m4gshm/distributed-transactions-practice/golang/payment/storage/sqlc/gen"
-	"github.com/m4gshm/gollections/slice"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:generate fieldr -type AccountService -out . new-opt -required db
+
+var tracerA trace.Tracer
+
+func init() {
+	tracerA = otel.Tracer("PaymentService")
+}
 
 func NewAccountService(
 	db *pgxpool.Pool,
@@ -52,6 +61,8 @@ type AccountEventer interface {
 }
 
 func (s *AccountService) List(ctx context.Context, req *accountpb.AccountListRequest) (*accountpb.AccountListResponse, error) {
+	ctx, span := tracerA.Start(ctx, "List")
+	defer span.End()
 	query := accountsqlc.New(s.db)
 	accounts, err := query.FindAllAccounts(ctx)
 	if err != nil {
@@ -61,6 +72,8 @@ func (s *AccountService) List(ctx context.Context, req *accountpb.AccountListReq
 }
 
 func (s *AccountService) TopUp(ctx context.Context, req *accountpb.AccountTopUpRequest) (*accountpb.AccountTopUpResponse, error) {
+	ctx, span := tracerA.Start(ctx, "TopUp")
+	defer span.End()
 	topUp := req.TopUp
 	if topUp == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "top up data is required")

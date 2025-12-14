@@ -1,10 +1,14 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
+import static io.github.m4gshm.DateTimeUtils.orNow;
 import static io.github.m4gshm.payments.data.r2dbc.PaymentStorageR2DBCUtils.selectPayments;
 import static lombok.AccessLevel.PRIVATE;
+import static payments.data.access.jooq.Tables.PAYMENT;
 
 import java.util.List;
 
+import io.github.m4gshm.DateTimeUtils;
+import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;
 
@@ -16,7 +20,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import payments.data.access.jooq.Tables;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
@@ -40,7 +43,7 @@ public class PaymentStorageR2DBC implements PaymentStorage {
     @Override
     public Mono<Payment> findById(String id) {
         return jooq.inTransaction(dsl -> {
-            return Mono.from(selectPayments(dsl).where(Tables.PAYMENT.ID.eq(id)))
+            return Mono.from(selectPayments(dsl).where(PAYMENT.ID.eq(id)))
                     .map(PaymentStorageR2DBCUtils::toPayment);
         });
     }
@@ -48,19 +51,19 @@ public class PaymentStorageR2DBC implements PaymentStorage {
     @Override
     public Mono<Payment> save(@Valid Payment payment) {
         return jooq.inTransaction(dsl -> {
-            return Mono.from(dsl.insertInto(Tables.PAYMENT)
-                    .set(Tables.PAYMENT.ID, payment.id())
-                    .set(Tables.PAYMENT.CREATED_AT, PaymentStorageR2DBCUtils.orNow(payment.createdAt()))
-                    .set(Tables.PAYMENT.EXTERNAL_REF, payment.externalRef())
-                    .set(Tables.PAYMENT.CLIENT_ID, payment.clientId())
-                    .set(Tables.PAYMENT.STATUS, payment.status())
-                    .set(Tables.PAYMENT.AMOUNT, payment.amount())
-                    .set(Tables.PAYMENT.INSUFFICIENT, payment.insufficient())
+            return Mono.from(dsl.insertInto(PAYMENT)
+                    .set(PAYMENT.ID, payment.id())
+                    .set(PAYMENT.CREATED_AT, orNow(payment.createdAt()))
+                    .set(PAYMENT.EXTERNAL_REF, payment.externalRef())
+                    .set(PAYMENT.CLIENT_ID, payment.clientId())
+                    .set(PAYMENT.STATUS, payment.status())
+                    .set(PAYMENT.AMOUNT, payment.amount())
+                    .set(PAYMENT.INSUFFICIENT, payment.insufficient())
                     .onDuplicateKeyUpdate()
-                    .set(Tables.PAYMENT.UPDATED_AT, PaymentStorageR2DBCUtils.orNow(payment.updatedAt()))
-                    .set(Tables.PAYMENT.STATUS, payment.status())
-                    .set(Tables.PAYMENT.AMOUNT, payment.amount())
-                    .set(Tables.PAYMENT.INSUFFICIENT, payment.insufficient()))
+                    .set(PAYMENT.UPDATED_AT, orNow(payment.updatedAt()))
+                    .set(PAYMENT.STATUS, DSL.excluded(PAYMENT.STATUS))
+                    .set(PAYMENT.AMOUNT, DSL.excluded(PAYMENT.AMOUNT))
+                    .set(PAYMENT.INSUFFICIENT, DSL.excluded(PAYMENT.INSUFFICIENT)))
                     .map(count -> {
                         log.debug("stored payment rows {}", count);
                         return payment;

@@ -73,6 +73,7 @@ subprojects {
             implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
             runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
             runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
+            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
 
             implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
             implementation("org.springframework.boot:spring-boot-starter-jooq")
@@ -92,6 +93,7 @@ subprojects {
             implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
+
 
 //            implementation("io.r2dbc:r2dbc-proxy")
 

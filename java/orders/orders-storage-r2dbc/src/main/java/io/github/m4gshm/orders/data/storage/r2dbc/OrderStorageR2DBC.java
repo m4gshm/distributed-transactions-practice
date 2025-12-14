@@ -1,5 +1,6 @@
 package io.github.m4gshm.orders.data.storage.r2dbc;
 
+import io.github.m4gshm.DateTimeUtils;
 import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.orders.data.access.jooq.Tables;
@@ -21,8 +22,8 @@ import reactor.core.publisher.Mono;
 import java.util.Collection;
 import java.util.List;
 
+import static io.github.m4gshm.DateTimeUtils.orNow;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqMapperUtils.toOrder;
-import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.orNow;
 import static io.github.m4gshm.orders.data.storage.r2dbc.OrderStorageJooqQueryUtils.selectOrdersJoinDelivery;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
 import static java.util.Optional.ofNullable;
@@ -90,6 +91,7 @@ public class OrderStorageR2DBC implements OrderStorage {
 
     @Override
     public Mono<Order> save(Order order) {
+        var current = io.opentelemetry.context.Context.current();
         return jooq.inTransaction(dsl -> {
             var orderStatus = order.status();
             var mergeOrder = from(dsl.insertInto(ORDERS)
@@ -104,8 +106,8 @@ public class OrderStorageR2DBC implements OrderStorage {
                     .onDuplicateKeyUpdate()
                     .set(ORDERS.STATUS, orderStatus)
                     .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
-                    .set(ORDERS.RESERVE_ID, DSL.coalesce(value(order.reserveId()), ORDERS.RESERVE_ID))
-                    .set(ORDERS.PAYMENT_ID, DSL.coalesce(value(order.paymentId()), ORDERS.PAYMENT_ID))
+                    .set(ORDERS.RESERVE_ID, DSL.coalesce(DSL.excluded(ORDERS.RESERVE_ID), ORDERS.RESERVE_ID))
+                    .set(ORDERS.PAYMENT_ID, DSL.coalesce(DSL.excluded(ORDERS.PAYMENT_ID), ORDERS.PAYMENT_ID))
             );
 
             var delivery = order.delivery();
@@ -120,8 +122,8 @@ public class OrderStorageR2DBC implements OrderStorage {
                         .set(DELIVERY.ADDRESS, delivery.address())
                         .set(DELIVERY.TYPE, deliveryType)
                         .onDuplicateKeyUpdate()
-                        .set(DELIVERY.ADDRESS, delivery.address())
-                        .set(DELIVERY.TYPE, deliveryType));
+                        .set(DELIVERY.ADDRESS, DSL.excluded(DELIVERY.ADDRESS))
+                        .set(DELIVERY.TYPE, DSL.excluded(DELIVERY.TYPE)));
             }
             var mergeAllItems = fromIterable(ofNullable(order.items())
                     .orElse(List.of())
@@ -131,7 +133,7 @@ public class OrderStorageR2DBC implements OrderStorage {
                             .set(Tables.ITEM.ID, item.id())
                             .set(Tables.ITEM.AMOUNT, item.amount())
                             .onDuplicateKeyUpdate()
-                            .set(Tables.ITEM.AMOUNT, item.amount()))
+                            .set(Tables.ITEM.AMOUNT, DSL.excluded(Tables.ITEM.AMOUNT)))
                     .map(Mono::from)
                     .toList()).flatMap(i1 -> i1)
                     .reduce(Integer::sum);

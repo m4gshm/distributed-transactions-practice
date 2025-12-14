@@ -1,9 +1,5 @@
 package io.github.m4gshm.payments.data.r2dbc;
 
-import static java.util.Optional.ofNullable;
-
-import java.time.OffsetDateTime;
-
 import org.jooq.DSLContext;
 import org.jooq.Record;
 import org.jooq.SelectJoinStep;
@@ -17,9 +13,6 @@ import payments.data.access.jooq.Tables;
 @Slf4j
 @UtilityClass
 public class PaymentStorageR2DBCUtils {
-    public static OffsetDateTime orNow(OffsetDateTime value) {
-        return ofNullable(value).orElseGet(OffsetDateTime::now);
-    }
 
     public static SelectJoinStep<Record> selectPayments(DSLContext dsl) {
         return Query.selectAllFrom(dsl, Tables.PAYMENT);

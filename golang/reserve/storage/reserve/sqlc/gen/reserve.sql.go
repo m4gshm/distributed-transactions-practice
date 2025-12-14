@@ -151,13 +151,13 @@ func (q *Queries) FindReserveByID(ctx context.Context, id string) (Reserve, erro
 
 const UpsertReserve = `-- name: UpsertReserve :exec
 INSERT INTO
-  reserve (id, external_ref, status, created_at, updated_at)
+  reserve (id, external_ref, status, created_at)
 VALUES
-  ($1, $2, $3, $4, $5) ON CONFLICT (id) DO
+  ($1, $2, $3, $4) ON CONFLICT (id) DO
 UPDATE
 SET
   status = EXCLUDED.status,
-  updated_at = COALESCE(EXCLUDED.updated_at, reserve.updated_at)
+  updated_at = COALESCE($5, CURRENT_TIMESTAMP)
 `
 
 type UpsertReserveParams struct {

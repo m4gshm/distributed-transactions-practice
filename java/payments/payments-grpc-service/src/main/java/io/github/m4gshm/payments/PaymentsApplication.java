@@ -4,13 +4,14 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.reactive.config.EnableWebFlux;
 
-import reactor.core.publisher.Hooks;
+import static io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOperator.builder;
 
 @EnableWebFlux
 @SpringBootApplication
 public class PaymentsApplication {
     public static void main(String[] args) {
-        Hooks.onOperatorDebug();
+        // early hook registering
+        builder().build().registerOnEachOperator();
         SpringApplication.run(PaymentsApplication.class, args);
     }
 }

@@ -12,6 +12,8 @@ import (
 	"github.com/m4gshm/gollections/predicate/is"
 	"github.com/m4gshm/gollections/seq"
 	"github.com/m4gshm/gollections/slice"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
@@ -26,6 +28,12 @@ import (
 )
 
 //go:generate fieldr -type ReserveService -out . new-full
+
+var tracer trace.Tracer
+
+func init() {
+	tracer = otel.Tracer("ReserveService")
+}
 
 type ReserveService[RQ ressqlc.Querier, WQ whsqlc.Querier] struct {
 	reservepb.UnimplementedReserveServiceServer
@@ -52,6 +60,8 @@ func NewReserveService[RQ ressqlc.Querier, WQ whsqlc.Querier](
 }
 
 func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.ReserveCreateRequest) (*reservepb.ReserveCreateResponse, error) {
+	ctx, span := tracer.Start(ctx, "Create")
+	defer span.End()
 	body := req.Body
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "reserve body is required")
@@ -91,6 +101,8 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 }
 
 func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.ReserveApproveRequest) (*reservepb.ReserveApproveResponse, error) {
+	ctx, span := tracer.Start(ctx, "Approve")
+	defer span.End()
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveApproveResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -196,6 +208,8 @@ func isNotReserved(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveIt
 }
 
 func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
+	ctx, span := tracer.Start(ctx, "Release")
+	defer span.End()
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -237,6 +251,8 @@ func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.Res
 }
 
 func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.ReserveCancelRequest) (*reservepb.ReserveCancelResponse, error) {
+	ctx, span := tracer.Start(ctx, "Cancel")
+	defer span.End()
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCancelResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
@@ -279,6 +295,8 @@ func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.Rese
 }
 
 func (s *ReserveService[RQ, WQ]) Get(ctx context.Context, req *reservepb.ReserveGetRequest) (*reservepb.ReserveGetResponse, error) {
+	ctx, span := tracer.Start(ctx, "Get")
+	defer span.End()
 	resQuery := s.resq(s.db)
 
 	reserve, err := resQuery.FindReserveByID(ctx, req.Id)
@@ -295,6 +313,8 @@ func (s *ReserveService[RQ, WQ]) Get(ctx context.Context, req *reservepb.Reserve
 }
 
 func (s *ReserveService[RQ, WQ]) List(ctx context.Context, req *reservepb.ReserveListRequest) (*reservepb.ReserveListResponse, error) {
+	ctx, span := tracer.Start(ctx, "List")
+	defer span.End()
 	resQuery := s.resq(s.db)
 
 	reserves, err := resQuery.FindAllReserves(ctx)

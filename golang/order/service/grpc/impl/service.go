@@ -7,6 +7,17 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/m4gshm/expressions/expr/get"
+	"github.com/m4gshm/gollections/convert/ptr"
+	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/slice"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
@@ -16,17 +27,15 @@ import (
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
-	"github.com/m4gshm/expressions/expr/get"
-	"github.com/m4gshm/gollections/convert/ptr"
-	"github.com/m4gshm/gollections/op"
-	"github.com/m4gshm/gollections/slice"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:generate fieldr -type OrderService -out . new-full
+
+var tracer trace.Tracer
+
+func init() {
+	tracer = otel.Tracer("OrderService")
+}
 
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
@@ -62,6 +71,8 @@ func NewOrderService(
 }
 
 func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequest) (*orderspb.OrderCreateResponse, error) {
+	ctx, span := tracer.Start(ctx, "Create")
+	defer span.End()
 	body := req.Body
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "order body is required")
@@ -240,6 +251,8 @@ func generateID() *string {
 }
 
 func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRequest) (*orderspb.OrderApproveResponse, error) {
+	ctx, span := tracer.Start(ctx, "Approve")
+	defer span.End()
 	query := sqlc.New(s.db)
 	finalStatus, err := s.appvove(ctx, query, req.Id, req.TwoPhaseCommit)
 	if err != nil {
@@ -285,6 +298,8 @@ func (s *OrderService) release(ctx context.Context, query *sqlc.Queries, orderID
 }
 
 func (s *OrderService) Cancel(ctx context.Context, req *orderspb.OrderCancelRequest) (*orderspb.OrderCancelResponse, error) {
+	ctx, span := tracer.Start(ctx, "Cancel")
+	defer span.End()
 	query := sqlc.New(s.db)
 	_, err := s.cancel(ctx, query, req.Id, req.TwoPhaseCommit)
 	if err != nil {
@@ -306,6 +321,8 @@ func (s *OrderService) cancel(ctx context.Context, query *sqlc.Queries, orderID 
 }
 
 func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequest) (*orderspb.OrderResumeResponse, error) {
+	ctx, span := tracer.Start(ctx, "Resume")
+	defer span.End()
 	query := sqlc.New(s.db)
 
 	orderID := req.Id
@@ -342,6 +359,8 @@ func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequ
 }
 
 func (s *OrderService) Get(ctx context.Context, req *orderspb.OrderGetRequest) (*orderspb.OrderGetResponse, error) {
+	ctx, span := tracer.Start(ctx, "Resume")
+	defer span.End()
 	query := sqlc.New(s.db)
 
 	r, err := query.FindOrderById(ctx, req.Id)
@@ -355,6 +374,8 @@ func (s *OrderService) Get(ctx context.Context, req *orderspb.OrderGetRequest) (
 }
 
 func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest) (*orderspb.OrderListResponse, error) {
+	ctx, span := tracer.Start(ctx, "List")
+	defer span.End()
 	query := sqlc.New(s.db)
 
 	rows, err := query.FindAllOrders(ctx)

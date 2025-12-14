@@ -1,21 +1,5 @@
 package io.github.m4gshm.reserve.data.r2dbc;
 
-import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
-import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;
-import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
-import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.defer;
-import static reactor.core.publisher.Mono.from;
-import static reserve.data.access.jooq.Tables.RESERVE;
-import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
-
-import java.util.Collection;
-import java.util.List;
-
-import org.springframework.stereotype.Service;
-import org.springframework.validation.annotation.Validated;
-
 import io.github.m4gshm.jooq.Jooq;
 import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
@@ -24,8 +8,25 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.impl.DSL;
+import org.springframework.stereotype.Service;
+import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+
+import java.util.Collection;
+import java.util.List;
+
+import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.mergeItems;
+import static io.github.m4gshm.DateTimeUtils.orNow;
+import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.selectReserves;
+import static io.github.m4gshm.reserve.data.r2dbc.ReserveStorageR2DBCUtils.toReserve;
+import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.defer;
+import static reactor.core.publisher.Mono.from;
+import static reserve.data.access.jooq.Tables.RESERVE;
+import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 
 @Slf4j
 @Service
@@ -60,12 +61,12 @@ public class ReserveStorageR2DBC implements ReserveStorage {
         return jooq.inTransaction(dsl -> defer(() -> {
             var mergeReserve = from(dsl.insertInto(RESERVE)
                     .set(RESERVE.ID, reserve.id())
-                    .set(RESERVE.CREATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.createdAt()))
+                    .set(RESERVE.CREATED_AT, orNow(reserve.createdAt()))
                     .set(RESERVE.EXTERNAL_REF, reserve.externalRef())
                     .set(RESERVE.STATUS, reserve.status())
                     .onDuplicateKeyUpdate()
-                    .set(RESERVE.STATUS, reserve.status())
-                    .set(RESERVE.UPDATED_AT, ReserveStorageR2DBCUtils.orNow(reserve.updatedAt())))
+                    .set(RESERVE.STATUS, DSL.excluded(RESERVE.STATUS))
+                    .set(RESERVE.UPDATED_AT, orNow(reserve.updatedAt())))
 //                    .flatMap(count -> logTxId(dsl, "mergeReserve", count))
                     .doOnSuccess(count -> {
                         log.debug("stored reserve count {}", count);
@@ -82,7 +83,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     @Override
     public Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items) {
         return jooq.inTransaction(dsl -> mergeItems(dsl, reserveId, items)
-                .map(c -> List.copyOf(items))
+                        .map(c -> List.copyOf(items))
 //                .flatMap(l -> logTxId(dsl, "saveReservedItems", l))
         );
     }

@@ -3,6 +3,8 @@ package impl
 import (
 	"context"
 
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -16,18 +18,26 @@ import (
 	"github.com/m4gshm/gollections/slice"
 )
 
+var tracerW trace.Tracer
+
+func init() {
+	tracerW = otel.Tracer("WarehouseService")
+}
+
 type WarehouseService struct {
 	warehousepb.UnimplementedWarehouseItemServiceServer
-	db *pgxpool.Pool
+	db     *pgxpool.Pool
 }
 
 func NewWarehouseService(db *pgxpool.Pool) *WarehouseService {
 	return &WarehouseService{
-		db: db,
+		db:     db,
 	}
 }
 
 func (s *WarehouseService) GetItemCost(ctx context.Context, req *warehousepb.GetItemCostRequest) (*warehousepb.GetItemCostResponse, error) {
+	ctx, span := tracerW.Start(ctx, "GetItemCost")
+	defer span.End()
 	query := whsqlc.New(s.db)
 	item, err := query.SelectItemByID(ctx, req.Id)
 	if err != nil {
@@ -40,6 +50,8 @@ func (s *WarehouseService) GetItemCost(ctx context.Context, req *warehousepb.Get
 }
 
 func (s *WarehouseService) ItemList(ctx context.Context, req *warehousepb.ItemListRequest) (*warehousepb.ItemListResponse, error) {
+	ctx, span := tracerW.Start(ctx, "ItemList")
+	defer span.End()
 	query := whsqlc.New(s.db)
 	rows, err := query.SelectAllItems(ctx)
 	if err != nil {
@@ -59,6 +71,8 @@ func (s *WarehouseService) ItemList(ctx context.Context, req *warehousepb.ItemLi
 }
 
 func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUpRequest) (*warehousepb.ItemTopUpResponse, error) {
+	ctx, span := tracerW.Start(ctx, "TopUp")
+	defer span.End()
 	body := req.TopUp
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "top up data is required")

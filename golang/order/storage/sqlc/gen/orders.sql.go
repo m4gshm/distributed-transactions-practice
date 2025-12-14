@@ -239,7 +239,6 @@ INSERT INTO
     id,
     status,
     created_at,
-    updated_at,
     customer_id,
     reserve_id,
     payment_id,
@@ -247,13 +246,13 @@ INSERT INTO
     reserve_transaction_id
   )
 VALUES
-  ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
+  ($1, $2, $3, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
 UPDATE
 SET
-  status = EXCLUDED.status,
-  updated_at = EXCLUDED.updated_at,
+  "status" = EXCLUDED.status,
   reserve_id = COALESCE(EXCLUDED.reserve_id, orders.reserve_id),
-  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id)
+  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id),
+  updated_at = COALESCE($4, CURRENT_TIMESTAMP)
 `
 
 type InsertOrUpdateOrderParams struct {

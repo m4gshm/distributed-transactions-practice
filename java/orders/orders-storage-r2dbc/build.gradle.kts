@@ -26,6 +26,8 @@ dependencies {
     api("org.postgresql:postgresql")
     api("org.postgresql:r2dbc-postgresql")
 
+    implementation("io.opentelemetry:opentelemetry-context")
+
     liquibaseRuntime("org.liquibase:liquibase-core")
     liquibaseRuntime("info.picocli:picocli")
     liquibaseRuntime("org.postgresql:postgresql")

@@ -33,11 +33,12 @@ logging:
         exporter.sender.okhttp.internal: INFO
       grpc: INFO
       github:
-        m4gshm: INFO
+        m4gshm:
+          reactive: TRACE
       r2dbc:
         postgresql:
           client: INFO # log sql
-          QUERY: INFO
+          QUERY: TRACE
     java:
       io:
         serialization: INFO
@@ -84,9 +85,9 @@ spring:
     pool:
       initial-size: 1
 #      max-size: 50
-      min-idle: 1
+      min-idle: 8
       max-idle-time: 30s
-      validation-depth: REMOTE
+      validation-depth: LOCAL
       validation-query: select 1;
   liquibase:
     enabled: true

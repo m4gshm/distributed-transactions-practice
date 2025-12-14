@@ -33,7 +33,6 @@ public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase 
     @Override
     public void approve(OrderApproveRequest request,
                         StreamObserver<OrderServiceOuterClass.OrderApproveResponse> responseObserver) {
-
         grpc.subscribe("approve",
                 responseObserver,
                 ordersService.approve(request.getId(), request.getTwoPhaseCommit()));
