@@ -5,6 +5,9 @@ plugins {
 dependencies {
     implementation("org.slf4j:slf4j-api")
     implementation("io.grpc:grpc-stub")
+    implementation("io.grpc:grpc-netty")
+    implementation("io.projectreactor.netty:reactor-netty-core")
+    implementation("io.projectreactor.netty:reactor-netty-http")
 //    implementation("io.projectreactor:reactor-core")
     implementation("org.springframework:spring-web")
     implementation("org.springframework:spring-webflux")
@@ -19,6 +22,8 @@ dependencies {
 //    implementation("io.micrometer:micrometer-core")
 //    implementation("io.projectreactor:reactor-core-micrometer")
     implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
+    implementation("org.postgresql:r2dbc-postgresql")
 
     //todo need refactor
     //for error handling

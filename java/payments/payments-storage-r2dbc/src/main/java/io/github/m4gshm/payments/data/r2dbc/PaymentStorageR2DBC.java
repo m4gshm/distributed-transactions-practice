@@ -7,7 +7,6 @@ import static payments.data.access.jooq.Tables.PAYMENT;
 
 import java.util.List;
 
-import io.github.m4gshm.DateTimeUtils;
 import org.jooq.impl.DSL;
 import org.springframework.stereotype.Service;
 import org.springframework.validation.annotation.Validated;

@@ -83,7 +83,7 @@ public class ReserveStorageR2DBC implements ReserveStorage {
     @Override
     public Mono<List<Reserve.Item>> saveReservedItems(String reserveId, @Valid Collection<Reserve.Item> items) {
         return jooq.inTransaction(dsl -> mergeItems(dsl, reserveId, items)
-                        .map(c -> List.copyOf(items))
+                .map(c -> List.copyOf(items))
 //                .flatMap(l -> logTxId(dsl, "saveReservedItems", l))
         );
     }

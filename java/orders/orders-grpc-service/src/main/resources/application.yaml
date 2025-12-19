@@ -34,11 +34,11 @@ logging:
       grpc: INFO
       github:
         m4gshm:
-          reactive: TRACE
+          reactive: DEBUG
       r2dbc:
         postgresql:
           client: INFO # log sql
-          QUERY: TRACE
+          QUERY: INFO
     java:
       io:
         serialization: INFO
@@ -84,9 +84,9 @@ spring:
     password: postgres
     pool:
       initial-size: 1
-#      max-size: 50
+#      max-size: 32
       min-idle: 8
-      max-idle-time: 30s
+      max-idle-time: 1m
       validation-depth: LOCAL
       validation-query: select 1;
   liquibase:

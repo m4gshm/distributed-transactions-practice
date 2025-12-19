@@ -65,7 +65,7 @@ spring:
     password: postgres
     pool:
       initial-size: 1
-#      max-size: 50
+#      max-size: 32
       min-idle: 1
       max-idle-time: 30s
       validation-depth: REMOTE

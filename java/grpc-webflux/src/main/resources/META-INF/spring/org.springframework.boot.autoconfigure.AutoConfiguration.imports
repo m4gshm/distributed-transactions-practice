@@ -5,4 +5,5 @@ io.github.m4gshm.otel.config.GrpcTelemetryAutoConfiguration
 io.github.m4gshm.otel.config.GrpcServerTracingInterceptorAutoConfiguration
 io.github.m4gshm.otel.config.GrpcClientTracingInterceptorAutoConfiguration
 io.github.m4gshm.otel.config.OtelCustomizerAutoConfiguration
-
+io.github.m4gshm.reactive.config.LoopResourcesConfiguration
+io.github.m4gshm.reactive.config.LoopResourcesConsumerConfiguration

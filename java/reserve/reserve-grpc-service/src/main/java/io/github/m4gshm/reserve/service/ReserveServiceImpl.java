@@ -7,7 +7,6 @@ import io.github.m4gshm.reserve.data.ReserveStorage;
 import io.github.m4gshm.reserve.data.WarehouseItemStorage;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import io.grpc.stub.StreamObserver;
-import io.opentelemetry.api.trace.Tracer;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

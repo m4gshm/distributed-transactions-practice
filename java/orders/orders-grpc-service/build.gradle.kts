@@ -28,4 +28,5 @@ dependencies {
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {
     exposePort(7080, 9080)
+    exposePort(5005, 5005)
 }

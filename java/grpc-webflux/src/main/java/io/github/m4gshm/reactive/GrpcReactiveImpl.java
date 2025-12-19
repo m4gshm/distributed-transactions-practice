@@ -50,29 +50,11 @@ public class GrpcReactiveImpl implements GrpcReactive {
         return new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
     }
 
-    @SuppressWarnings("unchecked")
-    @Override
-    public <P extends CorePublisher<T>, T> void subscribe(String name, StreamObserver<T> observer, P publisher) {
-        var current = current();
-        var span = tracer.spanBuilder("subscribe:" + name).setParent(current).startSpan();
-        try (var _ = span.makeCurrent()) {
-            final P p;
-            if (publisher instanceof Mono<?> mono) {
-                p = (P) mono.name(name);
-            } else if (publisher instanceof Flux<?> flux) {
-                p = (P) flux.name(name);
-            } else {
-                p = publisher;
-            }
-            p.subscribe(newSubscriber(name, span, observer));
-        }
-    }
-
-    private <T> CoreSubscriber<? super T> newSubscriber(String name, Span span,
+    private <T> CoreSubscriber<? super T> newSubscriber(String name,
+                                                        Span span,
                                                         StreamObserver<T> observer) {
         return new CoreSubscriber<>() {
             volatile Throwable error;
-//            volatile Span span;
 
             @Override
             public void onComplete() {
@@ -106,8 +88,6 @@ public class GrpcReactiveImpl implements GrpcReactive {
 
             @Override
             public void onSubscribe(Subscription s) {
-//                var current = current();
-//                this.span = tracer.spanBuilder("run:" + name).setParent(span).startSpan();
                 try (var _ = span.makeCurrent()) {
                     log.trace("onSubscribe {}", name);
                     span.addEvent("onSubscribe");
@@ -115,5 +95,22 @@ public class GrpcReactiveImpl implements GrpcReactive {
                 }
             }
         };
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public <P extends CorePublisher<T>, T> void subscribe(String name, StreamObserver<T> observer, P publisher) {
+        var span = tracer.spanBuilder("subscribe:" + name).setParent(current()).startSpan();
+        try (var _ = span.makeCurrent()) {
+            final P p;
+            if (publisher instanceof Mono<?> mono) {
+                p = (P) mono.name(name);
+            } else if (publisher instanceof Flux<?> flux) {
+                p = (P) flux.name(name);
+            } else {
+                p = publisher;
+            }
+            p.subscribe(newSubscriber(name, span, observer));
+        }
     }
 }

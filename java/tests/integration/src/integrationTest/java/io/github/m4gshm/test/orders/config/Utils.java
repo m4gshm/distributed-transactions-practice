@@ -15,6 +15,6 @@ public class Utils {
                                                    ClientProperties clientProperties,
                                                    List<ClientInterceptor> clientInterceptors
     ) {
-        return newManagedChannelBuilder(clientProperties, clientInterceptors).build();
+        return newManagedChannelBuilder(clientProperties, clientInterceptors, null).build();
     }
 }

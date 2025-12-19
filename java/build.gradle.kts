@@ -94,13 +94,10 @@ subprojects {
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
 
-
-//            implementation("io.r2dbc:r2dbc-proxy")
-
-            implementation("io.grpc:grpc-netty-shaded")
+            implementation("io.grpc:grpc-netty")
             modules {
-                module("io.grpc:grpc-netty") {
-                    replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")
+                module("io.grpc:grpc-netty-shaded") {
+                    replacedBy("io.grpc:grpc-netty")
                 }
             }
             implementation("io.projectreactor.kafka:reactor-kafka")
@@ -124,6 +121,9 @@ subprojects {
         }
 
         dependencies {
+            //prefer jre instead of android version
+            dependency("com.google.guava:guava:33.4.0-jre")
+
             dependency("org.projectlombok:lombok:1.18.42")
 
             dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.15.0-alpha")
