@@ -5,14 +5,15 @@ import io.github.m4gshm.payments.service.event.AccountEventService;
 import io.github.m4gshm.payments.service.event.KafkaAccountEventServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.admin.NewTopic;
-import org.springframework.boot.autoconfigure.kafka.KafkaProperties;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.boot.context.properties.bind.DefaultValue;
+import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.config.TopicBuilder;
-import org.springframework.kafka.core.reactive.ReactiveKafkaProducerTemplate;
+import reactor.kafka.sender.KafkaSender;
+import reactor.kafka.sender.SenderOptions;
 
 import static java.util.Optional.ofNullable;
 import static reactor.kafka.sender.SenderOptions.create;
@@ -34,13 +35,14 @@ public class KafkaAccountEventServiceConfiguration {
         return topicBuilder.build();
     }
 
-    public ReactiveKafkaProducerTemplate<String, AccountBalanceEvent> accountEventProducerTemplate() {
-        return new ReactiveKafkaProducerTemplate<>(create(kafkaProperties.buildProducerProperties()));
+    public SenderOptions<String, AccountBalanceEvent> accountBalanceEventSenderOptions() {
+        return create(kafkaProperties.buildProducerProperties());
     }
 
     @Bean
     public AccountEventService kafkaEventService() {
-        return new KafkaAccountEventServiceImpl(accountEventProducerTemplate(), properties.topic.name);
+        KafkaSender<String, AccountBalanceEvent> sender = KafkaSender.create(accountBalanceEventSenderOptions());
+        return new KafkaAccountEventServiceImpl(sender, properties.topic.name);
     }
 
     @ConfigurationProperties("service.kafka.account")

@@ -3,7 +3,7 @@ import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.springframework.boot") version "3.5.4" apply false
+    id("org.springframework.boot") version "4.0.1" apply false
     id("com.google.protobuf") version "0.9.5" apply false
     id("org.liquibase.gradle") version "3.0.2" apply false
     id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
@@ -13,6 +13,8 @@ plugins {
 
 buildscript {
     val liquibaseVer: String by extra { "4.33.0" }
+    val grpcVer: String by extra { "1.77.0" }
+    val protobufVer: String by extra { "4.33.2" }
 
     dependencies {
         classpath("org.liquibase:liquibase-core:$liquibaseVer")
@@ -66,23 +68,19 @@ subprojects {
         }
         if (isService) {
             implementation("org.aspectj:aspectjtools:1.9.25")
-//            runtimeOnly("org.aspectj:aspectjrt:1.9.25")
             runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
             implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
             implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
             runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
-            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp:1.49.0")
-            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
 
             implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
             implementation("org.springframework.boot:spring-boot-starter-jooq")
 
             implementation("org.springframework.boot:spring-boot-starter-actuator")
-//            implementation("io.micrometer:micrometer-tracing")
-//            implementation("io.micrometer:micrometer-tracing-bridge-otel")
             implementation("io.micrometer:micrometer-registry-prometheus")
-//            implementation("io.projectreactor:reactor-core-micrometer")
             implementation("org.springframework.boot:spring-boot-starter-webflux")
             implementation("org.springframework:spring-webflux")
             implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
@@ -112,12 +110,12 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
 
-            mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
+            mavenBom("io.opentelemetry:opentelemetry-bom:1.57.0")
+            mavenBom("io.github.danielliu1123:grpc-starter-dependencies:4.0.0")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
+            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.23.0")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
-            mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
-            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.15.0")
         }
 
         dependencies {
@@ -126,9 +124,10 @@ subprojects {
 
             dependency("org.projectlombok:lombok:1.18.42")
 
-            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.15.0-alpha")
-            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
-            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.49.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.23.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.23.0-alpha")
+            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.52.0-alpha")
+//            dependency("io.opentelemetry:opentelemetry-exporter-otlp:1.57.0")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 
@@ -138,26 +137,25 @@ subprojects {
 
             dependency("jakarta.validation:jakarta.validation-api:3.0.2")
 
-            dependency("org.springframework:spring-web:6.2.8")
-            dependency("org.springframework:spring-webflux:6.2.8")
-            dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+            dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.0")
 
             dependency("org.springframework:spring-r2dbc:6.2.8")
             dependency("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
-//            dependency("io.r2dbc:r2dbc-proxy:1.1.6.RELEASE")
 
-            dependency("io.grpc:grpc-core:1.74.0")
-            dependency("io.grpc:grpc-stub:1.74.0")
-            dependency("io.grpc:grpc-protobuf:1.74.0")
-            dependency("io.grpc:protoc-gen-grpc-java:1.74.0")
+            val grpcVer: String by rootProject.extra
+            dependency("io.grpc:grpc-core:$grpcVer")
+            dependency("io.grpc:grpc-stub:$grpcVer")
+            dependency("io.grpc:grpc-protobuf:$grpcVer")
+            dependency("io.grpc:protoc-gen-grpc-java:$grpcVer")
 
-            dependency("com.google.protobuf:protoc:3.25.5")
-            dependency("com.google.protobuf:protobuf-java:3.25.5")
-            dependency("com.google.protobuf:protobuf-java-util:3.25.5")
+            val protobufVer: String by rootProject.extra
+            dependency("com.google.protobuf:protoc:$protobufVer")
+            dependency("com.google.protobuf:protobuf-java:$protobufVer")
+            dependency("com.google.protobuf:protobuf-java-util:$protobufVer")
 
-            dependency("build.buf:protovalidate:0.2.1")
+            dependency("build.buf:protovalidate:1.1.0")
 
-            dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
+            dependency("io.projectreactor.kafka:reactor-kafka:1.3.25")
 
             val liquibaseVer: String by rootProject.extra
             dependency("org.liquibase:liquibase-core:${liquibaseVer}")
@@ -165,6 +163,8 @@ subprojects {
 
             dependency("org.jooq:jooq:3.20.6")
             dependency("org.jooq:jooq-postgres-extensions:3.20.6")
+
+            dependency("io.grpc:grpc-netty:$grpcVer")
 
 //            dependency("org.junit.jupiter:junit-jupiter:5.12.2")
         }

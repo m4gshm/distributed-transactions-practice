@@ -2,7 +2,7 @@ package io.github.m4gshm.reactive.config;
 
 import io.github.m4gshm.reactive.RestExceptionHandler;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
-import org.springframework.boot.web.reactive.error.ErrorAttributes;
+import org.springframework.boot.webflux.error.ErrorAttributes;
 import org.springframework.context.annotation.Bean;
 import org.springframework.http.codec.HttpMessageReader;
 

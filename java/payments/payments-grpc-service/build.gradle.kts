@@ -18,6 +18,8 @@ dependencies {
     api(project(":payments:payments-grpc-api"))
     api(project(":payments:payments-event-api"))
     api(project(":tpc:tpc-grpc-service"))
+
+    implementation("org.springframework.boot:spring-boot-kafka")
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

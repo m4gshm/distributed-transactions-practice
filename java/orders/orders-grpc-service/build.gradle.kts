@@ -23,7 +23,8 @@ dependencies {
     api(project(":idempotent-consumer"))
 
     implementation("io.projectreactor.kafka:reactor-kafka")
-    implementation("org.springframework.kafka:spring-kafka")
+//    implementation("org.springframework.kafka:spring-kafka")
+    implementation("org.springframework.boot:spring-boot-kafka")
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

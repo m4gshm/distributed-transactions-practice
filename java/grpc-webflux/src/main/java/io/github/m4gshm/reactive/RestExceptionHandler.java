@@ -3,7 +3,7 @@ package io.github.m4gshm.reactive;
 import grpcstarter.extensions.transcoding.TranscodingRuntimeException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.web.error.ErrorAttributeOptions;
-import org.springframework.boot.web.reactive.error.ErrorAttributes;
+import org.springframework.boot.webflux.error.ErrorAttributes;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.codec.HttpMessageReader;
 import org.springframework.web.bind.annotation.ControllerAdvice;

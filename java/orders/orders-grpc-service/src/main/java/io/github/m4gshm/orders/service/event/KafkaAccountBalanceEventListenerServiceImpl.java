@@ -11,36 +11,40 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
-import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.ReceiverOptions;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import java.time.Instant;
 import java.util.Set;
 
 import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.empty;
+import static reactor.kafka.receiver.KafkaReceiver.create;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = PRIVATE)
+@FieldDefaults(level = PRIVATE)
 public class KafkaAccountBalanceEventListenerServiceImpl {
-
-    ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate;
-
-    OrderStorage orderStorage;
-    OrderService ordersService;
-    PaymentServiceStub paymentServiceStub;
-    MessageStorage messageStorage;
+    final ReceiverOptions<String, AccountBalanceEvent> balanceReceiverOptions;
+    final OrderStorage orderStorage;
+    final OrderService ordersService;
+    final PaymentServiceStub paymentServiceStub;
+    final MessageStorage messageStorage;
     // todo move to config of order table
-    private final boolean twoPhaseCommit = true;
-    private ObservationRegistry observationRegistry;
+    final boolean twoPhaseCommit = true;
+    final ObservationRegistry observationRegistry;
+
+    volatile Disposable subscribe;
 
     private static PaymentGetRequest paymentGetRequest(String paymentId) {
         return PaymentGetRequest.newBuilder()
@@ -68,16 +72,33 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
 
     @PostConstruct
     public void consumeRecord() {
-        reactiveKafkaConsumerTemplate.receiveAutoAck().map(r -> {
-            var key = r.key();
-            AccountBalanceEvent value = r.value();
-            log.info("received account balance event from kafka consumer: key [{}], value: [{}]", key, value);
+        var kafkaReceiver = create(balanceReceiverOptions);
+        var receive = kafkaReceiver.receive();
+        subscribe = receive.map(record -> {
+            var offset = record.receiverOffset();
+            var timestamp = Instant.ofEpochMilli(record.timestamp());
+            var key = record.key();
+            AccountBalanceEvent value = record.value();
+            log.info("received account balance event from kafka consumer: key {}, value {}, offset {}, timestamp {} ",
+                    key,
+                    value,
+                    offset,
+                    timestamp);
+            offset.acknowledge();
             return value;
         }).doOnError(error -> {
             log.error("receive account balance event error", error);
         }).flatMap(this::handle).doOnError(error -> {
             log.error("handle account balance event error", error);
         }).subscribe();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        var s = subscribe;
+        if (s != null && !s.isDisposed()) {
+            s.dispose();
+        }
     }
 
     private Flux<OrderApproveResponse> handle(AccountBalanceEvent event) {

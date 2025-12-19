@@ -72,6 +72,7 @@ springdoc:
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+
   reactor.context-propagation: AUTO
   #for liquibase
   datasource:

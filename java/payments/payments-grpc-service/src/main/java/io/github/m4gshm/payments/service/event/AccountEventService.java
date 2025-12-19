@@ -6,5 +6,5 @@ import reactor.core.publisher.Mono;
 import reactor.kafka.sender.SenderResult;
 
 public interface AccountEventService {
-    Mono<SenderResult<Void>> sendAccountBalanceEvent(String clientId, double balance, OffsetDateTime timestamp);
+    Mono<SenderResult<String>> sendAccountBalanceEvent(String clientId, double balance, OffsetDateTime timestamp);
 }
