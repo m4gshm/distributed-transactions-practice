@@ -1,7 +1,6 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.orders.data.model.Order;
-import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
@@ -17,7 +16,6 @@ import static warehouse.v1.WarehouseService.GetItemCostRequest;
 @RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
     private final WarehouseItemServiceStub warehouseClient;
-    private final ObservationRegistry observationRegistry;
 
     @Override
     public Mono<Double> getSumCost(List<Order.Item> items) {
