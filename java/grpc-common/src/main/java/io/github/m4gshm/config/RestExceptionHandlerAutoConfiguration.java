@@ -8,7 +8,7 @@ import org.springframework.context.annotation.Bean;
 public class RestExceptionHandlerAutoConfiguration {
     @Bean
     public RestControllerExceptionHandler restExceptionHandler(
-                                                     org.springframework.boot.webmvc.error.ErrorAttributes errorAttributes1) {
+                                                               org.springframework.boot.webmvc.error.ErrorAttributes errorAttributes1) {
         return new RestControllerExceptionHandler(errorAttributes1);
     }
 }

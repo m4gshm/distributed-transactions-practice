@@ -122,9 +122,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private TwoPhaseCommitResponse commit(
-            String operationName,
-            String transactionId,
-            TwoPhaseCommitServiceBlockingStub paymentsClientTcp
+                                          String operationName,
+                                          String transactionId,
+                                          TwoPhaseCommitServiceBlockingStub paymentsClientTcp
     ) {
         return paymentsClientTcp.commit(newCommitRequest(transactionId));
 //        OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId)
@@ -206,10 +206,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private <T> void distributedCommit(
-            String orderId,
-            @NonNull String paymentTransactionId,
-            @NonNull String reserveTransactionId,
-            T result
+                                       String orderId,
+                                       @NonNull String paymentTransactionId,
+                                       @NonNull String reserveTransactionId,
+                                       T result
     ) {
         reserveClientTcp.commit(newCommitRequest(reserveTransactionId));
         paymentsClientTcp.commit(newCommitRequest(paymentTransactionId));
@@ -217,10 +217,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void distributedRollback(
-            String orderId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            Throwable result
+                                     String orderId,
+                                     String paymentTransactionId,
+                                     String reserveTransactionId,
+                                     Throwable result
     ) {
         remoteRollback(paymentTransactionId, reserveTransactionId);
         if (!(result instanceof TwoPhaseTransactionUtils.PrepareTransactionException)) {
@@ -330,48 +330,50 @@ public class OrderServiceImpl implements OrderService {
     }
 
     protected Order saveAllAndCommit(
-            boolean twoPhaseCommit,
-            Order order,
-            String paymentTransactionId,
-            String reserveTransactionId
+                                     boolean twoPhaseCommit,
+                                     Order order,
+                                     String paymentTransactionId,
+                                     String reserveTransactionId
     ) {
         var orderId = order.id();
 
         var savedOrder = orderStorage.save(order);
         if (!twoPhaseCommit) {
             return savedOrder;
-        } else try {
-            // run distributed transaction
-            preparedTransactionService.prepare(orderId);
-            distributedCommit(
-                    orderId,
-                    paymentTransactionId,
-                    reserveTransactionId,
-                    savedOrder
-            );
-            return savedOrder;
-        } catch (Exception throwable) {
-            // rollback distributed transaction on error
-            log.error("error on transactional operation with orderId [{}]", orderId, throwable);
-            distributedRollback(
-                    orderId,
-                    paymentTransactionId,
-                    reserveTransactionId,
-                    throwable
-            );
-            throw throwable;
+        } else {
+            try {
+                // run distributed transaction
+                preparedTransactionService.prepare(orderId);
+                distributedCommit(
+                        orderId,
+                        paymentTransactionId,
+                        reserveTransactionId,
+                        savedOrder
+                );
+                return savedOrder;
+            } catch (Exception throwable) {
+                // rollback distributed transaction on error
+                log.error("error on transactional operation with orderId [{}]", orderId, throwable);
+                distributedRollback(
+                        orderId,
+                        paymentTransactionId,
+                        reserveTransactionId,
+                        throwable
+                );
+                throw throwable;
+            }
         }
     }
 
     protected <T, PI, PO, RI, RO> T updateOrderOp(
-            String opName,
-            String orderId,
-            boolean twoPhaseCommit,
-            Set<OrderStatus> expectedFinal,
-            OrderStatus intermediateStatus,
-            Function<Order, Payment.Status> paymentOp,
-            Function<Order, Reserve.Status> reserveOp,
-            Function<Order, T> responseBuilder
+                                                  String opName,
+                                                  String orderId,
+                                                  boolean twoPhaseCommit,
+                                                  Set<OrderStatus> expectedFinal,
+                                                  OrderStatus intermediateStatus,
+                                                  Function<Order, Payment.Status> paymentOp,
+                                                  Function<Order, Reserve.Status> reserveOp,
+                                                  Function<Order, T> responseBuilder
     ) {
         var order = orderStorage.getById(orderId);
         checkStatus(opName, "order", orderId, order.status(), expectedFinal, intermediateStatus);

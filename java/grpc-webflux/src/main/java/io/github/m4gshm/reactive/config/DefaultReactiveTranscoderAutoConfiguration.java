@@ -1,4 +1,4 @@
-package io.github.m4gshm.reactive;
+package io.github.m4gshm.reactive.config;
 
 import grpcstarter.extensions.transcoding.DefaultReactiveTranscoder;
 import grpcstarter.extensions.transcoding.GrpcTranscodingAutoConfiguration;

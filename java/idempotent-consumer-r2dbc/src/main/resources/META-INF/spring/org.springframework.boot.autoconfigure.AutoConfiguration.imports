@@ -1,1 +1,2 @@
-io.github.m4gshm.reactive.idempotent.consumer.config.R2dbcReactiveMessageStorageAutoConfiguration
+io.github.m4gshm.idempotent.consumer.config.R2dbcReactiveMessageStorageAutoConfiguration
+

@@ -127,9 +127,9 @@ public class OrdersGrpcTest {
     private double getSumCost(Map<String, Integer> items) {
         return items.entrySet().stream().mapToDouble(e -> {
             var cost = warehouseItemService.getItemCost(
-                            GetItemCostRequest.newBuilder()
-                                    .setId(e.getKey())
-                                    .build())
+                    GetItemCostRequest.newBuilder()
+                            .setId(e.getKey())
+                            .build())
                     .getCost();
             return cost * (double) e.getValue();
         }).sum();

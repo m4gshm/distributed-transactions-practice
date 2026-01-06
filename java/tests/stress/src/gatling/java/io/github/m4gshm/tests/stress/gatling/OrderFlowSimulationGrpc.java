@@ -26,7 +26,6 @@ import java.util.function.Function;
 import static account.v1.AccountServiceGrpc.newBlockingStub;
 import static io.gatling.javaapi.core.CoreDsl.constantConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.global;
-import static io.gatling.javaapi.core.CoreDsl.rampConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static io.gatling.javaapi.grpc.GrpcDsl.grpc;
 import static io.gatling.javaapi.grpc.GrpcDsl.response;
@@ -40,7 +39,6 @@ import static io.github.m4gshm.test.commons.orders.OrderUtils.newItemTopUpReques
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newReleaseRequest;
 import static io.grpc.Status.Code.OK;
 import static java.time.Duration.ofSeconds;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static orders.v1.OrderOuterClass.Order.Status.APPROVED;
 import static orders.v1.OrderOuterClass.Order.Status.RELEASED;

@@ -30,15 +30,15 @@ public class GrpcReactiveImpl implements GrpcReactive {
     TraceService traceService;
 
     private <T, SP, SC extends AutoCloseable> CoreSubscriber<? super T> newSubscriber(
-            String name,
-            SP span,
-            BiFunction<SP,
-                    String,
-                    SC> setAsLocalEvent,
-            Consumer<SP> stop,
-            BiConsumer<SP,
-                    Throwable> errorHandler,
-            StreamObserver<T> observer
+                                                                                      String name,
+                                                                                      SP span,
+                                                                                      BiFunction<SP,
+                                                                                              String,
+                                                                                              SC> setAsLocalEvent,
+                                                                                      Consumer<SP> stop,
+                                                                                      BiConsumer<SP,
+                                                                                              Throwable> errorHandler,
+                                                                                      StreamObserver<T> observer
     ) {
         return new CoreSubscriber<>() {
             volatile Throwable error;
@@ -92,9 +92,9 @@ public class GrpcReactiveImpl implements GrpcReactive {
     @SuppressWarnings("unchecked")
     @Override
     public <P extends CorePublisher<T>, T> void subscribe(
-            String name,
-            StreamObserver<T> observer,
-            Supplier<P> publisherFactory
+                                                          String name,
+                                                          StreamObserver<T> observer,
+                                                          Supplier<P> publisherFactory
     ) {
         var spanName = "subscribe:" + name;
         var trace = /* startNewSpan(spanName); */traceService.startNewObservation(spanName);

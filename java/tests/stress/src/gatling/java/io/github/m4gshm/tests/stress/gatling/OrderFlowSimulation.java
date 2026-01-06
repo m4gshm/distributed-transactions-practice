@@ -178,10 +178,14 @@ public class OrderFlowSimulation extends Simulation {
 
             double expectedUserBalance = sumCostOfRequest * requests;
 
-            log.info("expected requests {}, user need balance {}, current balance {}", requests, expectedUserBalance, balance);
+            log.info("expected requests {}, user need balance {}, current balance {}",
+                    requests,
+                    expectedUserBalance,
+                    balance);
 
             if (balance < expectedUserBalance) {
-                var accountTopUpResponse = accountService.topUp(AccountServiceOuterClass.AccountTopUpRequest.newBuilder()
+                var accountTopUpResponse = accountService.topUp(AccountServiceOuterClass.AccountTopUpRequest
+                        .newBuilder()
                         .setTopUp(AccountServiceOuterClass.AccountTopUpRequest.TopUp.newBuilder()
                                 .setAmount(expectedUserBalance - balance)
                                 .setClientId(CUSTOMER_ID)

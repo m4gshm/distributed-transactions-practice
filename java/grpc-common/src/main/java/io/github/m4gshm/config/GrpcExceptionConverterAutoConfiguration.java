@@ -12,7 +12,9 @@ import java.util.List;
 @AutoConfiguration
 public class GrpcExceptionConverterAutoConfiguration {
     @Bean
-    public GrpcExceptionConverter grpcExceptionConverter(MetadataFactory metadataFactory, StatusExtractor statusExtractor, List<GrpcExceptionResolver> grpcExceptionResolvers) {
+    public GrpcExceptionConverter grpcExceptionConverter(MetadataFactory metadataFactory,
+                                                         StatusExtractor statusExtractor,
+                                                         List<GrpcExceptionResolver> grpcExceptionResolvers) {
         return new GrpcExceptionConverter(metadataFactory, statusExtractor, grpcExceptionResolvers);
     }
 }
