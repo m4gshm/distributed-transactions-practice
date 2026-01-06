@@ -24,14 +24,14 @@ WHERE
 ;
 
 
--- name: UpdateAmountAndReserved :exec
+-- name: IncrementAmount :one
 UPDATE
   warehouse_item
 SET
-  amount = COALESCE($2, amount),
-  reserved = COALESCE($3, reserved)
+  amount = amount + $2
 WHERE
-  id = $1;
+  id = $1
+RETURNING amount;
 
 
 -- name: IncrementReserved :exec

@@ -1,11 +1,13 @@
 package io.github.m4gshm.test.orders;
 
 import account.v1.AccountServiceGrpc.AccountServiceBlockingStub;
-import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.ReactiveAccountStorage;
 import io.github.m4gshm.test.commons.orders.OrderUtils;
 import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
+import io.opentelemetry.api.OpenTelemetry;
+import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,6 +16,7 @@ import org.springframework.boot.SpringBootConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
 import warehouse.v1.Warehouse;
 import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
 import warehouse.v1.WarehouseService;
@@ -36,6 +39,7 @@ import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
 import static orders.v1.OrderOuterClass.Order.Status.RELEASED;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+@Slf4j
 @SpringBootTest(classes = {
         OrdersGrpcTest.Config.class,
         AccountServiceConfig.class,
@@ -52,7 +56,7 @@ public class OrdersGrpcTest {
     @Autowired
     WarehouseItemServiceBlockingStub warehouseItemService;
     @Autowired
-    AccountStorage accountStorage;
+    ReactiveAccountStorage reactiveAccountStorage;
 
     public void accountTopUp(String customerId, double sumCost) {
         accountService.topUp(newAccountTopUpRequest(customerId, sumCost));
@@ -79,7 +83,9 @@ public class OrdersGrpcTest {
             var before = warehouseAmounts1.getOrDefault(itemID, 0);
             var after = warehouseAmounts2.get(itemID);
             var actual = after - before;
-            assertEquals(items.get(itemID), actual);
+            var expected = items.get(itemID);
+            log.info("items populate result: id {}, expected {}, actual {}", itemID, expected, actual);
+            assertEquals(expected, actual);
         }
 
         var sumCost = getSumCost(items);
@@ -101,17 +107,19 @@ public class OrdersGrpcTest {
             var before = warehouseReserved1.getOrDefault(itemID, 0);
             var after = warehouseReserved2.get(itemID);
             var actual = after - before;
-            assertEquals(items.get(itemID), actual);
+            var expected = items.get(itemID);
+            log.info("items reserved result: id {}, expected {}, actual {}", itemID, expected, actual);
+            assertEquals(expected, actual);
         }
 
         var orderReleaseResponse = ordersService.release(newReleaseRequest(orderId, twoPhaseCommit));
         assertEquals(RELEASED, orderReleaseResponse.getStatus());
 
-        var warehouseItems4 = getWarehouseVal(getWarehouseItems(), Warehouse.Item::getAmount);
+        var warehouseAmounts3 = getWarehouseVal(getWarehouseItems(), Warehouse.Item::getAmount);
 
         for (var itemID : items.keySet()) {
             var before = warehouseAmounts1.get(itemID);
-            var after = warehouseItems4.get(itemID);
+            var after = warehouseAmounts3.get(itemID);
             assertEquals(0, after - before);
         }
     }
@@ -119,9 +127,9 @@ public class OrdersGrpcTest {
     private double getSumCost(Map<String, Integer> items) {
         return items.entrySet().stream().mapToDouble(e -> {
             var cost = warehouseItemService.getItemCost(
-                    GetItemCostRequest.newBuilder()
-                            .setId(e.getKey())
-                            .build())
+                            GetItemCostRequest.newBuilder()
+                                    .setId(e.getKey())
+                                    .build())
                     .getCost();
             return cost * (double) e.getValue();
         }).sum();
@@ -140,8 +148,11 @@ public class OrdersGrpcTest {
     }
 
     private void populateWarehouse(Map<String, Integer> items) {
-        items.forEach((itemId, amount) -> warehouseItemService.topUp(
-                newItemTopUpRequest(itemId, amount)));
+        items.forEach((itemId, amount) -> {
+            var topUpResponse = warehouseItemService.topUp(newItemTopUpRequest(itemId, amount));
+            var amount1 = topUpResponse.getAmount();
+            log.info("topUp item result: id {}, amount {}", itemId, amount1);
+        });
     }
 
     @Test
@@ -166,8 +177,8 @@ public class OrdersGrpcTest {
         var customerId = CUSTOMER_ID;
 
         // reset account
-        accountStorage.getById(customerId).flatMap(account -> {
-            return accountStorage.addAmount(customerId, -account.amount() + account.locked());
+        reactiveAccountStorage.getById(customerId).flatMap(account -> {
+            return reactiveAccountStorage.addAmount(customerId, -account.amount() + account.locked());
         }).block();
 
         var twoPhaseCommit = true;
@@ -197,6 +208,11 @@ public class OrdersGrpcTest {
     @SpringBootConfiguration
     @TestConfiguration
     public static class Config {
+
+        @Bean
+        OpenTelemetry openTelemetry() {
+            return OpenTelemetry.noop();
+        }
 
     }
 

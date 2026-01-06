@@ -1,9 +1,5 @@
-io.github.m4gshm.reactive.config.DefaultGrpcExceptionHandlerAutoConfiguration
-io.github.m4gshm.reactive.config.RestExceptionHandlerAutoConfiguration
+io.github.m4gshm.reactive.config.ReactiveRestExceptionHandlerAutoConfiguration
 io.github.m4gshm.reactive.config.GrpcReactiveAutoConfiguration
-io.github.m4gshm.otel.config.GrpcTelemetryAutoConfiguration
-io.github.m4gshm.otel.config.GrpcServerTracingInterceptorAutoConfiguration
-io.github.m4gshm.otel.config.GrpcClientTracingInterceptorAutoConfiguration
-io.github.m4gshm.otel.config.OtelCustomizerAutoConfiguration
-io.github.m4gshm.reactive.config.LoopResourcesConfiguration
-io.github.m4gshm.reactive.config.LoopResourcesConsumerConfiguration
+io.github.m4gshm.reactive.config.LoopResourcesAutoConfiguration
+io.github.m4gshm.reactive.config.LoopResourcesConsumerAutoConfiguration
+io.github.m4gshm.reactive.config.DefaultReactiveTranscoderAutoConfiguration

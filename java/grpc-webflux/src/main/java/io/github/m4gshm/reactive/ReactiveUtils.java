@@ -4,6 +4,8 @@ import io.github.m4gshm.InvalidStateException;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import io.grpc.stub.StreamObserver;
+import io.micrometer.observation.Observation;
+import io.micrometer.observation.contextpropagation.ObservationThreadLocalAccessor;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
@@ -20,12 +22,21 @@ public class ReactiveUtils {
                                         T request,
                                         BiConsumer<T, StreamObserver<R>> call
     ) {
-        return Mono.<R>create(sink -> {
-            log.trace("call {}", operationName);
-            call.accept(request, toStreamObserver(sink));
-        })
-                .doOnError(e -> log.error("error on {}", operationName, e))
-                .name(operationName);
+        return Mono.deferContextual(context -> {
+            return Mono.<R>create(sink -> {
+                log.trace("call {}", operationName);
+                final var observation = context.get(ObservationThreadLocalAccessor.KEY) instanceof Observation o
+                        ? o
+                        : Observation.NOOP;
+                try (var _ = observation.openScope()) {
+                    call.accept(request, toStreamObserver(sink));
+                }
+            })
+                    .doOnError(e -> log.error("error on {}", operationName, e))
+                    .name(operationName)
+//                    .contextWrite(context)
+            ;
+        });
     }
 
     public static <T> StreamObserver<T> toStreamObserver(MonoSink<T> sink) {

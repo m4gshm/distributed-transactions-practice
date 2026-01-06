@@ -1,0 +1,6 @@
+io.github.m4gshm.config.GrpcConfiguration
+io.github.m4gshm.config.MetadataFactoryAutoConfiguration
+io.github.m4gshm.config.RestExceptionHandlerAutoConfiguration
+io.github.m4gshm.config.GrpcExceptionConverterAutoConfiguration
+io.github.m4gshm.config.GrpcControllerExceptionHandlerAutoConfiguration
+

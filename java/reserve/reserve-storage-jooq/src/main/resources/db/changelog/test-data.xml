@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+        http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-latest.xsd">
+    <changeSet id="loadUpdateData-warehouse_item-1" author="alex">
+        <loadUpdateData tableName="warehouse_item" file="warehouse_item.csv" primaryKey="id" relativeToChangelogFile="true"/>
+        <rollback>
+            <delete tableName="reserve_item">
+                <where>
+                    id in ('f7c36185-f570-4e6b-b1b2-f3f0f9c46135','374fabf8-dd31-4912-93b1-57d177b9f6c6')
+                </where>
+            </delete>
+            <delete tableName="warehouse_item">
+                <where>
+                    id in ('f7c36185-f570-4e6b-b1b2-f3f0f9c46135','374fabf8-dd31-4912-93b1-57d177b9f6c6')
+                </where>
+            </delete>
+        </rollback>
+    </changeSet>
+</databaseChangeLog>

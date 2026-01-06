@@ -48,6 +48,28 @@ func (q *Queries) DecrementReserved(ctx context.Context, arg DecrementReservedPa
 	return err
 }
 
+const IncrementAmount = `-- name: IncrementAmount :one
+UPDATE
+  warehouse_item
+SET
+  amount = amount + $2
+WHERE
+  id = $1
+RETURNING amount
+`
+
+type IncrementAmountParams struct {
+	ID     string
+	Amount int32
+}
+
+func (q *Queries) IncrementAmount(ctx context.Context, arg IncrementAmountParams) (int32, error) {
+	row := q.db.QueryRow(ctx, IncrementAmount, arg.ID, arg.Amount)
+	var amount int32
+	err := row.Scan(&amount)
+	return amount, err
+}
+
 const IncrementReserved = `-- name: IncrementReserved :exec
 UPDATE
   warehouse_item
@@ -142,25 +164,4 @@ func (q *Queries) SelectItemByIDForUpdate(ctx context.Context, id string) (Wareh
 		&i.UpdatedAt,
 	)
 	return i, err
-}
-
-const UpdateAmountAndReserved = `-- name: UpdateAmountAndReserved :exec
-UPDATE
-  warehouse_item
-SET
-  amount = COALESCE($2, amount),
-  reserved = COALESCE($3, reserved)
-WHERE
-  id = $1
-`
-
-type UpdateAmountAndReservedParams struct {
-	ID       string
-	Amount   int32
-	Reserved int32
-}
-
-func (q *Queries) UpdateAmountAndReserved(ctx context.Context, arg UpdateAmountAndReservedParams) error {
-	_, err := q.db.Exec(ctx, UpdateAmountAndReserved, arg.ID, arg.Amount, arg.Reserved)
-	return err
 }

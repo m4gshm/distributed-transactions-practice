@@ -11,7 +11,7 @@ scrape_configs:
           [
             "localhost:7080",
             "host.containers.internal:7080",
-            # "host.docker.internal:7080",
+            "host.docker.internal:7080",
             "jvm-orders-grpc-service:7080",
           ]
         labels:
@@ -24,7 +24,7 @@ scrape_configs:
           [
             "localhost:7081",
             "host.containers.internal:7081",
-            # "host.docker.internal:7081",
+            "host.docker.internal:7081",
             "jvm-reserve-grpc-service:7081",
           ]
         labels:
@@ -37,7 +37,7 @@ scrape_configs:
           [
             "localhost:7082",
             "host.containers.internal:7082",
-            # "host.docker.internal:7082",
+            "host.docker.internal:7082",
             "jvm-payments-grpc-service:7082",
           ]
         labels:
@@ -50,7 +50,7 @@ scrape_configs:
           [
             "localhost:8001",
             "host.containers.internal:8001",
-            # "host.docker.internal:8001",
+            "host.docker.internal:8001",
             "go-orders-grpc-service:8001",
           ]
         labels:
@@ -63,7 +63,7 @@ scrape_configs:
           [
             "localhost:8003",
             "host.containers.internal:8003",
-            # "host.docker.internal:8003",
+            "host.docker.internal:8003",
             "go-reserve-grpc-service:8003",
           ]
         labels:
@@ -76,7 +76,7 @@ scrape_configs:
           [
             "localhost:8002",
             "host.containers.internal:8002",
-            # "host.docker.internal:8002",
+            "host.docker.internal:8002",
             "go-payments-grpc-service:8002",
           ]
         labels:

@@ -17,8 +17,7 @@ import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
-import static io.github.m4gshm.orders.service.client.config.PaymentsServiceClientConfiguration.getEventExecutors;
+import static io.github.m4gshm.grpc.reactive.client.NettyChannelBuilderUtils.newManagedChannelBuilder;
 
 @Slf4j
 @Configuration
@@ -32,7 +31,8 @@ public class ReserveServiceClientConfiguration {
         return ReserveServiceGrpc.newStub(newManagedChannelBuilder(
                 reserveClientProperties(),
                 clientInterceptors,
-                getEventExecutors(loopResources)).build());
+                loopResources
+        ).build());
     }
 
     @Bean
@@ -46,7 +46,7 @@ public class ReserveServiceClientConfiguration {
         return TwoPhaseCommitServiceGrpc.newStub(newManagedChannelBuilder(
                 reserveClientProperties(),
                 clientInterceptors,
-                getEventExecutors(loopResources)
+                loopResources
         ).build());
     }
 

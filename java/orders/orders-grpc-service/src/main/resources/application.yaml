@@ -2,6 +2,10 @@ debug: false
 logging:
   level:
     root: INFO
+    reactor:
+      netty:
+        channel:
+          ChannelOperations: INFO
     okhttp3:
       internal:
         http2:
@@ -30,12 +34,20 @@ logging:
               internals: INFO
     io:
       opentelemetry:
-        exporter.sender.okhttp.internal: INFO
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      micrometer:
+        observation:
+          contextpropagation:
+            ObservationThreadLocalAccessor: INFO
       grpc: INFO
       github:
-        m4gshm:
-          reactive: DEBUG
+#        m4gshm: TRACE
       r2dbc:
+        pool:
+#          PooledConnection: TRACE
         postgresql:
           client: INFO # log sql
           QUERY: INFO
@@ -47,7 +59,7 @@ logging:
     javax:
       management: INFO
   pattern:
-    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+#    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] [%X{trace_id:-},%X{span_id:-}]'
 server:
   port: 7080
   error:
@@ -68,28 +80,34 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
-
-  reactor.context-propagation: AUTO
+  threads:
+    virtual:
+      enabled: true
+#  reactor.context-propagation: AUTO
   #for liquibase
   datasource:
     url: jdbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 2
+      maximum-pool-size: 120
   r2dbc:
     url: r2dbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
     pool:
       initial-size: 1
-#      max-size: 32
+      max-size: 32
       min-idle: 8
       max-idle-time: 1m
       validation-depth: LOCAL
-      validation-query: select 1;
+#      validation-query: select 1;
   liquibase:
     enabled: true
     url: ${spring.datasource.url}
@@ -125,9 +143,18 @@ service:
     address: localhost:9082
 
 idempotent-consumer:
-  create-partition-scheduler: "0 */30 * * * *"
+  create-partition: false
+  create-table: false
+  create-partition-on-input-message: false
+  create-partition-scheduler: '-'
 
 management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: GRPC
   endpoints:
     web:
       exposure:
@@ -153,6 +180,10 @@ otel:
       protocol: grpc
       endpoint: http://localhost:4317
   instrumentation:
+    r2dbc:
+      enabled: false
+    spring-webflux:
+      enabled: false
     common:
       default-enabled: true
 #      logging:

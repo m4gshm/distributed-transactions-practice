@@ -4,7 +4,6 @@ import io.github.m4gshm.UnexpectedEntityStatusException;
 import io.github.m4gshm.orders.data.access.jooq.enums.DeliveryType;
 import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
 import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction;
 import io.github.m4gshm.protobuf.TimestampUtils;
 import io.grpc.Metadata;
 import io.grpc.Status;
@@ -17,7 +16,6 @@ import orders.v1.OrderOuterClass;
 import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
 import orders.v1.OrderServiceOuterClass.OrderCreateResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
-import org.jooq.DSLContext;
 import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentCancelRequest;
@@ -36,7 +34,6 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
-import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.rollback;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
@@ -212,14 +209,6 @@ public class OrderServiceUtils {
     private static Status getStatus(Throwable e) {
         var errorInfo = getErrorInfo(e);
         return errorInfo != null ? errorInfo.status() : null;
-    }
-
-    static Mono<Void> localRollback(DSLContext dsl, String orderTransactionId, Throwable result) {
-        return result instanceof TwoPhaseTransaction.PrepareTransactionException
-                ? rollback(dsl, orderTransactionId)
-                : Mono.<Void>empty().doOnSubscribe(_ -> {
-                    log.debug("no local prepared transaction for rollback");
-                });
     }
 
     static void logNoTransaction(String type, String transactionId) {

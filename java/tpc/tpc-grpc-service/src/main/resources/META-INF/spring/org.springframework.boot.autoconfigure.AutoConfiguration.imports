@@ -1,1 +1,1 @@
-io.github.m4gshm.tpc.service.config.TwoPhaseCommitServiceImplConfiguration
+io.github.m4gshm.tpc.service.config.ReactiveTwoPhaseCommitServiceGrpcImplAutoConfiguration

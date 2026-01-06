@@ -3,6 +3,7 @@ package impl
 import (
 	"context"
 
+	"github.com/m4gshm/gollections/slice"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
@@ -15,7 +16,6 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	warehousepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
-	"github.com/m4gshm/gollections/slice"
 )
 
 var tracerW trace.Tracer
@@ -26,12 +26,12 @@ func init() {
 
 type WarehouseService struct {
 	warehousepb.UnimplementedWarehouseItemServiceServer
-	db     *pgxpool.Pool
+	db *pgxpool.Pool
 }
 
 func NewWarehouseService(db *pgxpool.Pool) *WarehouseService {
 	return &WarehouseService{
-		db:     db,
+		db: db,
 	}
 }
 
@@ -41,9 +41,6 @@ func (s *WarehouseService) GetItemCost(ctx context.Context, req *warehousepb.Get
 	query := whsqlc.New(s.db)
 	item, err := query.SelectItemByID(ctx, req.Id)
 	if err != nil {
-		// if err == sql.ErrNoRows {
-		// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
-		// }
 		return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID '%s'): %v", req.Id, err)
 	}
 	return &warehousepb.GetItemCostResponse{Cost: item.UnitCost}, nil
@@ -80,24 +77,14 @@ func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUp
 
 	return tx.New(ctx, s.db, func(tx pgx.Tx) (*warehousepb.ItemTopUpResponse, error) {
 		itemID := body.Id
-
 		query := whsqlc.New(s.db)
-		item, err := query.SelectItemByID(ctx, itemID)
-		if err != nil {
-			// if err == sql.ErrNoRows {
-			// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
-			// }
-			return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID '%s'): %v", itemID, err)
-		}
-
-		newAmount := item.Amount + body.Amount
-		if err := query.UpdateAmountAndReserved(ctx, whsqlc.UpdateAmountAndReservedParams{
+		newAmount, err := query.IncrementAmount(ctx, whsqlc.IncrementAmountParams{
 			ID:     itemID,
-			Amount: newAmount,
-		}); err != nil {
+			Amount: body.Amount,
+		})
+		if err != nil {
 			return nil, status.Errorf(grpc.Status(err), "failed to update warehouse account (itemID '%s'): %v", itemID, err)
 		}
-
 		return &warehousepb.ItemTopUpResponse{Amount: newAmount}, nil
 	})
 }

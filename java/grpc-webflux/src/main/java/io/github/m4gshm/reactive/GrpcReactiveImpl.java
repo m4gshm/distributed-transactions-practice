@@ -1,13 +1,11 @@
 package io.github.m4gshm.reactive;
 
-import grpcstarter.server.feature.exceptionhandling.GrpcExceptionResolver;
-import io.github.m4gshm.GrpcConvertible;
-import io.grpc.StatusException;
-import io.grpc.StatusRuntimeException;
+import io.github.m4gshm.GrpcExceptionConverter;
+import io.github.m4gshm.tracing.TraceService;
 import io.grpc.stub.StreamObserver;
-import io.opentelemetry.api.trace.Span;
-import io.opentelemetry.api.trace.Tracer;
+import io.micrometer.observation.Observation;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.reactivestreams.Subscription;
@@ -16,9 +14,11 @@ import reactor.core.CoreSubscriber;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.List;
+import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
+import java.util.function.Consumer;
+import java.util.function.Supplier;
 
-import static io.opentelemetry.context.Context.current;
 import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
@@ -26,71 +26,63 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class GrpcReactiveImpl implements GrpcReactive {
 
-    MetadataFactory metadataFactory;
-    StatusExtractor statusExtractor;
-    List<GrpcExceptionResolver> grpcExceptionResolvers;
-    Tracer tracer;
+    GrpcExceptionConverter grpcExceptionConverter;
+    TraceService traceService;
 
-    private Throwable handle(Throwable throwable) {
-        if (throwable instanceof GrpcConvertible grpcConvertible) {
-            return grpcConvertible.toGrpcRuntimeException();
-        } else if (throwable instanceof StatusRuntimeException statusRuntimeException) {
-            return statusRuntimeException;
-        } else if (throwable instanceof StatusException statusException) {
-            return statusException;
-        }
-
-        final var metadata = metadataFactory.newMetadata(throwable);
-        for (var resolver : grpcExceptionResolvers) {
-            var sre = resolver.resolve(throwable, null, metadata);
-            if (sre != null) {
-                return sre;
-            }
-        }
-        return new StatusRuntimeException(statusExtractor.getStatus(throwable), metadata);
-    }
-
-    private <T> CoreSubscriber<? super T> newSubscriber(String name,
-                                                        Span span,
-                                                        StreamObserver<T> observer) {
+    private <T, SP, SC extends AutoCloseable> CoreSubscriber<? super T> newSubscriber(
+            String name,
+            SP span,
+            BiFunction<SP,
+                    String,
+                    SC> setAsLocalEvent,
+            Consumer<SP> stop,
+            BiConsumer<SP,
+                    Throwable> errorHandler,
+            StreamObserver<T> observer
+    ) {
         return new CoreSubscriber<>() {
             volatile Throwable error;
 
             @Override
+            @SneakyThrows
             public void onComplete() {
-                try (var _ = span.makeCurrent()) {
+                try (var _ = setAsLocalEvent.apply(span, "onComplete")) {
                     log.trace("onComplete {}", name);
                     if (error == null) {
                         observer.onCompleted();
                     }
-                    span.end();
+                } finally {
+                    stop.accept(span);
                 }
             }
 
             @Override
+            @SneakyThrows
             public void onError(Throwable throwable) {
-                try (var _ = span.makeCurrent()) {
+                try (var _ = setAsLocalEvent.apply(span, "onError")) {
                     log.error("onError {}", name, throwable);
                     this.error = throwable;
-                    span.recordException(throwable);
-                    observer.onError(handle(throwable));
+                    observer.onError(grpcExceptionConverter.convertToGrpcStatusException(throwable));
+                } finally {
+                    errorHandler.accept(span, throwable);
+                    stop.accept(span);
                 }
             }
 
             @Override
+            @SneakyThrows
             public void onNext(T t) {
-                try (var _ = span.makeCurrent()) {
+                try (var _ = setAsLocalEvent.apply(span, "onNext")) {
                     log.trace("onNext {}", name);
-                    span.addEvent("onNext");
                     observer.onNext(t);
                 }
             }
 
             @Override
+            @SneakyThrows
             public void onSubscribe(Subscription s) {
-                try (var _ = span.makeCurrent()) {
+                try (var _ = setAsLocalEvent.apply(span, "onSubscribe")) {
                     log.trace("onSubscribe {}", name);
-                    span.addEvent("onSubscribe");
                     s.request(1);
                 }
             }
@@ -99,18 +91,33 @@ public class GrpcReactiveImpl implements GrpcReactive {
 
     @SuppressWarnings("unchecked")
     @Override
-    public <P extends CorePublisher<T>, T> void subscribe(String name, StreamObserver<T> observer, P publisher) {
-        var span = tracer.spanBuilder("subscribe:" + name).setParent(current()).startSpan();
-        try (var _ = span.makeCurrent()) {
+    public <P extends CorePublisher<T>, T> void subscribe(
+            String name,
+            StreamObserver<T> observer,
+            Supplier<P> publisherFactory
+    ) {
+        var spanName = "subscribe:" + name;
+        var trace = /* startNewSpan(spanName); */traceService.startNewObservation(spanName);
+        try (var _ = traceService.startLocal(trace)) {
+            var publisher = publisherFactory.get();
             final P p;
             if (publisher instanceof Mono<?> mono) {
-                p = (P) mono.name(name);
+                p = (P) mono.name(name)
+                        .contextWrite(context -> traceService.putToReactContext(context, trace));
             } else if (publisher instanceof Flux<?> flux) {
-                p = (P) flux.name(name);
+                p = (P) flux.name(name)
+                        .contextWrite(context -> traceService.putToReactContext(context, trace));
             } else {
                 p = publisher;
             }
-            p.subscribe(newSubscriber(name, span, observer));
+//            p.subscribe(newSubscriber(name, trace, this::setAsLocalEvent, Span::end,
+//                    Span::recordException, observer));
+            p.subscribe(newSubscriber(name,
+                    trace,
+                    traceService::startLocalEvent,
+                    Observation::stop,
+                    Observation::error,
+                    observer));
         }
     }
 }

@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 
 import java.util.List;
 
-import static io.github.m4gshm.test.orders.config.Utils.newManagedChannel;
+import static io.github.m4gshm.test.commons.ManagedChannelUtils.newManagedChannel;
 
 @Configuration
 @EnableConfigurationProperties

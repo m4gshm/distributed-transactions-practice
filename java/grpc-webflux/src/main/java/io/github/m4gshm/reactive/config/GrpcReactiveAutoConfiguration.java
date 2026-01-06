@@ -3,11 +3,11 @@ package io.github.m4gshm.reactive.config;
 import grpcstarter.server.feature.exceptionhandling.GrpcExceptionResolver;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reactive.GrpcReactiveImpl;
-import io.github.m4gshm.reactive.MetadataFactory;
-import io.github.m4gshm.reactive.MetadataFactoryImpl;
-import io.github.m4gshm.reactive.StatusExtractor;
-import io.github.m4gshm.reactive.StatusExtractorImpl;
-import io.opentelemetry.api.OpenTelemetry;
+import io.github.m4gshm.MetadataFactory;
+import io.github.m4gshm.MetadataFactoryImpl;
+import io.github.m4gshm.StatusExtractor;
+import io.github.m4gshm.StatusExtractorImpl;
+import io.github.m4gshm.tracing.TraceService;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
 import org.springframework.context.annotation.Bean;
@@ -21,11 +21,11 @@ public class GrpcReactiveAutoConfiguration {
     public GrpcReactive grpcCoreSubscriberFactory(MetadataFactory metadataFactory,
                                                   StatusExtractor statusExtractor,
                                                   List<GrpcExceptionResolver> grpcExceptionResolvers,
-                                                  OpenTelemetry openTelemetry) {
+                                                  TraceService traceService) {
         return new GrpcReactiveImpl(metadataFactory,
                 statusExtractor,
                 grpcExceptionResolvers,
-                openTelemetry.getTracer("grpc-reactive"));
+                traceService);
     }
 
     @Bean

@@ -6,11 +6,9 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    api(project(":jooq-r2dbc"))
-    api(project(":r2dbc-postgres"))
+    compileOnly("io.projectreactor:reactor-core")
 
     implementation("org.postgresql:postgresql")
-    implementation("org.postgresql:r2dbc-postgresql")
 
     liquibaseRuntime("org.liquibase:liquibase-core")
     liquibaseRuntime("info.picocli:picocli")
@@ -18,7 +16,6 @@ dependencies {
 
     jooqCodegen("org.postgresql:postgresql")
 
-    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 

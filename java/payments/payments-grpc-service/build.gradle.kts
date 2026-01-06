@@ -1,6 +1,5 @@
 import com.bmuschko.gradle.docker.DockerConventionJvmApplicationPlugin
 import com.bmuschko.gradle.docker.tasks.image.Dockerfile
-import org.gradle.kotlin.dsl.named
 
 plugins {
     `java-library`
@@ -10,14 +9,15 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    api(project(":storage-api"))
+    api(project(":storage-reactive-api"))
     api(project(":grpc-webflux"))
     api(project(":protobuf-utils"))
+    api(project(":tpc:tpc-grpc-service"))
+    api(project(":postgres-prepared-transaction-r2dbc"))
 
     api(project(":payments:payments-storage-r2dbc"))
     api(project(":payments:payments-grpc-api"))
     api(project(":payments:payments-event-api"))
-    api(project(":tpc:tpc-grpc-service"))
 
     implementation("org.springframework.boot:spring-boot-kafka")
 }

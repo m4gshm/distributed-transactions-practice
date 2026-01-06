@@ -1,0 +1,6 @@
+io.github.m4gshm.tracing.config.TraceServiceAutoConfiguration
+io.github.m4gshm.tracing.config.ActuatorDropSpanExportingPredicateAutoConfiguration
+io.github.m4gshm.tracing.config.GrpcTelemetryAutoConfiguration
+io.github.m4gshm.tracing.config.GrpcServerTracingInterceptorAutoConfiguration
+io.github.m4gshm.tracing.config.GrpcClientTracingInterceptorAutoConfiguration
+io.github.m4gshm.tracing.config.OtelCustomizerAutoConfiguration

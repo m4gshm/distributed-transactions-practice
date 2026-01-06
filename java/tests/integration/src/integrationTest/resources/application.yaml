@@ -1,7 +1,7 @@
 debug: true
 logging:
   level:
-    root: debug
+    root: info
 spring:
   r2dbc:
     url: r2dbc:postgresql://localhost:5000/jvm_payments

@@ -1,6 +1,7 @@
 package io.github.m4gshm.tests.stress.gatling;
 
-import com.google.protobuf.Message;
+import account.v1.AccountServiceOuterClass;
+import account.v1.AccountServiceOuterClass.AccountListRequest;
 import com.google.protobuf.MessageOrBuilder;
 import com.google.protobuf.util.JsonFormat;
 import io.gatling.http.response.Response;
@@ -11,64 +12,51 @@ import io.gatling.javaapi.core.ScenarioBuilder;
 import io.gatling.javaapi.core.Session;
 import io.gatling.javaapi.core.Simulation;
 import io.gatling.javaapi.http.HttpRequestActionBuilder;
+import io.github.m4gshm.grpc.client.ClientProperties;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
-import warehouse.v1.WarehouseService.GetItemCostResponse;
-import warehouse.v1.WarehouseService.ItemListResponse.Builder;
+import warehouse.v1.WarehouseItemServiceGrpc;
+import warehouse.v1.WarehouseService;
+import warehouse.v1.WarehouseService.GetItemCostRequest;
 
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpResponse;
-import java.net.http.HttpResponse.BodyHandlers;
+import java.util.List;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
-import static account.v1.AccountServiceOuterClass.AccountListResponse;
+import static account.v1.AccountServiceGrpc.newBlockingStub;
 import static io.gatling.javaapi.core.CoreDsl.StringBody;
 import static io.gatling.javaapi.core.CoreDsl.constantConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.global;
 import static io.gatling.javaapi.core.CoreDsl.jsonPath;
-import static io.gatling.javaapi.core.CoreDsl.rampConcurrentUsers;
 import static io.gatling.javaapi.core.CoreDsl.scenario;
 import static io.gatling.javaapi.http.HttpDsl.http;
 import static io.gatling.javaapi.http.HttpDsl.status;
+import static io.github.m4gshm.test.commons.ManagedChannelUtils.newManagedChannel;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.CUSTOMER_ID;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.getOrderItems;
-import static io.github.m4gshm.test.commons.orders.OrderUtils.newAccountTopUpRequest;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newApproveRequest;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newCreateRequest;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newItemTopUpRequest;
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newReleaseRequest;
-import static java.net.http.HttpClient.newHttpClient;
-import static java.net.http.HttpRequest.BodyPublishers.ofString;
-import static java.net.http.HttpRequest.newBuilder;
-import static java.nio.charset.StandardCharsets.UTF_8;
 import static java.time.Duration.ofSeconds;
-import static java.util.function.Function.identity;
 import static java.util.stream.Collectors.toMap;
 import static warehouse.v1.Warehouse.Item;
-import static warehouse.v1.WarehouseService.ItemListResponse;
 
 @Slf4j
 public class OrderFlowSimulation extends Simulation {
     public static final String API_V1 = "/api/v1";
     private static final Map<String, String> env = System.getenv();
     public static final String ORDER_URL = env.getOrDefault("ORDER_URL", "http://localhost:7080");
-    public static final String WAREHOUSE_URL = env.getOrDefault("WAREHOUSE_URL", "http://localhost:7081");
-    public static final String WAREHOUSE_ITEM_URL = WAREHOUSE_URL + API_V1 + "/warehouse/item";
-    public static final String WAREHOUSE_ITEM_COST_URL = WAREHOUSE_URL + API_V1 + "/warehouse/item/cost";
-    public static final String ACCOUNT_URL = env.getOrDefault("ACCOUNT_URL", "http://localhost:7082");
+
+    public static final String ACCOUNT_ADDRESS = env.getOrDefault("ACCOUNT_ADDRESS", "localhost:9082");
+    public static final String WAREHOUSE_ADDRESS = env.getOrDefault("WAREHOUSE_ADDRESS", "localhost:9081");
 
     {
         setUp(
-                newScenario("WarmUp", httpRequestActionBuilder -> {
-                    return httpRequestActionBuilder.silent().ignoreProtocolChecks();
-                }, constantConcurrentUsers(100).during(30)
-                ).andThen(
-                        newScenario("Order Flow", identity(), rampConcurrentUsers(4).to(20).during(ofSeconds(30)))
-                )
-        )
+                newScenario("Order Flow", httpRequestActionBuilder -> {
+                    return httpRequestActionBuilder/* .silent().ignoreProtocolChecks() */;
+                }, constantConcurrentUsers(40).during(30)))
                 .assertions(global().failedRequests().count().lt(1L))
                 .protocols(
                         http.baseUrl(ORDER_URL).warmUp(ORDER_URL).acceptHeader("application/json")
@@ -76,42 +64,11 @@ public class OrderFlowSimulation extends Simulation {
                 .maxDuration(ofSeconds(120));
     }
 
-    private static <T> HttpResponse<T> check(String service, HttpResponse<T> response) {
-        var body = response.body();
-        var headers = response.headers();
-
-        log.info("{} response status {}, headers {}, body {}", service, response.statusCode(), headers, body);
-
-        if (response.statusCode() != 200) {
-            var request = response.request();
-            throw new IllegalStateException("unexpected status of response: status [" + response.statusCode()
-                    + "] request ["
-                    +
-                    request.method()
-                    + ":"
-                    + request.uri()
-                    + "], response: "
-                    + body);
-        }
-        return response;
-    }
-
-    @SneakyThrows
-    private static double getWarehouseItemCost(HttpClient httpClient, String itemId) {
-        var service = "warehouse";
-
-        var uri = new URI(WAREHOUSE_ITEM_COST_URL + "/" + itemId);
-
-        return parse(check(service, httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString()))
-                .body(),
-                GetItemCostResponse.newBuilder(),
-                GetItemCostResponse.Builder::build
-        ).getCost();
-    }
-
     private static BiFunction<Response, Session, Response> logResponse(String op) {
         return (response, session) -> {
-            log.info("{} response: {}", op, response.body().string());
+            if (log.isDebugEnabled()) {
+                log.debug("{} response: {}", op, response.body().string());
+            }
             return response;
         };
     }
@@ -124,14 +81,18 @@ public class OrderFlowSimulation extends Simulation {
                 .post(API_V1 + "/order")
                 .body(StringBody(toJson(newCreateRequest(getOrderItems(), CUSTOMER_ID, false))))
                 .transformResponse(logResponse("CreateOrder"))
+//                .requestTimeout(ofSeconds(2))
                 .check(status().is(200))
                 .check(jsonPath("$.id").notNull().saveAs("id"));
         var approve = http("ApproveOrder")
                 .post(API_V1 + "/order/approve")
                 .body(StringBody(session -> {
-                    return toJson(newApproveRequest(session.get("id"), false));
+                    var orderId = session.<String>get("id");
+                    log.debug("ApproveOrder orderId {}", orderId);
+                    return toJson(newApproveRequest(orderId, false));
                 }))
                 .transformResponse(logResponse("ApproveOrder"))
+//                .requestTimeout(ofSeconds(5))
                 .check(status().is(200))
                 .check(jsonPath("$.status").is("APPROVED"));
         var release = http("ReleaseOrder")
@@ -140,6 +101,7 @@ public class OrderFlowSimulation extends Simulation {
                     return toJson(newReleaseRequest(session.get("id"), false));
                 }))
                 .transformResponse(logResponse("ReleaseOrder"))
+//                .requestTimeout(ofSeconds(5))
                 .check(status().is(200))
                 .check(jsonPath("$.status").is("RELEASED"));
 
@@ -180,68 +142,23 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     @SneakyThrows
-    private static <T, B extends Message.Builder> T parse(String json, B builder, Function<B, T> build) {
-        JsonFormat.parser().merge(json, builder);
-        return build.apply(builder);
-    }
-
-    @SneakyThrows
     private static String toJson(MessageOrBuilder message) {
         return JsonFormat.printer().print(message);
-    }
-
-    @SneakyThrows
-    private static void topUpWarehouseItem(String service,
-                                           HttpClient httpClient,
-                                           String id,
-                                           Integer count,
-                                           URI uri,
-                                           Map<String, Item> amounts) {
-        int amount = amounts.get(id).getAmount();
-        if (amount < count) {
-            check(service,
-                    httpClient.send(newBuilder()
-                            .uri(uri)
-                            .PUT(ofString(toJson(newItemTopUpRequest(id, count - amount)), UTF_8))
-                            .build(), BodyHandlers.ofString())
-            );
-        }
-    }
-
-    @SneakyThrows
-    private static void topUpWarehouseItems(HttpClient httpClient,
-                                            Map<String, Integer> orderItemsPerRequest,
-                                            int requests) {
-        var service = "warehouse";
-
-        var uri = new URI(WAREHOUSE_ITEM_URL);
-        var itemAmounts = parse(check(service,
-                httpClient.send(newBuilder().uri(uri).GET().build(), BodyHandlers.ofString())).body(),
-                ItemListResponse.newBuilder(),
-                Builder::build
-        ).getAccountsList().stream().collect(toMap(Item::getId, a -> a));
-
-        orderItemsPerRequest.forEach((id, count) -> {
-            topUpWarehouseItem(service, httpClient, id, requests * count, uri, itemAmounts);
-        });
     }
 
     @Override
     @SneakyThrows
     public void before() {
-        try (var httpClient = newHttpClient()) {
-            var service = "account";
-            var accountUrl = new URI(ACCOUNT_URL + API_V1 + "/account");
+        log.info("init account url {}", ACCOUNT_ADDRESS);
+        log.info("init warehouse url {}", WAREHOUSE_ADDRESS);
+        var accountChannel = newManagedChannel(clientProperties(ACCOUNT_ADDRESS), List.of());
+        var warehouseChannel = newManagedChannel(clientProperties(WAREHOUSE_ADDRESS), List.of());
+        try {
+            var accountService = newBlockingStub(accountChannel);
+            var warehouseItemService = WarehouseItemServiceGrpc.newBlockingStub(warehouseChannel);
 
-            var response = check(service,
-                    httpClient.send(newBuilder()
-                            .uri(accountUrl)
-                            .GET()
-                            .build(), BodyHandlers.ofString()));
-
-            double balance = parse(response.body(),
-                    AccountListResponse.newBuilder(),
-                    AccountListResponse.Builder::build).getAccountsList()
+            double balance = accountService.list(AccountListRequest.newBuilder().build())
+                    .getAccountsList()
                     .stream()
                     .filter(a -> CUSTOMER_ID.equals(a.getClientId()))
                     .map(a -> a.getAmount() - a.getLocked())
@@ -253,25 +170,47 @@ public class OrderFlowSimulation extends Simulation {
             var sumCostOfRequest = orderItems.entrySet().stream().mapToDouble(e -> {
                 var id = e.getKey();
                 var amount = e.getValue();
-                var cost = getWarehouseItemCost(httpClient, id);
+
+                var cost = warehouseItemService.getItemCost(GetItemCostRequest.newBuilder().setId(id).build())
+                        .getCost();
                 return cost * amount;
             }).sum();
 
             double expectedUserBalance = sumCostOfRequest * requests;
 
-            log.info("expected requests {}, user balance {}", requests, expectedUserBalance);
+            log.info("expected requests {}, user need balance {}, current balance {}", requests, expectedUserBalance, balance);
 
             if (balance < expectedUserBalance) {
-                check(service,
-                        httpClient.send(newBuilder()
-                                .uri(accountUrl)
-                                .PUT(ofString(toJson(newAccountTopUpRequest(CUSTOMER_ID,
-                                        expectedUserBalance - balance)), UTF_8))
-                                .build(),
-                                BodyHandlers.ofString())
-                );
+                var accountTopUpResponse = accountService.topUp(AccountServiceOuterClass.AccountTopUpRequest.newBuilder()
+                        .setTopUp(AccountServiceOuterClass.AccountTopUpRequest.TopUp.newBuilder()
+                                .setAmount(expectedUserBalance - balance)
+                                .setClientId(CUSTOMER_ID)
+                                .build())
+                        .build());
+                var balance1 = accountTopUpResponse.getBalance();
+                log.info("topUp balance {}", balance1);
             }
-            topUpWarehouseItems(httpClient, orderItems, requests);
+
+            var itemAmounts = warehouseItemService.itemList(WarehouseService.ItemListRequest.newBuilder()
+                    .build()).getAccountsList().stream().collect(toMap(Item::getId, a -> a));
+
+            orderItems.forEach((id, count) -> {
+                int amount = itemAmounts.get(id).getAmount();
+                if (amount < (requests * count)) {
+                    var itemTopUpRequest = newItemTopUpRequest(id, (requests * count) - amount);
+                    warehouseItemService.topUp(itemTopUpRequest);
+                }
+            });
+        } finally {
+            accountChannel.shutdownNow();
+            warehouseChannel.shutdownNow();
         }
+    }
+
+    private io.github.m4gshm.grpc.client.ClientProperties clientProperties(String address) {
+        var properties = new ClientProperties();
+        properties.setAddress(address);
+        properties.setSecure(false);
+        return properties;
     }
 }

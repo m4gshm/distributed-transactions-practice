@@ -35,13 +35,19 @@ subprojects {
         toolVersion = "11.0.0"
     }
 
-    val isService = project.path in setOf(
+    val isSyncService = project.path in setOf(
+        ":orders:orders-grpc-service-sync",
+        ":payments:payments-grpc-service-sync",
+        ":reserve:reserve-grpc-service-sync"
+    )
+
+    val isReactiveService = project.path in setOf(
         ":orders:orders-grpc-service",
         ":payments:payments-grpc-service",
         ":reserve:reserve-grpc-service"
     )
 
-//    if (isService) {
+//    if (isReactiveService) {
 //        apply(plugin = "com.bmuschko.docker-spring-boot-application")
 //        fun DockerExtension.`springBootApplication`(configure: Action<DockerSpringBootApplication>): Unit =
 //            (this as ExtensionAware).extensions.configure("springBootApplication", configure)
@@ -66,29 +72,35 @@ subprojects {
                 "org.projectlombok:lombok"
             )
         }
-        if (isService) {
+        if (isReactiveService || isSyncService) {
             implementation("org.aspectj:aspectjtools:1.9.25")
             runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
-            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
-            implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
+//            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
+//            implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
             runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
             runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
-            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
 
-            implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
+            implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
+
             implementation("org.springframework.boot:spring-boot-starter-jooq")
-
             implementation("org.springframework.boot:spring-boot-starter-actuator")
-            implementation("io.micrometer:micrometer-registry-prometheus")
-            implementation("org.springframework.boot:spring-boot-starter-webflux")
-            implementation("org.springframework:spring-webflux")
-            implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
 
+            implementation("org.springframework.boot:spring-boot-micrometer-metrics")
+            implementation("org.springframework.boot:spring-boot-micrometer-observation")
+            implementation("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
+            implementation("io.micrometer:context-propagation")
+            implementation("io.micrometer:micrometer-tracing")
+            implementation("io.micrometer:micrometer-tracing-bridge-otel")
+            implementation("io.micrometer:micrometer-registry-otlp")
+            implementation("io.micrometer:micrometer-registry-prometheus")
+
+            implementation("io.github.danielliu1123:grpc-transcoding")
             implementation("io.github.danielliu1123:grpc-server-boot-starter")
             implementation("io.github.danielliu1123:grpc-starter-protovalidate")
             implementation("io.github.danielliu1123:grpc-starter-transcoding")
             implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+            implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
 
@@ -98,8 +110,36 @@ subprojects {
                     replacedBy("io.grpc:grpc-netty")
                 }
             }
-            implementation("io.projectreactor.kafka:reactor-kafka")
+
             implementation("org.springframework.kafka:spring-kafka")
+
+            implementation("io.opentelemetry:opentelemetry-api")
+            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
+            implementation("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            implementation("io.opentelemetry.contrib:opentelemetry-samplers")
+
+            implementation("org.springframework.boot:spring-boot-health")
+            implementation("org.springframework.boot:spring-boot-jooq")
+            implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
+            implementation("org.springdoc:springdoc-openapi-starter-common:3.0.0")
+        }
+        if (isReactiveService) {
+            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
+
+            implementation("org.springframework.boot:spring-boot-starter-webflux")
+            implementation("org.springframework:spring-webflux")
+            implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
+
+            implementation("io.projectreactor.kafka:reactor-kafka")
+
+            implementation("io.r2dbc:r2dbc-proxy")
+        }
+        if (isSyncService) {
+            implementation("net.ttddyy.observation:datasource-micrometer:2.0.1")
+            implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:2.0.1")
+
+            implementation("org.springframework.boot:spring-boot-starter-web")
+            implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui")
         }
 
         testImplementation("org.junit.jupiter:junit-jupiter-api")
@@ -110,10 +150,10 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-
             mavenBom("io.opentelemetry:opentelemetry-bom:1.57.0")
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:4.0.0")
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
+            mavenBom("org.springframework.grpc:spring-grpc-dependencies:1.0.0")
             mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.23.0")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
         }
@@ -138,6 +178,7 @@ subprojects {
             dependency("jakarta.validation:jakarta.validation-api:3.0.2")
 
             dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.0")
+            dependency("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
             dependency("org.springframework:spring-r2dbc:6.2.8")
             dependency("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")

@@ -1,0 +1,26 @@
+package io.github.m4gshm.orders.service;
+
+import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import orders.v1.OrderServiceOuterClass.OrderCancelResponse;
+import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
+import orders.v1.OrderServiceOuterClass.OrderCreateResponse;
+import orders.v1.OrderServiceOuterClass.OrderGetResponse;
+import orders.v1.OrderServiceOuterClass.OrderListResponse;
+import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
+import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
+
+public interface OrderService {
+    OrderApproveResponse approve(String orderId, boolean twoPhaseCommit);
+
+    OrderCancelResponse cancel(String orderId, boolean twoPhaseCommit);
+
+    OrderCreateResponse create(OrderCreate createRequest, boolean twoPhaseCommit);
+
+    OrderGetResponse get(String orderId);
+
+    OrderListResponse list();
+
+    OrderReleaseResponse release(String orderId, boolean twoPhaseCommit);
+
+    OrderResumeResponse resume(String orderId, boolean twoPhaseCommit);
+}

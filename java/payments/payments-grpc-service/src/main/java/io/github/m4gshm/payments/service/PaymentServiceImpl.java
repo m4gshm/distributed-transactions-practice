@@ -1,11 +1,12 @@
 package io.github.m4gshm.payments.service;
 
 import io.github.m4gshm.LogUtils;
-import io.github.m4gshm.jooq.Jooq;
-import io.github.m4gshm.payments.data.AccountStorage;
-import io.github.m4gshm.payments.data.PaymentStorage;
+import io.github.m4gshm.jooq.ReactiveJooq;
+import io.github.m4gshm.payments.data.ReactiveAccountStorage;
+import io.github.m4gshm.payments.data.ReactivePaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.payments.data.model.Payment;
+import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
@@ -31,11 +32,10 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.function.BiFunction;
 
-import static io.github.m4gshm.ExceptionUtils.checkStatus;
+import static io.github.m4gshm.ReactiveExceptionUtils.checkStatus;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPayment;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toPaymentProto;
 import static io.github.m4gshm.payments.service.PaymentServiceUtils.toStatusProto;
-import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransaction.prepare;
 import static io.github.m4gshm.protobuf.Utils.getOrNull;
 import static lombok.AccessLevel.PRIVATE;
 import static payment.v1.PaymentServiceGrpc.PaymentServiceImplBase;
@@ -51,11 +51,13 @@ import static reactor.core.publisher.Mono.defer;
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PaymentServiceImpl extends PaymentServiceImplBase {
-    Jooq jooq;
+    ReactiveJooq jooq;
 
     GrpcReactive grpc;
-    PaymentStorage paymentStorage;
-    AccountStorage accountStorage;
+    ReactivePaymentStorage reactivePaymentStorage;
+    ReactiveAccountStorage reactiveAccountStorage;
+
+    ReactivePreparedTransactionService reactivePreparedTransactionService;
 
     private static Payment withStatus(Payment payment, PaymentStatus status) {
         return payment.toBuilder().status(status).build();
@@ -71,9 +73,9 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 expected,
                 (payment, account) -> {
-                    return accountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
+                    return reactiveAccountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
                         var status = lockResult.success() ? HOLD : INSUFFICIENT;
-                        return paymentStorage.save(payment.toBuilder()
+                        return reactivePaymentStorage.save(payment.toBuilder()
                                 .status(status)
                                 .insufficient(status == INSUFFICIENT ? lockResult.insufficientAmount() : null)
                                 .build())
@@ -95,8 +97,8 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment, account) -> {
-                    return accountStorage.unlock(account.clientId(), payment.amount())
-                            .then(paymentStorage.save(withStatus(payment, CANCELLED)).map(savedPaymant -> {
+                    return reactiveAccountStorage.unlock(account.clientId(), payment.amount())
+                            .then(reactivePaymentStorage.save(withStatus(payment, CANCELLED)).map(savedPaymant -> {
                                 return PaymentCancelResponse.newBuilder()
                                         .setId(savedPaymant.id())
                                         .setStatus(toStatusProto(savedPaymant.status()))
@@ -111,18 +113,19 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         grpc.subscribe(
                 "create",
                 responseObserver,
-                defer(() -> {
+                () -> defer(() -> {
                     var paymentId = UUID.randomUUID().toString();
                     var payment = toPayment(paymentId, request.getBody(), CREATED);
                     var response = PaymentCreateResponse.newBuilder()
                             .setId(paymentId)
                             .build();
-                    return jooq.inTransaction(dsl -> prepare(
-                            dsl,
-                            getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
-                            paymentStorage.save(payment)
+                    return reactivePreparedTransactionService.prepare(
+                            getOrNull(request,
+                                    PaymentCreateRequest::hasPreparedTransactionId,
+                                    PaymentCreateRequest::getPreparedTransactionId),
+                            reactivePaymentStorage.save(payment)
                                     .thenReturn(response)
-                    ));
+                    );
                 })
         );
     }
@@ -132,7 +135,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         grpc.subscribe(
                 "get",
                 responseObserver,
-                paymentStorage.getById(request.getId()).map(payment -> {
+                () -> reactivePaymentStorage.getById(request.getId()).map(payment -> {
                     return PaymentGetResponse.newBuilder()
                             .setPayment(toPaymentProto(payment))
                             .build();
@@ -145,7 +148,7 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
         grpc.subscribe(
                 "list",
                 responseObserver,
-                paymentStorage.findAll().map(payments -> {
+                () -> reactivePaymentStorage.findAll().map(payments -> {
                     return PaymentListResponse.newBuilder()
                             .addAllPayments(payments.stream().map(PaymentServiceUtils::toPaymentProto).toList())
                             .build();
@@ -167,14 +170,15 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(HOLD),
                 (payment, account) -> {
-                    return accountStorage.writeOff(account.clientId(), payment.amount()).flatMap(writeOffResult -> {
-                        return paymentStorage.save(withStatus(payment, PAID)).map(_ -> {
-                            return PaymentPayResponse.newBuilder()
-                                    .setId(payment.id())
-                                    .setBalance(writeOffResult.balance())
-                                    .build();
-                        });
-                    });
+                    return reactiveAccountStorage.writeOff(account.clientId(), payment.amount())
+                            .flatMap(writeOffResult -> {
+                                return reactivePaymentStorage.save(withStatus(payment, PAID)).map(_ -> {
+                                    return PaymentPayResponse.newBuilder()
+                                            .setId(payment.id())
+                                            .setBalance(writeOffResult.balance())
+                                            .build();
+                                });
+                            });
                 });
     }
 
@@ -185,19 +189,22 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                                     Set<PaymentStatus> expected,
                                     BiFunction<Payment, Account, Mono<T>> routine
     ) {
-        grpc.subscribe("paymentAccount", responseObserver, log(opName, jooq.inTransaction(dsl -> {
-            return prepare(
-                    dsl,
-                    preparedTransactionId,
-                    paymentStorage.getById(paymentId).flatMap(payment -> {
-                        return checkStatus(opName, payment.status(), expected, null).then(defer(() -> {
-                            return accountStorage.getById(payment.clientId())
-                                    .flatMap(account -> routine.apply(payment, account));
-                        }));
-                    })
-            );
-        }).doOnSuccess(t -> {
-            log.debug("{}, paymentId [{}]", opName, paymentId);
-        })));
+        grpc.subscribe("paymentAccount",
+                responseObserver,
+                () -> log(opName,
+                        reactivePreparedTransactionService.prepare(
+                                preparedTransactionId,
+                                reactivePaymentStorage.getById(paymentId).flatMap(payment -> {
+                                    return checkStatus(opName, "payment", paymentId, payment.status(), expected, null)
+                                            .then(defer(
+                                                    () -> {
+                                                        return reactiveAccountStorage.getById(payment.clientId())
+                                                                .flatMap(account -> routine.apply(payment, account));
+                                                    }));
+                                })
+                        ).doOnSuccess(t -> {
+                            log.debug("{}, paymentId [{}]", opName, paymentId);
+                        })));
     }
+
 }

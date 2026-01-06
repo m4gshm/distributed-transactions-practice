@@ -2,6 +2,16 @@ debug: false
 logging:
   level:
     root: INFO
+    reactor:
+      netty:
+        channel:
+          ChannelOperations: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
     org:
       springframework:
         boot:
@@ -9,15 +19,21 @@ logging:
             logging:
               ConditionEvaluationReportLogger: DEBUG # auto configs report
         r2dbc:
-          connection: INFO
+          connection: INFO # log sql
         transaction:
-          reactive: INFO
+          reactive: INFO # log sql
     io:
-#      opentelemetry: TRACE
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
       grpc: INFO
       github:
         m4gshm: INFO
       r2dbc:
+        pool:
+#          PooledConnection: TRACE
         postgresql:
           client: INFO # log sql
           QUERY: INFO
@@ -29,7 +45,7 @@ logging:
     javax:
       management: INFO
   pattern:
-    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+#    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
 server:
   port: 7081
   error:
@@ -54,22 +70,30 @@ springdoc:
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+  threads:
+    virtual:
+      enabled: true
+#  reactor.context-propagation: AUTO
   #for liquibase
   datasource:
     url: jdbc:postgresql://localhost:5000/jvm_reserve
     username: postgres
     password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 2
+      maximum-pool-size: 120
   r2dbc:
     url: r2dbc:postgresql://localhost:5000/jvm_reserve
     username: postgres
     password: postgres
     pool:
       initial-size: 1
-#      max-size: 32
-      min-idle: 1
-      max-idle-time: 30s
-      validation-depth: REMOTE
-      validation-query: select 1;
+      max-size: 32
+      min-idle: 8
+      max-idle-time: 1m
+      validation-depth: LOCAL
+#      validation-query: select 1;
   liquibase:
     enabled: true
     url: ${spring.datasource.url}
@@ -88,6 +112,12 @@ spring:
     name: reserve
 
 management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: GRPC
   endpoints:
     web:
       exposure:
@@ -113,5 +143,13 @@ otel:
       protocol: grpc
       endpoint: http://localhost:4317
   instrumentation:
+    r2dbc:
+      enabled: false
+    spring-webflux:
+      enabled: false
     common:
       default-enabled: true
+#      logging:
+#        trace-id: traceId
+#        span-id: spanId
+

@@ -10,6 +10,8 @@ import static io.opentelemetry.instrumentation.reactor.v3_1.ContextPropagationOp
 @SpringBootApplication
 public class PaymentsApplication {
     public static void main(String[] args) {
+        // enable Virtual threads on boundedElastic()
+        System.setProperty("reactor.schedulers.defaultBoundedElasticOnVirtualThreads", "true");
         // early hook registering
         builder().build().registerOnEachOperator();
         SpringApplication.run(PaymentsApplication.class, args);

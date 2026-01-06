@@ -1,0 +1,185 @@
+debug: false
+logging:
+  level:
+    root: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
+    org:
+      jooq:
+#        tools: DEBUG
+      springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: DEBUG # auto configs report
+      apache:
+        kafka:
+          clients:
+            FetchSessionHandler: INFO
+            NetworkClient: INFO
+            consumer:
+              internals: INFO
+          common:
+            telemetry:
+              internals: INFO
+    io:
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      micrometer:
+        observation:
+          contextpropagation:
+            ObservationThreadLocalAccessor: INFO
+      grpc: INFO
+      github:
+#        m4gshm: TRACE
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+  pattern:
+#    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+server:
+  port: 7080
+grpc:
+  server:
+    port: 9080
+    max-inbound-message-size: 1GB
+    max-inbound-metadata-size: 1GB
+    channelz:
+      enabled: true
+    health:
+      enabled: true #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: true
+    exception-handling:
+      default-exception-advice-enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+springdoc-bridge:
+  enable: true
+
+spring:
+  web:
+    error:
+      include-exception: true
+      include-binding-errors: always
+      include-stacktrace: always
+      include-message: always
+#  grpc:
+#    server:
+#      port: 9080
+#      exception-handling:
+#        enabled: true
+#      reflection:
+#        enabled: true
+#      ssl:
+#        enabled: false
+#      health:
+#        actuator:
+#          enabled: true
+  threads:
+    virtual:
+      enabled: true
+  #for liquibase
+  datasource:
+    url: jdbc:postgresql://localhost:5000/jvm_orders
+    username: postgres
+    password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 8
+      maximum-pool-size: 120
+  liquibase:
+    enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: orders
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      auto-offset-reset: earliest
+      bootstrap-servers: ${spring.kafka.bootstrap-servers}
+      client-id: orders-1
+      properties:
+        spring:
+          json:
+            trusted:
+              packages: "io.github.m4gshm.payments.event.model"
+        reactiveAutoCommit: true
+  application:
+    name: orders
+
+service:
+  reserve:
+    address: localhost:9081
+  warehouse:
+    address: localhost:9081
+  payments:
+    address: localhost:9082
+
+idempotent-consumer:
+  create-partition: false
+  create-table: false
+  create-partition-on-input-message: false
+  create-partition-scheduler: '-'
+
+management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: GRPC
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    logging:
+      export:
+        enabled: false
+      endpoint: ${management.otlp.tracing.endpoint}
+      transport: GRPC
+    tracing:
+      endpoint: ${otel.exporter.otlp.endpoint}
+      transport: GRPC
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    common:
+      default-enabled: true
+#      logging:
+#        trace-id: traceId
+#        span-id: spanId
+

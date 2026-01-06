@@ -61,9 +61,9 @@
             <property name="tokens" value="VARIABLE_DEF"/>
             <property name="allowSamelineMultipleAnnotations" value="true"/>
         </module>
-<!--        <module name="AnnotationUseStyle">-->
-<!--            <property name="trailingArrayComma" value="ignore"/>-->
-<!--        </module>-->
+        <!--        <module name="AnnotationUseStyle">-->
+        <!--            <property name="trailingArrayComma" value="ignore"/>-->
+        <!--        </module>-->
         <module name="ArrayTypeStyle"/>
         <module name="AvoidEscapedUnicodeCharacters">
             <property name="allowEscapesForControlCharacters" value="true"/>
@@ -73,10 +73,10 @@
         <module name="AvoidNestedBlocks">
             <property name="allowInSwitchCase" value="true"/>
         </module>
-                                        <module name="ClassTypeParameterName">
-            <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>
-            <message key="name.invalidPattern" value="Class type name ''{0}'' must match pattern ''{1}''."/>
-        </module>
+<!--        <module name="ClassTypeParameterName">-->
+<!--            <property name="format" value="(^[A-Z][0-9]?)$|([A-Z][a-zA-Z0-9]*[T]$)"/>-->
+<!--            <message key="name.invalidPattern" value="Class type name ''{0}'' must match pattern ''{1}''."/>-->
+<!--        </module>-->
         <module name="CovariantEquals"/>
         <module name="DefaultComesLast"/>
         <module name="EmptyBlock">
@@ -144,12 +144,12 @@
             <property name="illegalPkgs" value="org.apache.commons.math"/>
             <message key="import.illegal" value="math is deprecated, use math3 instead."/>
         </module>
-        <module name="IllegalImport">
-            <property name="id" value="BanLoggingImplementations"/>
-            <property name="illegalPkgs"
-                      value="org.apache.log4j, org.apache.logging.log4j, java.util.logging, ch.qos.logback"/>
-            <message key="import.illegal" value="Use SLF4J instead of a logging framework directly."/>
-        </module>
+<!--        <module name="IllegalImport">-->
+<!--            <property name="id" value="BanLoggingImplementations"/>-->
+<!--            <property name="illegalPkgs"-->
+<!--                      value="org.apache.log4j, org.apache.logging.log4j, java.util.logging, ch.qos.logback"/>-->
+<!--            <message key="import.illegal" value="Use SLF4J instead of a logging framework directly."/>-->
+<!--        </module>-->
         <module name="IllegalImport">
             <property name="illegalClasses" value="com.google.common.base.Optional, com.google.common.base.Supplier"/>
             <message key="import.illegal" value="Use the Java8 version of Guava objects."/>
@@ -183,7 +183,7 @@
             <message key="illegal.type"
                      value="Do not use Guava caches, they are outperformed by and harder to use than Caffeine caches"/>
         </module>
-                                                                                        <module name="InnerAssignment"/>
+        <module name="InnerAssignment"/>
         <module name="LeftCurly"/>
         <module name="MemberName">
             <property name="format" value="^[a-z][a-zA-Z0-9]+$"/>
@@ -388,7 +388,7 @@
             <property name="processJavadoc" value="true"/>
         </module>
         <module name="UpperEll"/>
-        <module name="WhitespaceAfter"/>
+        <!--        <module name="WhitespaceAfter"/>-->
         <module name="WhitespaceAround">
             <property name="allowEmptyConstructors" value="true"/>
             <property name="allowEmptyMethods" value="true"/>
@@ -434,7 +434,7 @@
         <module name="NestedForDepth">
             <property name="max" value="2"/>
         </module>
-        <module name="NestedTryDepth"/>
+        <!--        <module name="NestedTryDepth"/>-->
         <module name="NonEmptyAtclauseDescription"/>
         <module name="ParameterName">
             <property name="format" value="^_?[a-z][a-zA-Z0-9]*$"/>

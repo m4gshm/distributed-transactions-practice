@@ -1,0 +1,144 @@
+debug: false
+logging:
+  level:
+    root: INFO
+    reactor:
+      netty:
+        channel:
+          ChannelOperations: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
+    org:
+      springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: DEBUG # auto configs report
+        r2dbc:
+          connection: INFO # log sql
+        transaction:
+          reactive: INFO # log sql
+    io:
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      grpc: INFO
+      github:
+        m4gshm: INFO
+      r2dbc:
+        pool:
+#          PooledConnection: TRACE
+        postgresql:
+          client: INFO # log sql
+          QUERY: INFO
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+  pattern:
+#    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+server:
+  port: 7082
+  error:
+    include-message: always
+grpc:
+  server:
+    port: 9082
+    channelz:
+      enabled: true
+    health:
+      enabled: true #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: true
+    exception-handling:
+      default-exception-advice-enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+#  reactor.context-propagation: AUTO
+  #for liquibase
+  datasource:
+    url: jdbc:postgresql://localhost:5000/jvm_payments
+    username: postgres
+    password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 8
+      maximum-pool-size: 120
+  liquibase:
+    enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+    consumer:
+      group-id: payments
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+  application:
+    name: payments
+
+management:
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: GRPC
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
+    logging:
+      export:
+        enabled: false
+      endpoint: ${management.otlp.tracing.endpoint}
+      transport: GRPC
+    tracing:
+      endpoint: ${otel.exporter.otlp.endpoint}
+      transport: GRPC
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    r2dbc:
+      enabled: false
+    spring-webflux:
+      enabled: false
+    common:
+      default-enabled: true
+#      logging:
+#        trace-id: traceId
+#        span-id: spanId
+

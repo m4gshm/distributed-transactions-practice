@@ -1,11 +1,11 @@
 package io.github.m4gshm.orders.service.event;
 
 import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
+import io.github.m4gshm.orders.data.storage.ReactiveOrderStorage;
 import io.github.m4gshm.orders.service.OrderService;
 import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
-import io.github.m4gshm.reactive.idempotent.consumer.MessageImpl;
-import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
+import io.github.m4gshm.idempotent.consumer.MessageImpl;
+import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorage;
 import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -36,10 +36,10 @@ import static reactor.kafka.receiver.KafkaReceiver.create;
 @FieldDefaults(level = PRIVATE)
 public class KafkaAccountBalanceEventListenerServiceImpl {
     final ReceiverOptions<String, AccountBalanceEvent> balanceReceiverOptions;
-    final OrderStorage orderStorage;
+    final ReactiveOrderStorage orderStorage;
     final OrderService ordersService;
     final PaymentServiceStub paymentServiceStub;
-    final MessageStorage messageStorage;
+    final ReactiveMessageStorage reactiveMessageStorage;
     // todo move to config of order table
     final boolean twoPhaseCommit = true;
     final ObservationRegistry observationRegistry;
@@ -105,7 +105,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         var requestId = event.requestId();
         var clientId = event.clientId();
         var balance = event.balance();
-        return messageStorage.storeUnique(MessageImpl.builder()
+        return reactiveMessageStorage.storeUnique(MessageImpl.builder()
                 .messageID(requestId)
                 .subscriberID("accountBalance")
                 .timestamp(event.timestamp())
