@@ -6,6 +6,7 @@ import io.github.m4gshm.idempotent.consumer.R2dbcReactiveMessageStorage;
 import io.github.m4gshm.idempotent.consumer.R2dbcReactiveMessageStorageMaintenanceService;
 import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorage;
 import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorageMaintenanceService;
+import io.github.m4gshm.jooq.config.R2dbcReactiveJooqAutoConfiguration;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
@@ -19,7 +20,7 @@ import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.
 @EnableScheduling
 @RequiredArgsConstructor
 
-@AutoConfiguration
+@AutoConfiguration(after = R2dbcReactiveJooqAutoConfiguration.class)
 public class R2dbcReactiveMessageStorageAutoConfiguration {
 
     private final IdempotentConsumerProperties properties;

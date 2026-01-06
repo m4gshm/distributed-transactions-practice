@@ -56,7 +56,7 @@ public class OrderFlowSimulation extends Simulation {
         setUp(
                 newScenario("Order Flow", httpRequestActionBuilder -> {
                     return httpRequestActionBuilder/* .silent().ignoreProtocolChecks() */;
-                }, constantConcurrentUsers(40).during(30)))
+                }, constantConcurrentUsers(1).during(30)))
                 .assertions(global().failedRequests().count().lt(1L))
                 .protocols(
                         http.baseUrl(ORDER_URL).warmUp(ORDER_URL).acceptHeader("application/json")

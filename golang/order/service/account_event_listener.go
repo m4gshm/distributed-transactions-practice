@@ -81,7 +81,7 @@ func (a *AccountEventListener) ProcessEvent(ctx context.Context, e event.Account
 	}
 	balance := e.Balance
 	if len(rows) == 0 {
-		log.Debug().Msgf("no incufficient orders to update  (clientID %s, balance %f)", e.ClientID, balance)
+		log.Debug().Msgf("no insufficient orders to update (clientID %s, balance %f)", e.ClientID, balance)
 	}
 	for _, row := range rows {
 		order := row.Order
@@ -91,7 +91,7 @@ func (a *AccountEventListener) ProcessEvent(ctx context.Context, e event.Account
 		}); err != nil {
 			//todo
 			return err
-		} else if payment := pResponse.GetPayment(); payment != nil && payment.Amount < balance {
+		} else if payment := pResponse.GetPayment(); payment != nil && payment.Amount <= balance {
 			if approv, err := a.orders.Approve(ctx, &orderspb.OrderApproveRequest{
 				Id:             order.ID,
 				TwoPhaseCommit: a.twoPhaseCommit,

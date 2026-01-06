@@ -7,6 +7,8 @@ import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import io.github.m4gshm.idempotent.consumer.MessageImpl;
 import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorage;
 import io.micrometer.observation.ObservationRegistry;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -19,8 +21,6 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.kafka.receiver.ReceiverOptions;
 
-import javax.annotation.PostConstruct;
-import javax.annotation.PreDestroy;
 import java.time.Instant;
 import java.util.Set;
 
@@ -41,7 +41,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     final PaymentServiceStub paymentServiceStub;
     final ReactiveMessageStorage reactiveMessageStorage;
     // todo move to config of order table
-    final boolean twoPhaseCommit = true;
+    final boolean twoPhaseCommit = false;
     final ObservationRegistry observationRegistry;
 
     volatile Disposable subscribe;
@@ -58,7 +58,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
                 paymentServiceStub::get)
                 .map(response -> response.getPayment().getAmount())
                 .flatMap(paymentAmount -> {
-                    if (paymentAmount < balance) {
+                    if (paymentAmount <= balance) {
                         return ordersService.approve(order.id(), twoPhaseCommit);
                     } else {
                         log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
@@ -78,7 +78,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
             var offset = record.receiverOffset();
             var timestamp = Instant.ofEpochMilli(record.timestamp());
             var key = record.key();
-            AccountBalanceEvent value = record.value();
+            var value = record.value();
             log.info("received account balance event from kafka consumer: key {}, value {}, offset {}, timestamp {} ",
                     key,
                     value,

@@ -139,11 +139,11 @@ service:
   payments:
     address: localhost:9082
 
-idempotent-consumer:
-  create-partition: false
-  create-table: false
-  create-partition-on-input-message: false
-  create-partition-scheduler: '-'
+#idempotent-consumer:
+#  create-partition: false
+#  create-table: false
+#  create-partition-on-input-message: false
+#  create-partition-scheduler: '-'
 
 management:
   opentelemetry:

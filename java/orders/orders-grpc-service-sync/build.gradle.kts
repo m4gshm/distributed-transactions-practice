@@ -12,7 +12,6 @@ dependencies {
     api(project(":grpc-common"))
     api(project(":grpc-client"))
     api(project(":protobuf-utils"))
-//    api(project(":postgres-prepared-transaction"))
     api(project(":postgres-prepared-transaction-jdbc"))
     api(project(":orders:orders-storage-jdbc"))
     api(project(":orders:orders-grpc-api"))
@@ -29,7 +28,6 @@ dependencies {
 
     implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
-
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

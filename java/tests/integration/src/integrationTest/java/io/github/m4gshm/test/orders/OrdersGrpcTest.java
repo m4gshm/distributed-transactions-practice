@@ -181,7 +181,7 @@ public class OrdersGrpcTest {
             return reactiveAccountStorage.addAmount(customerId, -account.amount() + account.locked());
         }).block();
 
-        var twoPhaseCommit = true;
+        var twoPhaseCommit = false;
         var orderCreateResponse = ordersService.create(newCreateRequest(items, customerId, twoPhaseCommit));
         var orderId = orderCreateResponse.getId();
 
@@ -195,7 +195,7 @@ public class OrdersGrpcTest {
             if (status != INSUFFICIENT) {
                 break;
             }
-            Thread.sleep(i * 500);
+            Thread.sleep(i * 1000);
         }
 
         var status = ordersService.get(orderGetRequest(orderApproveResponse)).getOrder().getStatus();

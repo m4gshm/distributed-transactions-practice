@@ -8,6 +8,7 @@ import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.validation.annotation.Validated;
 
 import java.util.Arrays;
@@ -17,6 +18,7 @@ import java.util.List;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.mergeItem;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.mergeReserve;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.selectItemsByReserveId;
+import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.selectReserves;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.selectReservesById;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.sumInt;
 import static io.github.m4gshm.reserve.data.ReserveStorageJooqUtils.toReserve;
@@ -35,12 +37,13 @@ public class ReserveStorageImpl implements ReserveStorage {
 
     @Override
     public List<Reserve> findAll() {
-        return ReserveStorageJooqUtils.selectReserves(dsl).stream().map(record -> {
+        return selectReserves(dsl).stream().map(record -> {
             return toReserve(record, List.of());
         }).toList();
     }
 
     @Override
+    @Transactional
     public Reserve findById(String id) {
         var selectReserves = selectReservesById(dsl, id).fetchOne();
         if (selectReserves == null) {
@@ -54,10 +57,10 @@ public class ReserveStorageImpl implements ReserveStorage {
             return mergeItem(dsl, reserveId, item);
         }).toList());
         return sumInt(Arrays.stream(batch.execute()).boxed().toList());
-
     }
 
     @Override
+    @Transactional
     public Reserve save(@Valid Reserve reserve) {
         mergeReserve(reserve, dsl).execute();
 

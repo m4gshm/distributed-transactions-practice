@@ -10,33 +10,39 @@ import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import reactor.core.publisher.Mono;
 import reactor.core.publisher.MonoSink;
+import reactor.util.context.ContextView;
 
 import java.util.List;
 import java.util.function.BiConsumer;
+
+import static reactor.core.publisher.Mono.deferContextual;
 
 @Slf4j
 @UtilityClass
 public class ReactiveUtils {
     public static <T, R> Mono<R> toMono(
-                                        String operationName,
-                                        T request,
-                                        BiConsumer<T, StreamObserver<R>> call
+            String operationName,
+            T request,
+            BiConsumer<T, StreamObserver<R>> call
     ) {
-        return Mono.deferContextual(context -> {
+        return deferContextual(context -> {
             return Mono.<R>create(sink -> {
-                log.trace("call {}", operationName);
-                final var observation = context.get(ObservationThreadLocalAccessor.KEY) instanceof Observation o
-                        ? o
-                        : Observation.NOOP;
-                try (var _ = observation.openScope()) {
-                    call.accept(request, toStreamObserver(sink));
-                }
-            })
+                        log.trace("call {}", operationName);
+                        final var observation = getObservation(context);
+                        try (var _ = observation.openScope()) {
+                            call.accept(request, toStreamObserver(sink));
+                        }
+                    })
                     .doOnError(e -> log.error("error on {}", operationName, e))
                     .name(operationName)
-//                    .contextWrite(context)
-            ;
+                    ;
         });
+    }
+
+    private static Observation getObservation(ContextView context) {
+        return context.hasKey(ObservationThreadLocalAccessor.KEY) && context.get(ObservationThreadLocalAccessor.KEY) instanceof Observation o
+                ? o
+                : Observation.NOOP;
     }
 
     public static <T> StreamObserver<T> toStreamObserver(MonoSink<T> sink) {
