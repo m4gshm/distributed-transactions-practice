@@ -20,29 +20,29 @@ import static reactor.core.publisher.Mono.deferContextual;
 @Slf4j
 @UtilityClass
 public class ReactiveUtils {
+    private static Observation getObservation(ContextView context) {
+        return context.hasKey(ObservationThreadLocalAccessor.KEY) && context.get(
+                ObservationThreadLocalAccessor.KEY) instanceof Observation o
+                        ? o
+                        : Observation.NOOP;
+    }
+
     public static <T, R> Mono<R> toMono(
-            String operationName,
-            T request,
-            BiConsumer<T, StreamObserver<R>> call
+                                        String operationName,
+                                        T request,
+                                        BiConsumer<T, StreamObserver<R>> call
     ) {
         return deferContextual(context -> {
             return Mono.<R>create(sink -> {
-                        log.trace("call {}", operationName);
-                        final var observation = getObservation(context);
-                        try (var _ = observation.openScope()) {
-                            call.accept(request, toStreamObserver(sink));
-                        }
-                    })
+                log.trace("call {}", operationName);
+                final var observation = getObservation(context);
+                try (var _ = observation.openScope()) {
+                    call.accept(request, toStreamObserver(sink));
+                }
+            })
                     .doOnError(e -> log.error("error on {}", operationName, e))
-                    .name(operationName)
-                    ;
+                    .name(operationName);
         });
-    }
-
-    private static Observation getObservation(ContextView context) {
-        return context.hasKey(ObservationThreadLocalAccessor.KEY) && context.get(ObservationThreadLocalAccessor.KEY) instanceof Observation o
-                ? o
-                : Observation.NOOP;
     }
 
     public static <T> StreamObserver<T> toStreamObserver(MonoSink<T> sink) {

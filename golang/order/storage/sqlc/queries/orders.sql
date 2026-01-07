@@ -6,6 +6,19 @@ FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id;
 
+-- name: FindOrdersPaged :many
+SELECT
+  sqlc.embed(o),
+  sqlc.embed(d)
+FROM
+  orders o
+  LEFT JOIN delivery d ON o.id = d.order_id
+  WHERE  (@status::order_status IS NULL OR o.status = @status::order_status)
+  ORDER BY o.id
+  LIMIT sqlc.narg('lim')::int
+  OFFSET @offs::int
+  ;  
+
 -- name: FindOrdersByClientAndStatuses :many
 SELECT
   sqlc.embed(o),
@@ -15,7 +28,7 @@ FROM
   LEFT JOIN delivery d ON o.id = d.order_id
 WHERE
   o.customer_id = $1
-  AND o.status = ANY(sqlc.arg(orderStatus)::order_status[]);
+  AND o.status = ANY(@orderStatus::order_status[]);
 
 
 -- name: FindOrderById :one

@@ -1,6 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.Grpc;
+import io.github.m4gshm.storage.PageableReadOperations.Page;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,6 +21,7 @@ import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeRequest;
 import org.springframework.stereotype.Service;
 
+import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderStatus;
 import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
@@ -61,7 +63,17 @@ public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase 
 
     @Override
     public void list(OrderListRequest request, StreamObserver<OrderListResponse> responseObserver) {
-        grpc.subscribe("list", responseObserver, () -> ordersService.list());
+        var page = request.hasPage() ? request.getPage() : null;
+        var num = page != null ? page.getNum() : null;
+        var size = page != null ? page.getSize() : null;
+
+        var condition = request.hasCondition() ? request.getCondition() : null;
+        var status = condition != null ? condition.getStatus() : null;
+
+        grpc.subscribe("list", responseObserver, () -> {
+            var requestPage = num != null ? new Page(num, size) : null;
+            return ordersService.list(requestPage, toOrderStatus(status));
+        });
     }
 
     @Override

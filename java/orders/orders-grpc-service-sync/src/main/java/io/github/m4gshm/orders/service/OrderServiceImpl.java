@@ -5,6 +5,7 @@ import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils;
+import io.github.m4gshm.storage.PageableReadOperations.Page;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +19,6 @@ import orders.v1.OrderServiceOuterClass.OrderGetResponse;
 import orders.v1.OrderServiceOuterClass.OrderListResponse;
 import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
-import org.jooq.DSLContext;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentServiceGrpc.PaymentServiceBlockingStub;
@@ -78,7 +78,6 @@ public class OrderServiceImpl implements OrderService {
     PaymentServiceBlockingStub paymentsClient;
     TwoPhaseCommitServiceBlockingStub paymentsClientTcp;
     ItemService itemService;
-    DSLContext dsl;
 
     @Override
     public OrderApproveResponse approve(String orderId, boolean twoPhaseCommit) {
@@ -122,9 +121,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private TwoPhaseCommitResponse commit(
-                                          String operationName,
-                                          String transactionId,
-                                          TwoPhaseCommitServiceBlockingStub paymentsClientTcp
+            String operationName,
+            String transactionId,
+            TwoPhaseCommitServiceBlockingStub paymentsClientTcp
     ) {
         return paymentsClientTcp.commit(newCommitRequest(transactionId));
 //        OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId)
@@ -206,10 +205,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private <T> void distributedCommit(
-                                       String orderId,
-                                       @NonNull String paymentTransactionId,
-                                       @NonNull String reserveTransactionId,
-                                       T result
+            String orderId,
+            @NonNull String paymentTransactionId,
+            @NonNull String reserveTransactionId,
+            T result
     ) {
         reserveClientTcp.commit(newCommitRequest(reserveTransactionId));
         paymentsClientTcp.commit(newCommitRequest(paymentTransactionId));
@@ -217,10 +216,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void distributedRollback(
-                                     String orderId,
-                                     String paymentTransactionId,
-                                     String reserveTransactionId,
-                                     Throwable result
+            String orderId,
+            String paymentTransactionId,
+            String reserveTransactionId,
+            Throwable result
     ) {
         remoteRollback(paymentTransactionId, reserveTransactionId);
         if (!(result instanceof TwoPhaseTransactionUtils.PrepareTransactionException)) {
@@ -257,8 +256,8 @@ public class OrderServiceImpl implements OrderService {
     }
 
     @Override
-    public OrderListResponse list() {
-        var all = orderStorage.findAll();
+    public OrderListResponse list(Page page, OrderStatus status) {
+        var all = orderStorage.findAll(page, status);
         var orders = all.stream().map(order -> {
             return toOrderGrpc(order, null, null);
         }).toList();
@@ -330,10 +329,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     protected Order saveAllAndCommit(
-                                     boolean twoPhaseCommit,
-                                     Order order,
-                                     String paymentTransactionId,
-                                     String reserveTransactionId
+            boolean twoPhaseCommit,
+            Order order,
+            String paymentTransactionId,
+            String reserveTransactionId
     ) {
         var orderId = order.id();
 
@@ -366,14 +365,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     protected <T, PI, PO, RI, RO> T updateOrderOp(
-                                                  String opName,
-                                                  String orderId,
-                                                  boolean twoPhaseCommit,
-                                                  Set<OrderStatus> expectedFinal,
-                                                  OrderStatus intermediateStatus,
-                                                  Function<Order, Payment.Status> paymentOp,
-                                                  Function<Order, Reserve.Status> reserveOp,
-                                                  Function<Order, T> responseBuilder
+            String opName,
+            String orderId,
+            boolean twoPhaseCommit,
+            Set<OrderStatus> expectedFinal,
+            OrderStatus intermediateStatus,
+            Function<Order, Payment.Status> paymentOp,
+            Function<Order, Reserve.Status> reserveOp,
+            Function<Order, T> responseBuilder
     ) {
         var order = orderStorage.getById(orderId);
         checkStatus(opName, "order", orderId, order.status(), expectedFinal, intermediateStatus);

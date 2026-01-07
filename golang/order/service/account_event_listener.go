@@ -99,6 +99,7 @@ func (a *AccountEventListener) ProcessEvent(ctx context.Context, e event.Account
 				//todo
 				return err
 			} else {
+				balance -= payment.Amount
 				_ = approv
 				//log
 			}

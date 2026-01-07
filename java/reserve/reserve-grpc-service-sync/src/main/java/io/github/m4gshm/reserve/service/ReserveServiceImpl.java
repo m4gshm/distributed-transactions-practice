@@ -40,6 +40,7 @@ import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserveProt
 import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toStatusProto;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
+import static reserve.data.access.jooq.enums.ReserveStatus.*;
 import static reserve.data.access.jooq.enums.ReserveStatus.APPROVED;
 import static reserve.data.access.jooq.enums.ReserveStatus.CANCELLED;
 import static reserve.data.access.jooq.enums.ReserveStatus.CREATED;
@@ -111,7 +112,7 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
     @Override
     public void cancel(ReserveCancelRequest request, StreamObserver<ReserveCancelResponse> responseObserver) {
         var reserveId = request.getId();
-        reserveInStatus("cancel", responseObserver, reserveId, Set.of(CREATED, APPROVED), reserve -> {
+        reserveInStatus("cancel", responseObserver, reserveId, Set.of(CREATED, INSUFFICIENT, APPROVED), reserve -> {
             var items = toItemOps(reserve.items());
 
             var preparedTransactionId = getOrNull(request,

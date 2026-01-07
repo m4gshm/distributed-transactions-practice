@@ -1,7 +1,6 @@
 package io.github.m4gshm.payments.service;
 
 import io.github.m4gshm.LogUtils;
-import io.github.m4gshm.jooq.ReactiveJooq;
 import io.github.m4gshm.payments.data.ReactiveAccountStorage;
 import io.github.m4gshm.payments.data.ReactivePaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
@@ -51,7 +50,6 @@ import static reactor.core.publisher.Mono.defer;
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PaymentServiceImpl extends PaymentServiceImplBase {
-    ReactiveJooq jooq;
 
     GrpcReactive grpc;
     ReactivePaymentStorage reactivePaymentStorage;
@@ -66,12 +64,11 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
     @Override
     public void approve(PaymentApproveRequest request,
                         StreamObserver<PaymentApproveResponse> responseObserver) {
-        var expected = Set.of(CREATED, INSUFFICIENT);
         paymentAccount("approve",
                 responseObserver,
                 getOrNull(request, r -> r.hasPreparedTransactionId(), r -> r.getPreparedTransactionId()),
                 request.getId(),
-                expected,
+                Set.of(CREATED, INSUFFICIENT),
                 (payment, account) -> {
                     return reactiveAccountStorage.addLock(account.clientId(), payment.amount()).flatMap(lockResult -> {
                         var status = lockResult.success() ? HOLD : INSUFFICIENT;

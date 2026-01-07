@@ -13,6 +13,8 @@ import java.time.OffsetDateTime;
 import java.util.function.Supplier;
 
 import static io.github.m4gshm.idempotent.consumer.PartitionType.CURRENT;
+import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
+import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
@@ -29,15 +31,11 @@ public class MessageStorageImpl implements InitializingBean, MessageStorage {
     boolean createPartitionOnStore;
 
     private static boolean isNoPartitionOfRelation(Throwable e) {
-        // todo
-        return false;
-//        return ofNullable(getPostgresqlException(e)).map(PostgresqlException::getErrorDetails)
-//                .filter(errorDetails -> {
-//                    var code = errorDetails.getCode();
-//                    var detailsMessage = errorDetails.getMessage();
-//                    return "23514".equals(code) && detailsMessage.startsWith("no partition of relation");
-//                })
-//                .isPresent();
+        return ofNullable(getPostgresqlException(e)).filter(errorDetails -> {
+            var code = errorDetails.getSQLState();
+            var detailsMessage = errorDetails.getMessage();
+            return "23514".equals(code) && detailsMessage.startsWith("no partition of relation");
+        }).isPresent();
     }
 
     @Override

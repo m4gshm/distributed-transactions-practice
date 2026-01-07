@@ -45,6 +45,7 @@ tasks:
   generate:
     desc: "Generate Go code"
     cmds:
+      - task: generate-proto
       - go generate ./...
 
   updep:

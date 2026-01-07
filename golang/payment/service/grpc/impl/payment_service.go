@@ -14,6 +14,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
@@ -86,8 +87,11 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 			return nil, err
 		}
 
-		if s := payment.Status; s != paymentsqlc.PaymentStatusCREATED && s != paymentsqlc.PaymentStatusINSUFFICIENT {
-			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be approved in current status '%s'", s)
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusCREATED,
+			paymentsqlc.PaymentStatusINSUFFICIENT,
+		); err != nil {
+			return nil, err
 		}
 
 		account, err := query.FindAccountByIdForUpdate(ctx, payment.ClientID)
@@ -143,6 +147,14 @@ func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCance
 			return nil, err
 		}
 
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusCREATED,
+			paymentsqlc.PaymentStatusINSUFFICIENT,
+			paymentsqlc.PaymentStatusHOLD,
+		); err != nil {
+			return nil, err
+		}
+
 		// If payment was in HOLD status, unlock the funds
 		if payment.Status == paymentsqlc.PaymentStatusHOLD {
 			if _, err := query.Unlock(ctx, paymentsqlc.UnlockParams{
@@ -184,9 +196,11 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 		if err != nil {
 			return nil, err
 		}
-		// Check if payment can be paid
-		if payment.Status != paymentsqlc.PaymentStatusHOLD {
-			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be paid in current status '%s'", payment.Status)
+
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusHOLD,
+		); err != nil {
+			return nil, err
 		}
 
 		account, err := query.FindAccountByIdForUpdate(ctx, payment.ClientID)

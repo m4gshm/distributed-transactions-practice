@@ -10,6 +10,7 @@ import io.grpc.Status;
 import io.grpc.StatusException;
 import io.grpc.StatusRuntimeException;
 import lombok.NonNull;
+import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderOuterClass;
@@ -20,7 +21,6 @@ import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentServiceOuterClass.PaymentApproveRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentCancelRequest;
 import payment.v1.PaymentServiceOuterClass.PaymentPayRequest;
-import reactor.core.publisher.Mono;
 import reserve.v1.ReserveOuterClass.Reserve;
 import reserve.v1.ReserveServiceOuterClass.ReserveApproveRequest;
 import reserve.v1.ReserveServiceOuterClass.ReserveCancelRequest;
@@ -34,12 +34,19 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.APPROVED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.APPROVING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CANCELLED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CANCELLING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CREATED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.CREATING;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.RELEASED;
+import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.RELEASING;
 import static io.github.m4gshm.protobuf.TimestampUtils.toTimestamp;
 import static io.grpc.Status.NOT_FOUND;
 import static java.time.ZoneId.systemDefault;
 import static java.util.Optional.ofNullable;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.just;
 
 @Slf4j
 @UtilityClass
@@ -64,6 +71,21 @@ public class OrderServiceUtils {
         ofNullable(order.reserveId()).ifPresent(builder::setReserveId);
 
         return builder.build();
+    }
+
+    public static OrderStatus toOrderStatus(OrderOuterClass.Order.Status status) {
+        return status == null ? null : switch (status) {
+            case OrderOuterClass.Order.Status.CREATING -> CREATING;
+            case OrderOuterClass.Order.Status.CREATED -> CREATED;
+            case OrderOuterClass.Order.Status.APPROVING -> APPROVING;
+            case OrderOuterClass.Order.Status.APPROVED -> APPROVED;
+            case OrderOuterClass.Order.Status.RELEASING -> RELEASING;
+            case OrderOuterClass.Order.Status.RELEASED -> RELEASED;
+            case OrderOuterClass.Order.Status.INSUFFICIENT -> INSUFFICIENT;
+            case OrderOuterClass.Order.Status.CANCELLING -> CANCELLING;
+            case OrderOuterClass.Order.Status.CANCELLED -> CANCELLED;
+            case UNRECOGNIZED -> null;
+        };
     }
 
     public static OrderOuterClass.Order.Status toOrderStatusGrpc(OrderStatus status) {
@@ -116,10 +138,6 @@ public class OrderServiceUtils {
         };
     }
 
-    static <T, ID> Mono<T> notFoundById(ID id) {
-        return error(() -> NOT_FOUND.withDescription(String.valueOf(id)).asRuntimeException());
-    }
-
     public static String string(Object any) {
         return any == null ? null : any.toString();
     }
@@ -160,11 +178,11 @@ public class OrderServiceUtils {
     static OrderStatus getOrderStatus(Payment.Status paymentStatus, Reserve.Status reserveStatus) {
         final OrderStatus status;
         if (paymentStatus == Payment.Status.HOLD && reserveStatus == Reserve.Status.APPROVED) {
-            status = OrderStatus.APPROVED;
+            status = APPROVED;
         } else if (paymentStatus == Payment.Status.INSUFFICIENT || reserveStatus == Reserve.Status.INSUFFICIENT) {
-            status = OrderStatus.INSUFFICIENT;
+            status = INSUFFICIENT;
         } else if (paymentStatus == Payment.Status.PAID && reserveStatus == Reserve.Status.RELEASED) {
-            status = OrderStatus.RELEASED;
+            status = RELEASED;
         } else {
             status = null;
         }
@@ -181,7 +199,7 @@ public class OrderServiceUtils {
         return noTransaction;
     }
 
-    private static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
+    public static <T> T getCurrentStatusFromError(Function<String, T> converter, Throwable e) {
         return ofNullable(getErrorInfo(e)).map(ErrorInfo::metadata).map(metadata -> {
             var errorType = metadata.get(UnexpectedEntityStatusException.TYPE);
             return UnexpectedEntityStatusException.class.getSimpleName()
@@ -221,15 +239,14 @@ public class OrderServiceUtils {
                 .build();
     }
 
-    static <T> Function<Throwable, Mono<T>> statusError(Function<String, T> converter) {
-        return e -> {
-            var status = getCurrentStatusFromError(converter, e);
-            if (status != null) {
-                log.debug("already in status {}", status);
-                return just(status);
-            }
-            return error(e);
-        };
+    @SneakyThrows
+    static <T> T statusError(Exception e, Function<String, T> converter) {
+        var status = getCurrentStatusFromError(converter, e);
+        if (status != null) {
+            log.debug("already in status {}", status);
+            return status;
+        }
+        throw e;
     }
 
     static OrderResumeResponse newOrderResumeResponse(String o, orders.v1.OrderOuterClass.Order.Status o1) {

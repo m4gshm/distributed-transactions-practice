@@ -3,7 +3,6 @@ package io.github.m4gshm.payments.data.jdbc;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.AccountStorageUtils;
 import io.github.m4gshm.payments.data.BalanceResult;
-import io.github.m4gshm.payments.data.InvalidUnlockFundValueException;
 import io.github.m4gshm.payments.data.LockResult;
 import io.github.m4gshm.payments.data.WriteOffException;
 import io.github.m4gshm.payments.data.model.Account;
@@ -89,10 +88,15 @@ public class AccountStorageImpl implements AccountStorage {
     public void unlock(String clientId, @Positive double amount) {
         var record = checkFound(clientId, selectForUpdate(dsl, clientId).fetchOne());
         double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
-        double newLocked = locked - amount;
-        if (newLocked < 0) {
-            throw new InvalidUnlockFundValueException(clientId, newLocked);
+        if (locked == 0) {
+            //log
         } else {
+            double newLocked = locked - amount;
+            if (newLocked < 0) {
+                amount = locked;
+//            throw new InvalidUnlockFundValueException(clientId, newLocked);
+                //log
+            }
             var count = updateAccountUnlock(dsl, clientId, amount).execute();
             checkUpdateCount(count, "account", clientId, () -> null);
         }

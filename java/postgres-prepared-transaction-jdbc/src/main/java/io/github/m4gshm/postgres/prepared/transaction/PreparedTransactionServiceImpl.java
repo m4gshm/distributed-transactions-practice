@@ -13,6 +13,7 @@ import java.util.function.Supplier;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils.getPreparedById;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils.listPrepared;
 import static io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils.newPreparedTransaction;
+import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
 import static io.github.m4gshm.storage.NotFoundException.newNotFoundException;
 
 @Slf4j
@@ -23,17 +24,6 @@ public class PreparedTransactionServiceImpl implements PreparedTransactionServic
 
     @Getter
     private final Class<PreparedTransaction> entityClass = PreparedTransaction.class;
-
-    public static org.postgresql.util.PSQLException getPostgresqlException(Throwable e) {
-        if (e instanceof org.postgresql.util.PSQLException postgresqlException) {
-            return postgresqlException;
-        } else if (e != null) {
-            var cause = e.getCause();
-            return cause == null || e == cause ? null : getPostgresqlException(cause);
-        } else {
-            return null;
-        }
-    }
 
     private static NotFoundException ifNotExist(Object id, Exception e) {
         var postgresqlException = getPostgresqlException(e);

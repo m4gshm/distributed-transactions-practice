@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
 	"github.com/m4gshm/expressions/expr/get"
 	"github.com/m4gshm/gollections/convert/ptr"
 	"github.com/m4gshm/gollections/op"
@@ -377,14 +378,43 @@ func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest)
 	defer span.End()
 	query := sqlc.New(s.db)
 
-	rows, err := query.FindAllOrders(ctx)
-	if err != nil {
-		return nil, err
-	}
+	page := req.Page
+	params := sqlc.FindOrdersPagedParams{}
+	empty := params
 
-	return &orderspb.OrderListResponse{Orders: slice.Convert(rows, func(row sqlc.FindAllOrdersRow) *orderspb.Order {
-		return toProtoOrder(row.Order, row.Delivery)
-	})}, nil
+	var orders []*orderspb.Order
+	if page != nil {
+		pageNum := page.Num
+		if s := page.Size; s != nil {
+			params.Lim = pgtype.Int4{Int32: pageNum, Valid: true}
+			params.Offs = pageNum * *s
+		} else {
+			// params.Lim = pgtype.Int4{Valid: false}
+		}
+	}
+	if cond := req.Condition; cond != nil {
+		if s := cond.Status; s != nil {
+			params.Status = sqlc.OrderStatus(orderspb.Order_Status_name[int32(*s)])
+		}
+	}
+	if params != empty {
+		rows, err := query.FindOrdersPaged(ctx, params)
+		if err != nil {
+			return nil, err
+		}
+		orders = slice.Convert(rows, func(row sqlc.FindOrdersPagedRow) *orderspb.Order {
+			return toProtoOrder(row.Order, row.Delivery)
+		})
+	} else {
+		rows, err := query.FindAllOrders(ctx)
+		if err != nil {
+			return nil, err
+		}
+		orders = slice.Convert(rows, func(row sqlc.FindAllOrdersRow) *orderspb.Order {
+			return toProtoOrder(row.Order, row.Delivery)
+		})
+	}
+	return &orderspb.OrderListResponse{Orders: orders}, nil
 }
 
 func (s *OrderService) doWorkflow(ctx context.Context, query *sqlc.Queries, order sqlc.Order, expecteds []sqlc.OrderStatus, intermediateStatus sqlc.OrderStatus,

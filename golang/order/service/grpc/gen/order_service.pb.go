@@ -626,6 +626,8 @@ func (x *OrderResumeResponse) GetStatus() Order_Status {
 
 type OrderListRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
+	Page          *Page                  `protobuf:"bytes,1,opt,name=page,proto3,oneof" json:"page,omitempty"`
+	Condition     *OrderListCondition    `protobuf:"bytes,2,opt,name=condition,proto3,oneof" json:"condition,omitempty"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
 }
@@ -658,6 +660,20 @@ func (x *OrderListRequest) ProtoReflect() protoreflect.Message {
 // Deprecated: Use OrderListRequest.ProtoReflect.Descriptor instead.
 func (*OrderListRequest) Descriptor() ([]byte, []int) {
 	return file_order_v1_api_order_service_proto_rawDescGZIP(), []int{12}
+}
+
+func (x *OrderListRequest) GetPage() *Page {
+	if x != nil {
+		return x.Page
+	}
+	return nil
+}
+
+func (x *OrderListRequest) GetCondition() *OrderListCondition {
+	if x != nil {
+		return x.Condition
+	}
+	return nil
 }
 
 type OrderListResponse struct {
@@ -704,6 +720,102 @@ func (x *OrderListResponse) GetOrders() []*Order {
 	return nil
 }
 
+type Page struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Num           int32                  `protobuf:"varint,1,opt,name=num,proto3" json:"num,omitempty"`
+	Size          *int32                 `protobuf:"varint,2,opt,name=size,proto3,oneof" json:"size,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *Page) Reset() {
+	*x = Page{}
+	mi := &file_order_v1_api_order_service_proto_msgTypes[14]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *Page) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*Page) ProtoMessage() {}
+
+func (x *Page) ProtoReflect() protoreflect.Message {
+	mi := &file_order_v1_api_order_service_proto_msgTypes[14]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use Page.ProtoReflect.Descriptor instead.
+func (*Page) Descriptor() ([]byte, []int) {
+	return file_order_v1_api_order_service_proto_rawDescGZIP(), []int{14}
+}
+
+func (x *Page) GetNum() int32 {
+	if x != nil {
+		return x.Num
+	}
+	return 0
+}
+
+func (x *Page) GetSize() int32 {
+	if x != nil && x.Size != nil {
+		return *x.Size
+	}
+	return 0
+}
+
+type OrderListCondition struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	Status        *Order_Status          `protobuf:"varint,1,opt,name=status,proto3,enum=orders.v1.Order_Status,oneof" json:"status,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *OrderListCondition) Reset() {
+	*x = OrderListCondition{}
+	mi := &file_order_v1_api_order_service_proto_msgTypes[15]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *OrderListCondition) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*OrderListCondition) ProtoMessage() {}
+
+func (x *OrderListCondition) ProtoReflect() protoreflect.Message {
+	mi := &file_order_v1_api_order_service_proto_msgTypes[15]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use OrderListCondition.ProtoReflect.Descriptor instead.
+func (*OrderListCondition) Descriptor() ([]byte, []int) {
+	return file_order_v1_api_order_service_proto_rawDescGZIP(), []int{15}
+}
+
+func (x *OrderListCondition) GetStatus() Order_Status {
+	if x != nil && x.Status != nil {
+		return *x.Status
+	}
+	return Order_CREATING
+}
+
 type OrderCreateRequest_OrderCreate struct {
 	state         protoimpl.MessageState                 `protogen:"open.v1"`
 	Items         []*OrderCreateRequest_OrderCreate_Item `protobuf:"bytes,1,rep,name=items,proto3" json:"items,omitempty"`
@@ -715,7 +827,7 @@ type OrderCreateRequest_OrderCreate struct {
 
 func (x *OrderCreateRequest_OrderCreate) Reset() {
 	*x = OrderCreateRequest_OrderCreate{}
-	mi := &file_order_v1_api_order_service_proto_msgTypes[14]
+	mi := &file_order_v1_api_order_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -727,7 +839,7 @@ func (x *OrderCreateRequest_OrderCreate) String() string {
 func (*OrderCreateRequest_OrderCreate) ProtoMessage() {}
 
 func (x *OrderCreateRequest_OrderCreate) ProtoReflect() protoreflect.Message {
-	mi := &file_order_v1_api_order_service_proto_msgTypes[14]
+	mi := &file_order_v1_api_order_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -774,7 +886,7 @@ type OrderCreateRequest_OrderCreate_Item struct {
 
 func (x *OrderCreateRequest_OrderCreate_Item) Reset() {
 	*x = OrderCreateRequest_OrderCreate_Item{}
-	mi := &file_order_v1_api_order_service_proto_msgTypes[15]
+	mi := &file_order_v1_api_order_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -786,7 +898,7 @@ func (x *OrderCreateRequest_OrderCreate_Item) String() string {
 func (*OrderCreateRequest_OrderCreate_Item) ProtoMessage() {}
 
 func (x *OrderCreateRequest_OrderCreate_Item) ProtoReflect() protoreflect.Message {
-	mi := &file_order_v1_api_order_service_proto_msgTypes[15]
+	mi := &file_order_v1_api_order_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -864,10 +976,22 @@ const file_order_v1_api_order_service_proto_rawDesc = "" +
 	"\x10two_phase_commit\x18\x02 \x01(\bR\x0etwoPhaseCommit\"V\n" +
 	"\x13OrderResumeResponse\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12/\n" +
-	"\x06status\x18\x02 \x01(\x0e2\x17.orders.v1.Order.StatusR\x06status\"\x12\n" +
-	"\x10OrderListRequest\"=\n" +
+	"\x06status\x18\x02 \x01(\x0e2\x17.orders.v1.Order.StatusR\x06status\"\x95\x01\n" +
+	"\x10OrderListRequest\x12(\n" +
+	"\x04page\x18\x01 \x01(\v2\x0f.orders.v1.PageH\x00R\x04page\x88\x01\x01\x12@\n" +
+	"\tcondition\x18\x02 \x01(\v2\x1d.orders.v1.OrderListConditionH\x01R\tcondition\x88\x01\x01B\a\n" +
+	"\x05_pageB\f\n" +
+	"\n" +
+	"_condition\"=\n" +
 	"\x11OrderListResponse\x12(\n" +
-	"\x06orders\x18\x01 \x03(\v2\x10.orders.v1.OrderR\x06orders2\xe6\x05\n" +
+	"\x06orders\x18\x01 \x03(\v2\x10.orders.v1.OrderR\x06orders\":\n" +
+	"\x04Page\x12\x10\n" +
+	"\x03num\x18\x01 \x01(\x05R\x03num\x12\x17\n" +
+	"\x04size\x18\x02 \x01(\x05H\x00R\x04size\x88\x01\x01B\a\n" +
+	"\x05_size\"U\n" +
+	"\x12OrderListCondition\x124\n" +
+	"\x06status\x18\x01 \x01(\x0e2\x17.orders.v1.Order.StatusH\x00R\x06status\x88\x01\x01B\t\n" +
+	"\a_status2\xe6\x05\n" +
 	"\fOrderService\x12a\n" +
 	"\x06Create\x12\x1d.orders.v1.OrderCreateRequest\x1a\x1e.orders.v1.OrderCreateResponse\"\x18\x82\xd3\xe4\x93\x02\x12:\x01*\"\r/api/v1/order\x12l\n" +
 	"\aApprove\x12\x1e.orders.v1.OrderApproveRequest\x1a\x1f.orders.v1.OrderApproveResponse\" \x82\xd3\xe4\x93\x02\x1a:\x01*\"\x15/api/v1/order/approve\x12l\n" +
@@ -889,7 +1013,7 @@ func file_order_v1_api_order_service_proto_rawDescGZIP() []byte {
 	return file_order_v1_api_order_service_proto_rawDescData
 }
 
-var file_order_v1_api_order_service_proto_msgTypes = make([]protoimpl.MessageInfo, 16)
+var file_order_v1_api_order_service_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
 var file_order_v1_api_order_service_proto_goTypes = []any{
 	(*OrderCreateRequest)(nil),                  // 0: orders.v1.OrderCreateRequest
 	(*OrderCreateResponse)(nil),                 // 1: orders.v1.OrderCreateResponse
@@ -905,41 +1029,46 @@ var file_order_v1_api_order_service_proto_goTypes = []any{
 	(*OrderResumeResponse)(nil),                 // 11: orders.v1.OrderResumeResponse
 	(*OrderListRequest)(nil),                    // 12: orders.v1.OrderListRequest
 	(*OrderListResponse)(nil),                   // 13: orders.v1.OrderListResponse
-	(*OrderCreateRequest_OrderCreate)(nil),      // 14: orders.v1.OrderCreateRequest.OrderCreate
-	(*OrderCreateRequest_OrderCreate_Item)(nil), // 15: orders.v1.OrderCreateRequest.OrderCreate.Item
-	(Order_Status)(0),                           // 16: orders.v1.Order.Status
-	(*Order)(nil),                               // 17: orders.v1.Order
-	(*Order_Delivery)(nil),                      // 18: orders.v1.Order.Delivery
+	(*Page)(nil),                                // 14: orders.v1.Page
+	(*OrderListCondition)(nil),                  // 15: orders.v1.OrderListCondition
+	(*OrderCreateRequest_OrderCreate)(nil),      // 16: orders.v1.OrderCreateRequest.OrderCreate
+	(*OrderCreateRequest_OrderCreate_Item)(nil), // 17: orders.v1.OrderCreateRequest.OrderCreate.Item
+	(Order_Status)(0),                           // 18: orders.v1.Order.Status
+	(*Order)(nil),                               // 19: orders.v1.Order
+	(*Order_Delivery)(nil),                      // 20: orders.v1.Order.Delivery
 }
 var file_order_v1_api_order_service_proto_depIdxs = []int32{
-	14, // 0: orders.v1.OrderCreateRequest.body:type_name -> orders.v1.OrderCreateRequest.OrderCreate
-	16, // 1: orders.v1.OrderApproveResponse.status:type_name -> orders.v1.Order.Status
-	16, // 2: orders.v1.OrderReleaseResponse.status:type_name -> orders.v1.Order.Status
-	17, // 3: orders.v1.OrderGetResponse.order:type_name -> orders.v1.Order
-	16, // 4: orders.v1.OrderCancelResponse.status:type_name -> orders.v1.Order.Status
-	16, // 5: orders.v1.OrderResumeResponse.status:type_name -> orders.v1.Order.Status
-	17, // 6: orders.v1.OrderListResponse.orders:type_name -> orders.v1.Order
-	15, // 7: orders.v1.OrderCreateRequest.OrderCreate.items:type_name -> orders.v1.OrderCreateRequest.OrderCreate.Item
-	18, // 8: orders.v1.OrderCreateRequest.OrderCreate.delivery:type_name -> orders.v1.Order.Delivery
-	0,  // 9: orders.v1.OrderService.Create:input_type -> orders.v1.OrderCreateRequest
-	2,  // 10: orders.v1.OrderService.Approve:input_type -> orders.v1.OrderApproveRequest
-	4,  // 11: orders.v1.OrderService.Release:input_type -> orders.v1.OrderReleaseRequest
-	8,  // 12: orders.v1.OrderService.Cancel:input_type -> orders.v1.OrderCancelRequest
-	10, // 13: orders.v1.OrderService.Resume:input_type -> orders.v1.OrderResumeRequest
-	6,  // 14: orders.v1.OrderService.Get:input_type -> orders.v1.OrderGetRequest
-	12, // 15: orders.v1.OrderService.List:input_type -> orders.v1.OrderListRequest
-	1,  // 16: orders.v1.OrderService.Create:output_type -> orders.v1.OrderCreateResponse
-	3,  // 17: orders.v1.OrderService.Approve:output_type -> orders.v1.OrderApproveResponse
-	5,  // 18: orders.v1.OrderService.Release:output_type -> orders.v1.OrderReleaseResponse
-	9,  // 19: orders.v1.OrderService.Cancel:output_type -> orders.v1.OrderCancelResponse
-	11, // 20: orders.v1.OrderService.Resume:output_type -> orders.v1.OrderResumeResponse
-	7,  // 21: orders.v1.OrderService.Get:output_type -> orders.v1.OrderGetResponse
-	13, // 22: orders.v1.OrderService.List:output_type -> orders.v1.OrderListResponse
-	16, // [16:23] is the sub-list for method output_type
-	9,  // [9:16] is the sub-list for method input_type
-	9,  // [9:9] is the sub-list for extension type_name
-	9,  // [9:9] is the sub-list for extension extendee
-	0,  // [0:9] is the sub-list for field type_name
+	16, // 0: orders.v1.OrderCreateRequest.body:type_name -> orders.v1.OrderCreateRequest.OrderCreate
+	18, // 1: orders.v1.OrderApproveResponse.status:type_name -> orders.v1.Order.Status
+	18, // 2: orders.v1.OrderReleaseResponse.status:type_name -> orders.v1.Order.Status
+	19, // 3: orders.v1.OrderGetResponse.order:type_name -> orders.v1.Order
+	18, // 4: orders.v1.OrderCancelResponse.status:type_name -> orders.v1.Order.Status
+	18, // 5: orders.v1.OrderResumeResponse.status:type_name -> orders.v1.Order.Status
+	14, // 6: orders.v1.OrderListRequest.page:type_name -> orders.v1.Page
+	15, // 7: orders.v1.OrderListRequest.condition:type_name -> orders.v1.OrderListCondition
+	19, // 8: orders.v1.OrderListResponse.orders:type_name -> orders.v1.Order
+	18, // 9: orders.v1.OrderListCondition.status:type_name -> orders.v1.Order.Status
+	17, // 10: orders.v1.OrderCreateRequest.OrderCreate.items:type_name -> orders.v1.OrderCreateRequest.OrderCreate.Item
+	20, // 11: orders.v1.OrderCreateRequest.OrderCreate.delivery:type_name -> orders.v1.Order.Delivery
+	0,  // 12: orders.v1.OrderService.Create:input_type -> orders.v1.OrderCreateRequest
+	2,  // 13: orders.v1.OrderService.Approve:input_type -> orders.v1.OrderApproveRequest
+	4,  // 14: orders.v1.OrderService.Release:input_type -> orders.v1.OrderReleaseRequest
+	8,  // 15: orders.v1.OrderService.Cancel:input_type -> orders.v1.OrderCancelRequest
+	10, // 16: orders.v1.OrderService.Resume:input_type -> orders.v1.OrderResumeRequest
+	6,  // 17: orders.v1.OrderService.Get:input_type -> orders.v1.OrderGetRequest
+	12, // 18: orders.v1.OrderService.List:input_type -> orders.v1.OrderListRequest
+	1,  // 19: orders.v1.OrderService.Create:output_type -> orders.v1.OrderCreateResponse
+	3,  // 20: orders.v1.OrderService.Approve:output_type -> orders.v1.OrderApproveResponse
+	5,  // 21: orders.v1.OrderService.Release:output_type -> orders.v1.OrderReleaseResponse
+	9,  // 22: orders.v1.OrderService.Cancel:output_type -> orders.v1.OrderCancelResponse
+	11, // 23: orders.v1.OrderService.Resume:output_type -> orders.v1.OrderResumeResponse
+	7,  // 24: orders.v1.OrderService.Get:output_type -> orders.v1.OrderGetResponse
+	13, // 25: orders.v1.OrderService.List:output_type -> orders.v1.OrderListResponse
+	19, // [19:26] is the sub-list for method output_type
+	12, // [12:19] is the sub-list for method input_type
+	12, // [12:12] is the sub-list for extension type_name
+	12, // [12:12] is the sub-list for extension extendee
+	0,  // [0:12] is the sub-list for field type_name
 }
 
 func init() { file_order_v1_api_order_service_proto_init() }
@@ -951,13 +1080,16 @@ func file_order_v1_api_order_service_proto_init() {
 	file_order_v1_api_order_service_proto_msgTypes[3].OneofWrappers = []any{}
 	file_order_v1_api_order_service_proto_msgTypes[5].OneofWrappers = []any{}
 	file_order_v1_api_order_service_proto_msgTypes[9].OneofWrappers = []any{}
+	file_order_v1_api_order_service_proto_msgTypes[12].OneofWrappers = []any{}
+	file_order_v1_api_order_service_proto_msgTypes[14].OneofWrappers = []any{}
+	file_order_v1_api_order_service_proto_msgTypes[15].OneofWrappers = []any{}
 	type x struct{}
 	out := protoimpl.TypeBuilder{
 		File: protoimpl.DescBuilder{
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_order_v1_api_order_service_proto_rawDesc), len(file_order_v1_api_order_service_proto_rawDesc)),
 			NumEnums:      0,
-			NumMessages:   16,
+			NumMessages:   18,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

@@ -1,50 +1,35 @@
 package io.github.m4gshm.payments.service.event;
 
+import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import lombok.RequiredArgsConstructor;
+import lombok.SneakyThrows;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.DisposableBean;
+import org.springframework.kafka.core.KafkaTemplate;
 
 import java.time.OffsetDateTime;
+import java.util.UUID;
+
+import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @RequiredArgsConstructor
-public class KafkaAccountEventServiceImpl implements AccountEventService, DisposableBean {
+@FieldDefaults(makeFinal = true, level = PRIVATE)
+public class KafkaAccountEventServiceImpl implements AccountEventService {
 
-    // private final KafkaSender<String, AccountBalanceEvent> sender;
-    private final String topicName;
-
-    @Override
-    public void destroy() {
-//        sender.close();
-    }
+    KafkaTemplate<String, AccountBalanceEvent> sender;
+    String topicName;
 
     @Override
-//    @SneakyThrows
-    public void sendAccountBalanceEvent(String clientId,
-                                        double balance,
-                                        OffsetDateTime timestamp) {
-//        var accountBalanceEvent = AccountBalanceEvent.builder()
-//                .requestId(UUID.randomUUID().toString())
-//                .clientId(clientId)
-//                .balance(balance)
-//                .timestamp(timestamp)
-//                .build();
-//
-//        var senderRecord = create(topicName,
-//                null,
-//                timestamp.toInstant().toEpochMilli(),
-//                (String) null,
-//                accountBalanceEvent,
-//                clientId);
-//
-//        return sender.send(just(senderRecord))
-//                .doOnError(e -> log.error("balance event sending failed", e))
-//                .doOnNext(r -> {
-//                    log.debug("balance event sent: correlationMetadata {}, recordMetadata {}",
-//                            r.correlationMetadata(),
-//                            r.recordMetadata());
-//                })
-//                .next();
-
+    @SneakyThrows
+    public void sendAccountBalanceEvent(String clientId, double balance, OffsetDateTime timestamp) {
+        var accountBalanceEvent = AccountBalanceEvent.builder()
+                .requestId(UUID.randomUUID().toString())
+                .clientId(clientId)
+                .balance(balance)
+                .timestamp(timestamp)
+                .build();
+        var send = sender.send(topicName, accountBalanceEvent).get();
+        log.debug("balance event sent: recordMetadata {}", send.getRecordMetadata());
     }
 }

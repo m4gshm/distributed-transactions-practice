@@ -262,7 +262,11 @@ func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.Rese
 			return nil, err
 		}
 
-		if err := check.Status("reserve", reserve.Status, ressqlc.ReserveStatusAPPROVED); err != nil {
+		if err := check.Status("reserve", reserve.Status,
+			ressqlc.ReserveStatusCREATED,
+			ressqlc.ReserveStatusINSUFFICIENT,
+			ressqlc.ReserveStatusAPPROVED,
+		); err != nil {
 			return nil, err
 		}
 

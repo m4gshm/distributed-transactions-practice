@@ -6,7 +6,7 @@ apply(plugin = "io.spring.dependency-management")
 dependencies {
     api(project(":idempotent-consumer"))
     api(project(":jooq-r2dbc"))
-    api(project(":r2dbc-postgres"))
+    api(project(":postgres-r2dbc"))
 
     implementation("org.postgresql:postgresql")
     implementation("org.postgresql:r2dbc-postgresql")

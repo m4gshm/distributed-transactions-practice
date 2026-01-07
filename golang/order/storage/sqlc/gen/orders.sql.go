@@ -190,6 +190,63 @@ func (q *Queries) FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrd
 	return items, nil
 }
 
+const findOrdersPaged = `-- name: FindOrdersPaged :many
+SELECT
+  o.id, o.created_at, o.updated_at, o.status, o.customer_id, o.reserve_id, o.payment_id, o.payment_transaction_id, o.reserve_transaction_id,
+  d.order_id, d.address, d.type
+FROM
+  orders o
+  LEFT JOIN delivery d ON o.id = d.order_id
+  WHERE  ($1::order_status IS NULL OR o.status = $1::order_status)
+  ORDER BY o.id
+  LIMIT $3::int
+  OFFSET $2::int
+`
+
+type FindOrdersPagedParams struct {
+	Status OrderStatus
+	Offs   int32
+	Lim    pgtype.Int4
+}
+
+type FindOrdersPagedRow struct {
+	Order    Order
+	Delivery Delivery
+}
+
+func (q *Queries) FindOrdersPaged(ctx context.Context, arg FindOrdersPagedParams) ([]FindOrdersPagedRow, error) {
+	rows, err := q.db.Query(ctx, findOrdersPaged, arg.Status, arg.Offs, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindOrdersPagedRow
+	for rows.Next() {
+		var i FindOrdersPagedRow
+		if err := rows.Scan(
+			&i.Order.ID,
+			&i.Order.CreatedAt,
+			&i.Order.UpdatedAt,
+			&i.Order.Status,
+			&i.Order.CustomerID,
+			&i.Order.ReserveID,
+			&i.Order.PaymentID,
+			&i.Order.PaymentTransactionID,
+			&i.Order.ReserveTransactionID,
+			&i.Delivery.OrderID,
+			&i.Delivery.Address,
+			&i.Delivery.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertOrUpdateDelivery = `-- name: InsertOrUpdateDelivery :exec
 INSERT INTO
   delivery (order_id, address, type)

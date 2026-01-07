@@ -41,7 +41,31 @@ public class OrderStorageImpl implements OrderStorage {
 
     @Override
     public List<Order> findAll() {
-        return selectOrdersJoinDelivery(dsl).stream().map(record -> toOrder(record, record, List.of())).toList();
+        return findAll(null);
+    }
+
+    @Override
+    public List<Order> findAll(Page page) {
+        return findAll(page, null);
+    }
+
+    @Override
+    public List<Order> findAll(Page page, OrderStatus status) {
+        var num = page != null ? page.num() : null;
+        var hasNum = num != null;
+        if (hasNum && num < 0) {
+            throw new IllegalArgumentException("page.num cannot be less than 0");
+        }
+        var size = page != null ? page.size() : 10;
+        if (size <= 0) {
+            throw new IllegalArgumentException("page.size must be more than 0");
+        }
+        var baseQuery = selectOrdersJoinDelivery(dsl);
+        var queryWithCondition = status != null ? baseQuery.where(ORDERS.STATUS.eq(status)) : baseQuery;
+        return (hasNum
+                ? queryWithCondition.limit(size).offset(num * size)
+                : queryWithCondition
+        ).stream().map(record -> toOrder(record, record, List.of())).toList();
     }
 
     @Override

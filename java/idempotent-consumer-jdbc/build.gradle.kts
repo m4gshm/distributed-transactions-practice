@@ -7,7 +7,7 @@ dependencies {
     api(project(":idempotent-consumer"))
     api(project(":storage-reactive-api"))
 //    api(project(":jooq-r2dbc"))
-//    api(project(":r2dbc-postgres"))
+    api(project(":postgres-jdbc"))
 
     implementation("io.projectreactor:reactor-core")
 

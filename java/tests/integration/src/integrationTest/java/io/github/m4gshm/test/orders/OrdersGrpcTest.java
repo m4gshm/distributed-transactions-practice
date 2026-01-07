@@ -6,9 +6,13 @@ import io.github.m4gshm.test.commons.orders.OrderUtils;
 import io.github.m4gshm.test.orders.config.AccountServiceConfig;
 import io.github.m4gshm.test.orders.config.OrderServiceConfig;
 import io.github.m4gshm.test.orders.config.WarehouseItemServiceConfig;
+import io.grpc.StatusRuntimeException;
 import io.opentelemetry.api.OpenTelemetry;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderServiceGrpc.OrderServiceBlockingStub;
+import orders.v1.OrderServiceOuterClass.OrderCancelRequest;
+import orders.v1.OrderServiceOuterClass.OrderListCondition;
+import orders.v1.OrderServiceOuterClass.OrderListRequest;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -167,6 +171,23 @@ public class OrdersGrpcTest {
 
     @Test
     public void processOrderWithInsufficientMoneyAccountButWithDelayTopUp() throws InterruptedException {
+        var request = OrderListRequest.newBuilder()
+                .setCondition(OrderListCondition.newBuilder()
+                        .setStatus(INSUFFICIENT)
+                        .build())
+                .build();
+        var insufficientOrders = ordersService.list(request).getOrdersList();
+        for (var order : insufficientOrders) {
+            try {
+                ordersService.cancel(OrderCancelRequest.newBuilder()
+                        .setId(order.getId())
+                        .setTwoPhaseCommit(false)
+                        .build());
+            } catch (StatusRuntimeException e) {
+                throw e;
+            }
+        }
+
         var items = OrderUtils.getOrderItems();
 
         // populate warehouse
@@ -195,7 +216,7 @@ public class OrdersGrpcTest {
             if (status != INSUFFICIENT) {
                 break;
             }
-            Thread.sleep(i * 1000);
+            Thread.sleep(i * 500);
         }
 
         var status = ordersService.get(orderGetRequest(orderApproveResponse)).getOrder().getStatus();

@@ -1,5 +1,8 @@
 package io.github.m4gshm.orders.service;
 
+import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
+import io.github.m4gshm.storage.PageableReadOperations;
+import io.github.m4gshm.storage.PageableReadOperations.Page;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
 import orders.v1.OrderServiceOuterClass.OrderCancelResponse;
 import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
@@ -18,7 +21,7 @@ public interface OrderService {
 
     OrderGetResponse get(String orderId);
 
-    OrderListResponse list();
+    OrderListResponse list(Page page, OrderStatus status);
 
     OrderReleaseResponse release(String orderId, boolean twoPhaseCommit);
 

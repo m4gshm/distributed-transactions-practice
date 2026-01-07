@@ -10,6 +10,7 @@ import org.jooq.DSLContext;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
 
@@ -19,7 +20,7 @@ import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.
 
 @EnableScheduling
 @RequiredArgsConstructor
-@AutoConfiguration(after = IdempotentConsumerPropertiesAutoConfiguration.class)
+@AutoConfiguration(after = { IdempotentConsumerPropertiesAutoConfiguration.class, JooqAutoConfiguration.class })
 public class MessageStorageAutoConfiguration {
 
     private final IdempotentConsumerProperties properties;

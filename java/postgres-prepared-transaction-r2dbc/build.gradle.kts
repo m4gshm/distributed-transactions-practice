@@ -7,7 +7,7 @@ dependencies {
 //    api(project(":postgres-prepared-transaction"))
     api(project(":storage-reactive-jooq"))
     api(project(":jooq-r2dbc"))
-    api(project(":r2dbc-postgres"))
+    api(project(":postgres-r2dbc"))
 
     implementation("org.slf4j:slf4j-api")
     implementation("org.jooq:jooq")

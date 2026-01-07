@@ -14,6 +14,7 @@ type Querier interface {
 	FindItemsByOrderId(ctx context.Context, orderID string) ([]Item, error)
 	FindOrderById(ctx context.Context, id string) (FindOrderByIdRow, error)
 	FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrdersByClientAndStatusesParams) ([]FindOrdersByClientAndStatusesRow, error)
+	FindOrdersPaged(ctx context.Context, arg FindOrdersPagedParams) ([]FindOrdersPagedRow, error)
 	InsertOrUpdateDelivery(ctx context.Context, arg InsertOrUpdateDeliveryParams) error
 	InsertOrUpdateItem(ctx context.Context, arg InsertOrUpdateItemParams) error
 	InsertOrUpdateOrder(ctx context.Context, arg InsertOrUpdateOrderParams) error
