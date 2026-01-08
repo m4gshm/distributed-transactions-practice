@@ -132,7 +132,7 @@ spring:
               packages: "io.github.m4gshm.payments.event.model"
         reactiveAutoCommit: true
   application:
-    name: orders
+    name: jvm-orders-reactive
 
 service:
   reserve:

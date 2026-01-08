@@ -17,6 +17,7 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static io.github.m4gshm.payments.data.AccountStorageUtils.updateAccountUnlock;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
 import static payments.data.access.jooq.Tables.ACCOUNT;
@@ -94,9 +95,9 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double newLocked = locked - amount;
                 if (newLocked < 0) {
-                    return error(new InvalidUnlockFundValueException(clientId, newLocked));
+                    return error(new InvalidUnlockFundValueException(clientId, amount, locked));
                 } else {
-                    return from(AccountStorageUtils.updateAccountUnlock(dsl, clientId, amount))
+                    return from(updateAccountUnlock(dsl, clientId, amount))
                             .flatMap(ReactiveUpdateUtils.checkUpdateCount(
                                     "account",
                                     clientId,
@@ -116,7 +117,7 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
                     double newLocked = locked - amount;
                     double newAmount = totalAmount - amount;
                     if (newLocked < 0 || newAmount < 0) {
-                        return error(new WriteOffException(
+                        return error(new WriteOffException(clientId,
                                 newLocked < 0 ? -newLocked : 0,
                                 newAmount < 0 ? -newAmount : 0
                         ));

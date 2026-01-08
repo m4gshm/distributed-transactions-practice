@@ -79,7 +79,11 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (externalRef '%s'): %v", body.ExternalRef, err)
 		}
 
-		for _, item := range body.Items {
+		items := body.Items
+		if len(items) == 0 {
+			return nil, status.Errorf(codes.InvalidArgument, "no request items (externalRef '%s')", body.ExternalRef)
+		}
+		for _, item := range items {
 			if err := query.UpsertReserveItem(ctx, ressqlc.UpsertReserveItemParams{
 				ReserveID: reserveID,
 				ID:        item.Id,

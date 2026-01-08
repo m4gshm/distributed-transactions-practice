@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	name := "orders"
+	name := "go-orders"
 	cfg := config.Load().Orders
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("order_status", "delivery_type"),

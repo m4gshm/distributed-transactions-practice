@@ -1,2 +1,2 @@
 io.github.m4gshm.orders.data.storage.jdbc.config.OrderStorageAutoConfiguration
-io.github.m4gshm.orders.data.storage.jdbc.config.ReactiveOrderStorageWrapperAutoConfiguration
+

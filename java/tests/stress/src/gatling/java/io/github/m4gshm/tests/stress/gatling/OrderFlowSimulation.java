@@ -15,6 +15,10 @@ import io.gatling.javaapi.http.HttpRequestActionBuilder;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import lombok.SneakyThrows;
 import lombok.extern.slf4j.Slf4j;
+import orders.v1.OrderServiceGrpc;
+import orders.v1.OrderServiceOuterClass.OrderCancelRequest;
+import orders.v1.OrderServiceOuterClass.OrderListCondition;
+import orders.v1.OrderServiceOuterClass.OrderListRequest;
 import warehouse.v1.WarehouseItemServiceGrpc;
 import warehouse.v1.WarehouseService;
 import warehouse.v1.WarehouseService.GetItemCostRequest;
@@ -41,6 +45,7 @@ import static io.github.m4gshm.test.commons.orders.OrderUtils.newItemTopUpReques
 import static io.github.m4gshm.test.commons.orders.OrderUtils.newReleaseRequest;
 import static java.time.Duration.ofSeconds;
 import static java.util.stream.Collectors.toMap;
+import static orders.v1.OrderOuterClass.Order.Status.INSUFFICIENT;
 import static warehouse.v1.Warehouse.Item;
 
 @Slf4j
@@ -49,6 +54,7 @@ public class OrderFlowSimulation extends Simulation {
     private static final Map<String, String> env = System.getenv();
     public static final String ORDER_URL = env.getOrDefault("ORDER_URL", "http://localhost:7080");
 
+    public static final String ORDER_ADDRESS = env.getOrDefault("ACCOUNT_ADDRESS", "localhost:9080");
     public static final String ACCOUNT_ADDRESS = env.getOrDefault("ACCOUNT_ADDRESS", "localhost:9082");
     public static final String WAREHOUSE_ADDRESS = env.getOrDefault("WAREHOUSE_ADDRESS", "localhost:9081");
 
@@ -56,12 +62,12 @@ public class OrderFlowSimulation extends Simulation {
         setUp(
                 newScenario("Order Flow", httpRequestActionBuilder -> {
                     return httpRequestActionBuilder/* .silent().ignoreProtocolChecks() */;
-                }, constantConcurrentUsers(1).during(30)))
+                }, constantConcurrentUsers(20).during(30)))
                 .assertions(global().failedRequests().count().lt(1L))
                 .protocols(
                         http.baseUrl(ORDER_URL).warmUp(ORDER_URL).acceptHeader("application/json")
                 )
-                .maxDuration(ofSeconds(120));
+                .maxDuration(ofSeconds(180));
     }
 
     private static BiFunction<Response, Session, Response> logResponse(String op) {
@@ -74,8 +80,8 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static ScenarioBuilder newScenario(
-                                               String scenarioName,
-                                               Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
+            String scenarioName,
+            Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
     ) {
         var create = http("CreateOrder")
                 .post(API_V1 + "/order")
@@ -114,27 +120,27 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static PopulationBuilder newScenario(
-                                                 String scenarioName,
-                                                 Function<HttpRequestActionBuilder,
-                                                         HttpRequestActionBuilder> customizer,
-                                                 ClosedInjectionStep closedInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            ClosedInjectionStep closedInjectionStep) {
         return newScenario1(scenarioName, customizer, closedInjectionStep, null);
     }
 
     private static PopulationBuilder newScenario(
-                                                 String scenarioName,
-                                                 Function<HttpRequestActionBuilder,
-                                                         HttpRequestActionBuilder> customizer,
-                                                 OpenInjectionStep openInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            OpenInjectionStep openInjectionStep) {
         return newScenario1(scenarioName, customizer, null, openInjectionStep);
     }
 
     private static PopulationBuilder newScenario1(
-                                                  String scenarioName,
-                                                  Function<HttpRequestActionBuilder,
-                                                          HttpRequestActionBuilder> customizer,
-                                                  ClosedInjectionStep closedInjectionStep,
-                                                  OpenInjectionStep openInjectionStep) {
+            String scenarioName,
+            Function<HttpRequestActionBuilder,
+                    HttpRequestActionBuilder> customizer,
+            ClosedInjectionStep closedInjectionStep,
+            OpenInjectionStep openInjectionStep) {
         var scenarioBuilder = newScenario(scenarioName, customizer);
         return (closedInjectionStep != null
                 ? scenarioBuilder.injectClosed(closedInjectionStep)
@@ -149,13 +155,27 @@ public class OrderFlowSimulation extends Simulation {
     @Override
     @SneakyThrows
     public void before() {
-        log.info("init account url {}", ACCOUNT_ADDRESS);
-        log.info("init warehouse url {}", WAREHOUSE_ADDRESS);
+        log.info("order url {}", ORDER_URL);
+        log.info("order address {}", ORDER_ADDRESS);
+        log.info("account address {}", ACCOUNT_ADDRESS);
+        log.info("warehouse address {}", WAREHOUSE_ADDRESS);
+        var orderChannel = newManagedChannel(clientProperties(ORDER_URL), List.of());
         var accountChannel = newManagedChannel(clientProperties(ACCOUNT_ADDRESS), List.of());
         var warehouseChannel = newManagedChannel(clientProperties(WAREHOUSE_ADDRESS), List.of());
         try {
+            var orderService = OrderServiceGrpc.newBlockingStub(orderChannel);
             var accountService = newBlockingStub(accountChannel);
             var warehouseItemService = WarehouseItemServiceGrpc.newBlockingStub(warehouseChannel);
+
+            var insufficientOrders = orderService.list(OrderListRequest.newBuilder()
+                    .setCondition(OrderListCondition.newBuilder().setStatus(INSUFFICIENT).build())
+                    .build()).getOrdersList();
+            for (var order : insufficientOrders) {
+                orderService.cancel(OrderCancelRequest.newBuilder()
+                        .setId(order.getId())
+                        .setTwoPhaseCommit(false)
+                        .build());
+            }
 
             double balance = accountService.list(AccountListRequest.newBuilder().build())
                     .getAccountsList()

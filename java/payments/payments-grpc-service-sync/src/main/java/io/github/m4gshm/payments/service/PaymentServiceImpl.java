@@ -2,6 +2,7 @@ package io.github.m4gshm.payments.service;
 
 import io.github.m4gshm.Grpc;
 import io.github.m4gshm.payments.data.AccountStorage;
+import io.github.m4gshm.payments.data.InvalidUnlockFundValueException;
 import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.payments.data.model.Payment;
@@ -94,7 +95,11 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment, account) -> {
-                    accountStorage.unlock(account.clientId(), payment.amount());
+                    try {
+                        accountStorage.unlock(account.clientId(), payment.amount());
+                    } catch (InvalidUnlockFundValueException e) {
+                        log.warn("account funds unlock error", e);
+                    }
                     var savedPayment = paymentStorage.save(withStatus(payment, CANCELLED));
                     return PaymentCancelResponse.newBuilder()
                             .setId(savedPayment.id())

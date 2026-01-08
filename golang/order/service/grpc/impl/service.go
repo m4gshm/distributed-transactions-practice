@@ -78,14 +78,15 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "order body is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*orderspb.OrderCreateResponse, error) {
+	orderID := uuid.New().String()
+	customerId := body.CustomerId
+	twoPhaseCommit := req.TwoPhaseCommit
+	paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
+	reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
+
+	items, err := tx.New(ctx, s.db, func(tx pgx.Tx) ([]sqlc.Item, error) {
 		query := sqlc.New(tx)
 
-		orderID := uuid.New().String()
-		customerId := body.CustomerId
-		twoPhaseCommit := req.TwoPhaseCommit
-		paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
-		reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
 		orderEntity := sqlc.InsertOrUpdateOrderParams{
 			ID:                   orderID,
 			CustomerID:           customerId,
@@ -125,18 +126,18 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 				Amount:  item.Amount,
 			})
 		}
-
-		if _, err := s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, customerId, items); err != nil {
-			return nil, err
-		}
-		return &orderspb.OrderCreateResponse{Id: orderID}, nil
+		return items, nil
 	})
+	if err != nil {
+		return nil, err
+	} else if _, err := s.create(ctx, paymentTransactionID, reserveTransactionID, orderID, customerId, items); err != nil {
+		return nil, err
+	}
+	return &orderspb.OrderCreateResponse{Id: orderID}, nil
+
 }
 
-func (s *OrderService) create(
-	ctx context.Context, paymentTransactionID, reserveTransactionID *string, query *sqlc.Queries,
-	orderID string, customerID string, items []sqlc.Item,
-) (sqlc.OrderStatus, error) {
+func (s *OrderService) create(ctx context.Context, paymentTransactionID, reserveTransactionID *string, orderID, customerID string, items []sqlc.Item) (sqlc.OrderStatus, error) {
 	cost := 0.0
 	reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
 	for _, item := range items {
@@ -177,8 +178,8 @@ func (s *OrderService) create(
 		} else {
 			reserveID = resp.Id
 		}
-
 		finalStatus := sqlc.OrderStatusCREATED
+		query := sqlc.New(s.db)
 		if err := query.InsertOrUpdateOrder(ctx, sqlc.InsertOrUpdateOrderParams{
 			ID:        orderID,
 			Status:    finalStatus,
@@ -258,8 +259,7 @@ func generateID() *string {
 func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRequest) (*orderspb.OrderApproveResponse, error) {
 	ctx, span := tracer.Start(ctx, "Approve")
 	defer span.End()
-	query := sqlc.New(s.db)
-	finalStatus, err := s.appvove(ctx, query, req.Id, req.TwoPhaseCommit)
+	finalStatus, err := s.appvove(ctx, sqlc.New(s.db), req.Id, req.TwoPhaseCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -301,8 +301,7 @@ func (s *OrderService) release(ctx context.Context, query *sqlc.Queries, orderID
 func (s *OrderService) Cancel(ctx context.Context, req *orderspb.OrderCancelRequest) (*orderspb.OrderCancelResponse, error) {
 	ctx, span := tracer.Start(ctx, "Cancel")
 	defer span.End()
-	query := sqlc.New(s.db)
-	_, err := s.cancel(ctx, query, req.Id, req.TwoPhaseCommit)
+	_, err := s.cancel(ctx, sqlc.New(s.db), req.Id, req.TwoPhaseCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -343,7 +342,7 @@ func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequ
 	case sqlc.OrderStatusCREATED, sqlc.OrderStatusAPPROVED, sqlc.OrderStatusRELEASED, sqlc.OrderStatusCANCELLED:
 		err = status.Error(codes.FailedPrecondition, "already committed status")
 	case sqlc.OrderStatusCREATING:
-		orderStatus, err = s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, order.CustomerID, items)
+		orderStatus, err = s.create(ctx, paymentTransactionID, reserveTransactionID, orderID, order.CustomerID, items)
 	case sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVING:
 		orderStatus, err = s.appvove(ctx, query, orderID, req.TwoPhaseCommit)
 	case sqlc.OrderStatusRELEASING:

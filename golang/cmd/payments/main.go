@@ -22,7 +22,7 @@ import (
 )
 
 func main() {
-	name := "payment"
+	name := "go-payments"
 	cfg := config.Load().Payments
 
 	app.Run(name, cfg.ServiceConfig, slice.Of("payment_status"),

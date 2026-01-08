@@ -9,7 +9,7 @@ public interface AccountStorage extends ReadOperations<Account, String> {
 
     LockResult addLock(String clientId, @Positive double amount);
 
-    void unlock(String clientId, @Positive double amount);
+    void unlock(String clientId, @Positive double amount) throws InvalidUnlockFundValueException;
 
-    BalanceResult writeOff(String clientId, @Positive double amount);
+    BalanceResult writeOff(String clientId, @Positive double amount) throws WriteOffException;
 }

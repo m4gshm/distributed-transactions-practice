@@ -10,10 +10,8 @@ import io.micrometer.observation.ObservationRegistry;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
 import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
-import payment.v1.PaymentOuterClass;
 import payment.v1.PaymentServiceGrpc;
 import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
 
@@ -39,6 +37,18 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         return PaymentGetRequest.newBuilder()
                 .setId(paymentId)
                 .build();
+    }
+
+    private void approveIfEnoughBalance1(Order order, double balance) {
+        var paymentGetResponse = paymentServiceStub.get(paymentGetRequest(order.paymentId()));
+        var payment = paymentGetResponse.getPayment();
+        var paymentAmount = payment.getAmount();
+        if (paymentAmount <= balance) {
+            var response = ordersService.approve(order.id(), twoPhaseCommit);
+            log.info("success order approve on account balance event: id [{}], status [{}]",
+                    response.getId(),
+                    response.getStatus());
+        }
     }
 
     private void handle(AccountBalanceEvent event) {
@@ -68,18 +78,6 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
             } catch (Exception e) {
                 log.error("approve order on account balance event error", e);
             }
-        }
-    }
-
-    private void approveIfEnoughBalance1(Order order, double balance) {
-        var paymentGetResponse = paymentServiceStub.get(paymentGetRequest(order.paymentId()));
-        var payment = paymentGetResponse.getPayment();
-        var paymentAmount = payment.getAmount();
-        if (paymentAmount <= balance) {
-            var response = ordersService.approve(order.id(), twoPhaseCommit);
-            log.info("success order approve on account balance event: id [{}], status [{}]",
-                    response.getId(),
-                    response.getStatus());
         }
     }
 

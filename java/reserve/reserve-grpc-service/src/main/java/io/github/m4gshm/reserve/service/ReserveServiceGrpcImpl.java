@@ -4,9 +4,9 @@ import io.github.m4gshm.LogUtils;
 import io.github.m4gshm.jooq.ReactiveJooq;
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
 import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reserve.data.model.Reserve;
 import io.github.m4gshm.reserve.data.r2dbc.ReactiveReserveStorage;
 import io.github.m4gshm.reserve.data.r2dbc.ReactiveWarehouseItemStorage;
-import io.github.m4gshm.reserve.data.model.Reserve;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
 import lombok.RequiredArgsConstructor;
@@ -106,8 +106,8 @@ public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImp
                         }
                         var response = newApproveResponse(reserveResults, reserveId);
                         return reactiveReserveStorage.save(updatingReserve
-                                .items(items1)
-                                .build())
+                                        .items(items1)
+                                        .build())
                                 .map(_ -> response)
                                 .defaultIfEmpty(response);
                     }));
@@ -146,6 +146,9 @@ public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImp
                             .amount(item.getAmount())
                             .build())
                     .toList();
+            if (items.isEmpty()) {
+                throw new IllegalArgumentException("no request items for externalRef " + body.getExternalRef());
+            }
             var reserve = Reserve.builder()
                     .id(paymentId)
                     .externalRef(body.getExternalRef())

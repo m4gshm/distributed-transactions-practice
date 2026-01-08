@@ -55,6 +55,8 @@ grpc:
     port: 9080
     max-inbound-message-size: 1GB
     max-inbound-metadata-size: 1GB
+    security:
+      enabled: false
     channelz:
       enabled: true
     health:
@@ -112,24 +114,21 @@ spring:
     password: ${spring.datasource.password}
   kafka:
     bootstrap-servers: localhost:9092
-    producer:
-      key-serializer: org.apache.kafka.common.serialization.StringSerializer
-      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
     consumer:
       group-id: orders
-      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
       value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
       auto-offset-reset: earliest
       bootstrap-servers: ${spring.kafka.bootstrap-servers}
       client-id: orders-1
       properties:
+        spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
         spring:
           json:
             trusted:
               packages: "io.github.m4gshm.payments.event.model"
-        reactiveAutoCommit: true
   application:
-    name: orders
+    name: jvm-orders-sync
 
 service:
   reserve:

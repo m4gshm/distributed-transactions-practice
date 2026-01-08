@@ -3,6 +3,7 @@ package io.github.m4gshm.payments.data.jdbc;
 import io.github.m4gshm.payments.data.AccountStorage;
 import io.github.m4gshm.payments.data.AccountStorageUtils;
 import io.github.m4gshm.payments.data.BalanceResult;
+import io.github.m4gshm.payments.data.InvalidUnlockFundValueException;
 import io.github.m4gshm.payments.data.LockResult;
 import io.github.m4gshm.payments.data.WriteOffException;
 import io.github.m4gshm.payments.data.model.Account;
@@ -85,25 +86,20 @@ public class AccountStorageImpl implements AccountStorage {
     }
 
     @Override
-    public void unlock(String clientId, @Positive double amount) {
+    public void unlock(String clientId, @Positive double amount) throws InvalidUnlockFundValueException {
         var record = checkFound(clientId, selectForUpdate(dsl, clientId).fetchOne());
         double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
-        if (locked == 0) {
-            //log
+        double newLocked = locked - amount;
+        if (newLocked < 0) {
+            throw new InvalidUnlockFundValueException(clientId, amount, locked);
         } else {
-            double newLocked = locked - amount;
-            if (newLocked < 0) {
-                amount = locked;
-//            throw new InvalidUnlockFundValueException(clientId, newLocked);
-                //log
-            }
             var count = updateAccountUnlock(dsl, clientId, amount).execute();
             checkUpdateCount(count, "account", clientId, () -> null);
         }
     }
 
     @Override
-    public BalanceResult writeOff(String clientId, @Positive double amount) {
+    public BalanceResult writeOff(String clientId, @Positive double amount) throws WriteOffException {
         var record = checkFound(clientId, selectForUpdate(dsl, clientId).fetchOne());
 
         double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
@@ -112,7 +108,7 @@ public class AccountStorageImpl implements AccountStorage {
         double newAmount = totalAmount - amount;
         if (newLocked < 0 || newAmount < 0) {
             throw new WriteOffException(
-                    newLocked < 0 ? -newLocked : 0,
+                    clientId, newLocked < 0 ? -newLocked : 0,
                     newAmount < 0 ? -newAmount : 0
             );
         }

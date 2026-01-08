@@ -121,9 +121,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private TwoPhaseCommitResponse commit(
-            String operationName,
-            String transactionId,
-            TwoPhaseCommitServiceBlockingStub paymentsClientTcp
+                                          String operationName,
+                                          String transactionId,
+                                          TwoPhaseCommitServiceBlockingStub paymentsClientTcp
     ) {
         return paymentsClientTcp.commit(newCommitRequest(transactionId));
 //        OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId)
@@ -168,7 +168,7 @@ public class OrderServiceImpl implements OrderService {
 
         var paymentId = paymentResponse.getId();
         var reserveId = reserveResponse.getId();
-        return saveAllAndCommit(
+        return updateOrderAndCommit(
                 twoPhaseCommit,
                 order.toBuilder()
                         .status(CREATED)
@@ -185,6 +185,7 @@ public class OrderServiceImpl implements OrderService {
         var orderId = OrderServiceUtils.string(UUID.randomUUID().toString());
         var itemsList = createRequest.getItemsList();
 
+        var items = itemsList.stream().map(OrderServiceUtils::toItem).toList();
         var orderBuilder = Order.builder()
                 .id(orderId)
                 .status(CREATING)
@@ -192,7 +193,7 @@ public class OrderServiceImpl implements OrderService {
                 .delivery(createRequest.hasDelivery()
                         ? toDelivery(createRequest.getDelivery())
                         : null)
-                .items(itemsList.stream().map(OrderServiceUtils::toItem).toList());
+                .items(items);
 
         if (twoPhaseCommit) {
             orderBuilder
@@ -205,10 +206,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private <T> void distributedCommit(
-            String orderId,
-            @NonNull String paymentTransactionId,
-            @NonNull String reserveTransactionId,
-            T result
+                                       String orderId,
+                                       @NonNull String paymentTransactionId,
+                                       @NonNull String reserveTransactionId,
+                                       T result
     ) {
         reserveClientTcp.commit(newCommitRequest(reserveTransactionId));
         paymentsClientTcp.commit(newCommitRequest(paymentTransactionId));
@@ -216,10 +217,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private void distributedRollback(
-            String orderId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            Throwable result
+                                     String orderId,
+                                     String paymentTransactionId,
+                                     String reserveTransactionId,
+                                     Throwable result
     ) {
         remoteRollback(paymentTransactionId, reserveTransactionId);
         if (!(result instanceof TwoPhaseTransactionUtils.PrepareTransactionException)) {
@@ -328,15 +329,15 @@ public class OrderServiceImpl implements OrderService {
         };
     }
 
-    protected Order saveAllAndCommit(
-            boolean twoPhaseCommit,
-            Order order,
-            String paymentTransactionId,
-            String reserveTransactionId
+    protected Order updateOrderAndCommit(
+                                         boolean twoPhaseCommit,
+                                         Order order,
+                                         String paymentTransactionId,
+                                         String reserveTransactionId
     ) {
         var orderId = order.id();
 
-        var savedOrder = orderStorage.save(order);
+        var savedOrder = orderStorage.saveOrderOnly(order);
         if (!twoPhaseCommit) {
             return savedOrder;
         } else {
@@ -365,14 +366,14 @@ public class OrderServiceImpl implements OrderService {
     }
 
     protected <T, PI, PO, RI, RO> T updateOrderOp(
-            String opName,
-            String orderId,
-            boolean twoPhaseCommit,
-            Set<OrderStatus> expectedFinal,
-            OrderStatus intermediateStatus,
-            Function<Order, Payment.Status> paymentOp,
-            Function<Order, Reserve.Status> reserveOp,
-            Function<Order, T> responseBuilder
+                                                  String opName,
+                                                  String orderId,
+                                                  boolean twoPhaseCommit,
+                                                  Set<OrderStatus> expectedFinal,
+                                                  OrderStatus intermediateStatus,
+                                                  Function<Order, Payment.Status> paymentOp,
+                                                  Function<Order, Reserve.Status> reserveOp,
+                                                  Function<Order, T> responseBuilder
     ) {
         var order = orderStorage.getById(orderId);
         checkStatus(opName, "order", orderId, order.status(), expectedFinal, intermediateStatus);
@@ -422,7 +423,7 @@ public class OrderServiceImpl implements OrderService {
                 }
                 return responseBuilder.apply(savedOrder);
             } else {
-                return responseBuilder.apply(saveAllAndCommit(
+                return responseBuilder.apply(updateOrderAndCommit(
                         twoPhaseCommit,
                         orderWithNewStatus,
                         order.paymentTransactionId(),

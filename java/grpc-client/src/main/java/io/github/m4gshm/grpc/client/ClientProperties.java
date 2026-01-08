@@ -18,11 +18,12 @@ public class ClientProperties {
 
     private String address;
     private boolean secure;
-    private int idleTimeoutSec = 30;
+    private int idleTimeoutSec = -1;
+    private int keepAliveSec = -1;
 
     public static NettyChannelBuilder newManagedChannelBuilder(
-                                                               ClientProperties clientProperties,
-                                                               List<ClientInterceptor> interceptors
+            ClientProperties clientProperties,
+            List<ClientInterceptor> interceptors
     ) {
         var address = clientProperties.address;
         var builder = NettyChannelBuilder.forTarget(address);
@@ -34,13 +35,18 @@ public class ClientProperties {
         } catch (UnsupportedOperationException _) {
             log.info("virtual offloadExecutor not supported for grpc client {}", address);
         }
-
         if (!clientProperties.isSecure()) {
             builder.usePlaintext();
         }
-        return builder
-                .idleTimeout(clientProperties.idleTimeoutSec, SECONDS)
-                .intercept(interceptors);
+        var keepAliveSec = clientProperties.keepAliveSec;
+        if (keepAliveSec >= 0) {
+            builder.keepAliveTime(keepAliveSec, SECONDS);
+            builder.keepAliveWithoutCalls(true);
+        }
+        var idleTimeoutSec = clientProperties.idleTimeoutSec;
+        if (idleTimeoutSec >= 0) {
+            builder.idleTimeout(idleTimeoutSec, SECONDS);
+        }
+        return builder.intercept(interceptors);
     }
-
 }

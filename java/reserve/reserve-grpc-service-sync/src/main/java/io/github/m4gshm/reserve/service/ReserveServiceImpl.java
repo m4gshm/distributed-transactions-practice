@@ -40,10 +40,10 @@ import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toReserveProt
 import static io.github.m4gshm.reserve.service.ReserveServiceUtils.toStatusProto;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.toMap;
-import static reserve.data.access.jooq.enums.ReserveStatus.*;
 import static reserve.data.access.jooq.enums.ReserveStatus.APPROVED;
 import static reserve.data.access.jooq.enums.ReserveStatus.CANCELLED;
 import static reserve.data.access.jooq.enums.ReserveStatus.CREATED;
+import static reserve.data.access.jooq.enums.ReserveStatus.INSUFFICIENT;
 import static reserve.data.access.jooq.enums.ReserveStatus.RELEASED;
 
 @Slf4j
@@ -149,6 +149,9 @@ public class ReserveServiceImpl extends ReserveServiceGrpc.ReserveServiceImplBas
                             .amount(item.getAmount())
                             .build())
                     .toList();
+            if (items.isEmpty()) {
+                throw new IllegalArgumentException("no request items for externalRef " + body.getExternalRef());
+            }
             var reserve = Reserve.builder()
                     .id(paymentId)
                     .externalRef(body.getExternalRef())

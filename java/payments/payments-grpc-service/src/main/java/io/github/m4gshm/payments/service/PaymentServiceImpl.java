@@ -1,6 +1,7 @@
 package io.github.m4gshm.payments.service;
 
 import io.github.m4gshm.LogUtils;
+import io.github.m4gshm.payments.data.InvalidUnlockFundValueException;
 import io.github.m4gshm.payments.data.ReactiveAccountStorage;
 import io.github.m4gshm.payments.data.ReactivePaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
@@ -94,7 +95,13 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment, account) -> {
-                    return reactiveAccountStorage.unlock(account.clientId(), payment.amount())
+                    return reactiveAccountStorage.unlock(account.clientId(), payment.amount()).onErrorComplete(e-> {
+                                if (e instanceof InvalidUnlockFundValueException) {
+                                    log.warn("account funds unlock error", e);
+                                    return true;
+                                }
+                                return false;
+                            })
                             .then(reactivePaymentStorage.save(withStatus(payment, CANCELLED)).map(savedPaymant -> {
                                 return PaymentCancelResponse.newBuilder()
                                         .setId(savedPaymant.id())

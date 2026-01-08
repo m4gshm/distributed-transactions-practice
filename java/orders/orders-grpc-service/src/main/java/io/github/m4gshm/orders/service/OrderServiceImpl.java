@@ -135,9 +135,9 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private Mono<TwoPhaseCommitResponse> commit(
-            String operationName,
-            String transactionId,
-            TwoPhaseCommitServiceStub paymentsClientTcp
+                                                String operationName,
+                                                String transactionId,
+                                                TwoPhaseCommitServiceStub paymentsClientTcp
     ) {
         return toMono(operationName,
                 OrderServiceUtils.newCommitRequest(transactionId),
@@ -235,10 +235,10 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private <T> Mono<T> distributedCommit(
-            String orderId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            T result
+                                          String orderId,
+                                          String paymentTransactionId,
+                                          String reserveTransactionId,
+                                          T result
     ) {
         return toMono("reserveClientTcp::commit",
                 OrderServiceUtils.newCommitRequest(reserveTransactionId),
@@ -260,18 +260,18 @@ public class OrderServiceImpl implements OrderService {
     }
 
     private <T> Mono<T> distributedRollback(
-            String orderId,
-            String orderTransactionId,
-            String paymentTransactionId,
-            String reserveTransactionId,
-            Throwable result
+                                            String orderId,
+                                            String orderTransactionId,
+                                            String paymentTransactionId,
+                                            String reserveTransactionId,
+                                            Throwable result
     ) {
         return remoteRollback(paymentTransactionId, reserveTransactionId)
                 .then(result instanceof PrepareTransactionException
                         ? preparedTransactionService.rollback(orderTransactionId)
                         : Mono.<Void>empty().doOnSubscribe(_1 -> {
-                    log.debug("no local prepared transaction for rollback");
-                }))
+                            log.debug("no local prepared transaction for rollback");
+                        }))
                 .then(defer(() -> {
                     // todo need check actuality
                     return Mono.<T>error(result);
@@ -415,37 +415,37 @@ public class OrderServiceImpl implements OrderService {
                             return !twoPhaseCommit
                                     ? error(throwable)
                                     : distributedRollback(
-                                    orderId,
-                                    orderId,
-                                    paymentTransactionId,
-                                    reserveTransactionId,
-                                    throwable
-                            );
+                                            orderId,
+                                            orderId,
+                                            paymentTransactionId,
+                                            reserveTransactionId,
+                                            throwable
+                                    );
                         })
                 .flatMap(savedOrder -> {
                     // commit distributed transaction if no errors
                     return !twoPhaseCommit
                             ? just(savedOrder)
                             : distributedCommit(
-                            orderId,
-                            paymentTransactionId,
-                            reserveTransactionId,
-                            savedOrder
-                    ).doOnError(throwable -> {
-                        log.error("error on commit distributed transaction [{}]", orderId, throwable);
-                    });
+                                    orderId,
+                                    paymentTransactionId,
+                                    reserveTransactionId,
+                                    savedOrder
+                            ).doOnError(throwable -> {
+                                log.error("error on commit distributed transaction [{}]", orderId, throwable);
+                            });
                 });
     }
 
     protected <T, PI, PO, RI, RO> Mono<T> updateOrderOp(
-            String opName,
-            String orderId,
-            boolean twoPhaseCommit,
-            Set<OrderStatus> expectedFinal,
-            OrderStatus intermediateStatus,
-            Function<Order, Mono<Payment.Status>> paymentOp,
-            Function<Order, Mono<Reserve.Status>> reserveOp,
-            Function<Order, T> responseBuilder
+                                                        String opName,
+                                                        String orderId,
+                                                        boolean twoPhaseCommit,
+                                                        Set<OrderStatus> expectedFinal,
+                                                        OrderStatus intermediateStatus,
+                                                        Function<Order, Mono<Payment.Status>> paymentOp,
+                                                        Function<Order, Mono<Reserve.Status>> reserveOp,
+                                                        Function<Order, T> responseBuilder
     ) {
         return orderStorage.getById(orderId).flatMap(order -> {
             return checkStatus(opName, "order", orderId, order.status(), expectedFinal, intermediateStatus).then(defer(
@@ -479,69 +479,69 @@ public class OrderServiceImpl implements OrderService {
                                     : orderStorage.save(order.toBuilder().status(intermediateStatus).build());
                         }));
                     }).then(defer(() -> {
-                // payment and reserve ops
-                var paymentTransactionId = order.paymentTransactionId();
-                var reserveTransactionId = order.reserveTransactionId();
-                return paymentOp.apply(order)
-                        .onErrorResume(statusError(Payment.Status::valueOf))
-                        .zipWith(
-                                reserveOp.apply(order)
-                                        .onErrorResume(statusError(Reserve.Status::valueOf)),
-                                (paymentStatus, reserveStatus) -> {
-                                    log.trace("payment op '{}' result [{}] ", opName, paymentStatus);
-                                    log.trace("reserve op '{}' result [{}] ", opName, reserveStatus);
-                                    log.debug("order {} [{}]", opName, orderId);
-                                    return getOrderStatus(paymentStatus, reserveStatus);
-                                }
-                        )
-                        .onErrorResume(e -> {
-                            return twoPhaseCommit
-                                    ? remoteRollback(
-                                    paymentTransactionId,
-                                    reserveTransactionId
-                            ).then(error(e))
-                                    : error(e);
-                        })
-                        .flatMap(status -> {
-                            if (status == null) {
-                                log.info(
-                                        "order status not changed: order [{}], status [{}]",
-                                        order.id(),
-                                        order.status()
-                                );
-                                return just(order);
-                            } else {
-                                log.debug(
-                                        "order status has been changed: order [{}], status [{}]",
-                                        order.id(),
-                                        order.status()
-                                );
-                                var orderWithNewStatus = OrderServiceUtils.orderWithStatus(
-                                        order,
-                                        status
-                                );
-                                if (status == INSUFFICIENT) {
-                                    log.info("abort op '{}' on insufficient status of orderId [{}]",
-                                            opName,
-                                            orderId);
-                                    return orderStorage.save(orderWithNewStatus).flatMap(savedOrder -> {
-                                        return twoPhaseCommit
-                                                ? remoteRollback(paymentTransactionId, reserveTransactionId)
-                                                .thenReturn(savedOrder)
-                                                : just(savedOrder);
-                                    });
-                                } else {
-                                    return saveAllAndCommit(
-                                            twoPhaseCommit,
-                                            orderWithNewStatus,
-                                            paymentTransactionId,
-                                            reserveTransactionId
-                                    );
-                                }
-                            }
-                        })
-                        .map(responseBuilder);
-            })));
+                        // payment and reserve ops
+                        var paymentTransactionId = order.paymentTransactionId();
+                        var reserveTransactionId = order.reserveTransactionId();
+                        return paymentOp.apply(order)
+                                .onErrorResume(statusError(Payment.Status::valueOf))
+                                .zipWith(
+                                        reserveOp.apply(order)
+                                                .onErrorResume(statusError(Reserve.Status::valueOf)),
+                                        (paymentStatus, reserveStatus) -> {
+                                            log.trace("payment op '{}' result [{}] ", opName, paymentStatus);
+                                            log.trace("reserve op '{}' result [{}] ", opName, reserveStatus);
+                                            log.debug("order {} [{}]", opName, orderId);
+                                            return getOrderStatus(paymentStatus, reserveStatus);
+                                        }
+                                )
+                                .onErrorResume(e -> {
+                                    return twoPhaseCommit
+                                            ? remoteRollback(
+                                                    paymentTransactionId,
+                                                    reserveTransactionId
+                                            ).then(error(e))
+                                            : error(e);
+                                })
+                                .flatMap(status -> {
+                                    if (status == null) {
+                                        log.info(
+                                                "order status not changed: order [{}], status [{}]",
+                                                order.id(),
+                                                order.status()
+                                        );
+                                        return just(order);
+                                    } else {
+                                        log.debug(
+                                                "order status has been changed: order [{}], status [{}]",
+                                                order.id(),
+                                                order.status()
+                                        );
+                                        var orderWithNewStatus = OrderServiceUtils.orderWithStatus(
+                                                order,
+                                                status
+                                        );
+                                        if (status == INSUFFICIENT) {
+                                            log.info("abort op '{}' on insufficient status of orderId [{}]",
+                                                    opName,
+                                                    orderId);
+                                            return orderStorage.save(orderWithNewStatus).flatMap(savedOrder -> {
+                                                return twoPhaseCommit
+                                                        ? remoteRollback(paymentTransactionId, reserveTransactionId)
+                                                                .thenReturn(savedOrder)
+                                                        : just(savedOrder);
+                                            });
+                                        } else {
+                                            return saveAllAndCommit(
+                                                    twoPhaseCommit,
+                                                    orderWithNewStatus,
+                                                    paymentTransactionId,
+                                                    reserveTransactionId
+                                            );
+                                        }
+                                    }
+                                })
+                                .map(responseBuilder);
+                    })));
         }).doOnSuccess(t -> {
             log.debug("{}, orderId [{}]", opName, orderId);
         });

@@ -64,8 +64,7 @@ public class OrderStorageImpl implements OrderStorage {
         var queryWithCondition = status != null ? baseQuery.where(ORDERS.STATUS.eq(status)) : baseQuery;
         return (hasNum
                 ? queryWithCondition.limit(size).offset(num * size)
-                : queryWithCondition
-        ).stream().map(record -> toOrder(record, record, List.of())).toList();
+                : queryWithCondition).stream().map(record -> toOrder(record, record, List.of())).toList();
     }
 
     @Override
@@ -95,32 +94,30 @@ public class OrderStorageImpl implements OrderStorage {
 
     @Override
     @Transactional
-    public Order save(DSLContext dsl, Order order) {
-        mergeOrder(dsl, order).execute();
+    public Order save(Order order) {
+        var savedOrder = saveOrderOnly(order);
 
         var delivery = order.delivery();
 
-        var mergeDelivery = delivery != null
-                ? mergeDelivery(dsl, order, delivery).execute()
-                : null;
-
-//        log.debug("stored delivery rows {}", mergeDelivery);
+        if (delivery != null) {
+            var mergeDelivery = mergeDelivery(dsl, order, delivery).execute();
+            log.debug("stored delivery rows {}", mergeDelivery);
+        }
 
         var items = ofNullable(order.items()).orElse(List.of());
         var mergeAllItems = items.stream()
-                .map(item -> insertItem(dsl, order, item))
+                .map(item -> insertItem(this.dsl, order, item))
                 .map(Query::execute)
                 .reduce(Integer::sum)
                 .orElse(null);
+        log.debug("stored item rows {}", mergeAllItems);
+        return savedOrder;
+    }
 
-//        log.debug("stored item rows {}", mergeAllItems);
+    @Transactional
+    @Override
+    public Order saveOrderOnly(Order order) {
+        mergeOrder(dsl, order).execute();
         return order;
     }
-
-    @Override
-    @Transactional
-    public Order save(Order order) {
-        return save(this.dsl, order);
-    }
-
 }
