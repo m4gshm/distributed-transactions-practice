@@ -10,7 +10,6 @@ import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
-import org.jooq.DSLContext;
 import org.springframework.validation.annotation.Validated;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -92,35 +91,36 @@ public class ReactiveOrderStorageR2dbc implements ReactiveOrderStorage {
     }
 
     @Override
-    public Mono<Order> save(DSLContext dsl, Order order) {
-        var delivery = order.delivery();
+    public Mono<Order> save(Order order) {
+        return jooq.inTransaction(dsl -> {
+            var delivery = order.delivery();
 
-        var mergeDelivery = delivery != null
-                ? from(mergeDelivery(dsl, order, delivery))
-                : Mono.<Integer>empty();
+            var mergeDelivery = delivery != null
+                    ? from(mergeDelivery(dsl, order, delivery))
+                    : Mono.<Integer>empty();
 
-        var mergeAllItems = fromIterable(ofNullable(order.items()).orElse(List.of())
-                .stream()
-                .map(item -> insertItem(dsl, order, item))
-                .map(Mono::from)
-                .toList()).flatMap(i1 -> i1)
-                .reduce(Integer::sum);
+            var mergeAllItems = fromIterable(ofNullable(order.items()).orElse(List.of())
+                    .stream()
+                    .map(item -> insertItem(dsl, order, item))
+                    .map(Mono::from)
+                    .toList()).flatMap(i1 -> i1)
+                    .reduce(Integer::sum);
 
-        return from(mergeOrder(dsl, order)).flatMap(count -> {
-//            log.debug("stored order rows {}", count);
-            return log("mergeDelivery", mergeDelivery.doOnSuccess(deliveryRows -> {
-//                log.debug("stored delivery rows {}", deliveryRows);
-            })).zipWith(log("mergeAllItems", mergeAllItems.doOnSuccess(itemRows -> {
-//                log.debug("stored item rows {}", itemRows);
-            })), (deliveryRows, itemRows) -> order).thenReturn(order);
+            return from(mergeOrder(dsl, order)).flatMap(count -> {
+    //            log.debug("stored order rows {}", count);
+                return log("mergeDelivery", mergeDelivery.doOnSuccess(deliveryRows -> {
+    //                log.debug("stored delivery rows {}", deliveryRows);
+                })).zipWith(log("mergeAllItems", mergeAllItems.doOnSuccess(itemRows -> {
+    //                log.debug("stored item rows {}", itemRows);
+                })), (deliveryRows, itemRows) -> order).thenReturn(order);
+            });
         });
     }
 
     @Override
-    public Mono<Order> save(Order order) {
+    public Mono<Order> saveOrderOnly(Order order) {
         return jooq.inTransaction(dsl -> {
-            return save(dsl, order);
+            return from(mergeOrder(dsl, order)).thenReturn(order);
         });
     }
-
 }

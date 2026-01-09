@@ -84,7 +84,7 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 	paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
 	reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
 
-	items, err := tx.New(ctx, s.db, func(tx pgx.Tx) ([]sqlc.Item, error) {
+	items, err := tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) ([]sqlc.Item, error) {
 		query := sqlc.New(tx)
 
 		orderEntity := sqlc.InsertOrUpdateOrderParams{

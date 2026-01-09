@@ -51,7 +51,7 @@ func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreat
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "payment body is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentCreateResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentCreateResponse, error) {
 		paymentID := uuid.New().String()
 
 		query := paymentsqlc.New(tx)
@@ -79,7 +79,7 @@ func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreat
 func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentApproveRequest) (*paymentpb.PaymentApproveResponse, error) {
 	ctx, span := tracer.Start(ctx, "Approve")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentApproveResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentApproveResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)
@@ -139,7 +139,7 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCancelRequest) (*paymentpb.PaymentCancelResponse, error) {
 	ctx, span := tracer.Start(ctx, "Cancel")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentCancelResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentCancelResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)
@@ -189,7 +189,7 @@ func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCance
 func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayRequest) (*paymentpb.PaymentPayResponse, error) {
 	ctx, span := tracer.Start(ctx, "Pay")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentPayResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentPayResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)

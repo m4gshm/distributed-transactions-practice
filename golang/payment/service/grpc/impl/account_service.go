@@ -78,7 +78,7 @@ func (s *AccountService) TopUp(ctx context.Context, req *accountpb.AccountTopUpR
 	if topUp == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "top up data is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*accountpb.AccountTopUpResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*accountpb.AccountTopUpResponse, error) {
 		query := accountsqlc.New(tx)
 		clientID := topUp.ClientId
 		if resp, err := query.AddAmount(ctx, accountsqlc.AddAmountParams{

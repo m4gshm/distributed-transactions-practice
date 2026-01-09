@@ -75,7 +75,7 @@ func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUp
 		return nil, status.Errorf(codes.InvalidArgument, "top up data is required")
 	}
 
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*warehousepb.ItemTopUpResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*warehousepb.ItemTopUpResponse, error) {
 		itemID := body.Id
 		query := whsqlc.New(s.db)
 		newAmount, err := query.IncrementAmount(ctx, whsqlc.IncrementAmountParams{

@@ -22,9 +22,9 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @ConditionalOnBean(ConnectionFactory.class)
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-@AutoConfiguration(after = { R2dbcAutoConfiguration.class,
+@AutoConfiguration(after = {R2dbcAutoConfiguration.class,
         R2dbcTransactionManagerAutoConfiguration.class,
-        DSLContextAutoConfiguration.class }, before = DefaultReactiveJooqAutoConfiguration.class)
+        DSLContextAutoConfiguration.class})
 public class R2dbcReactiveJooqAutoConfiguration {
 
     @Bean

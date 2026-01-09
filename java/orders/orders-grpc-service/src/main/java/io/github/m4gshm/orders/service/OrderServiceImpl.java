@@ -191,7 +191,7 @@ public class OrderServiceImpl implements OrderService {
             var reserveResponse = responses.getT2();
             var paymentId = paymentResponse.getId();
             var reserveId = reserveResponse.getId();
-            return saveAllAndCommit(
+            return updateOrderAndCommit(
                     twoPhaseCommit,
                     order.toBuilder()
                             .status(CREATED)
@@ -400,12 +400,12 @@ public class OrderServiceImpl implements OrderService {
         });
     }
 
-    protected Mono<Order> saveAllAndCommit(boolean twoPhaseCommit,
-                                           Order order,
-                                           String paymentTransactionId,
-                                           String reserveTransactionId) {
+    protected Mono<Order> updateOrderAndCommit(boolean twoPhaseCommit,
+                                               Order order,
+                                               String paymentTransactionId,
+                                               String reserveTransactionId) {
         var orderId = order.id();
-        var save = orderStorage.save(order);
+        var save = orderStorage.saveOrderOnly(order);
         // run distributed transaction
         return (twoPhaseCommit ? preparedTransactionService.prepare(orderId, save) : save)
                 .onErrorResume(
@@ -531,7 +531,7 @@ public class OrderServiceImpl implements OrderService {
                                                         : just(savedOrder);
                                             });
                                         } else {
-                                            return saveAllAndCommit(
+                                            return updateOrderAndCommit(
                                                     twoPhaseCommit,
                                                     orderWithNewStatus,
                                                     paymentTransactionId,

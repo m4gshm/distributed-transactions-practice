@@ -66,7 +66,7 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "reserve body is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCreateResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*reservepb.ReserveCreateResponse, error) {
 		query := s.resq(tx)
 		reserveID := uuid.New().String()
 
@@ -107,7 +107,7 @@ func (s *ReserveService[RQ, WQ]) Create(ctx context.Context, req *reservepb.Rese
 func (s *ReserveService[RQ, WQ]) Approve(ctx context.Context, req *reservepb.ReserveApproveRequest) (*reservepb.ReserveApproveResponse, error) {
 	ctx, span := tracer.Start(ctx, "Approve")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveApproveResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*reservepb.ReserveApproveResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
 
@@ -214,7 +214,7 @@ func isNotReserved(reserveItems []ressqlc.ReserveItem) seq.Seq[ressqlc.ReserveIt
 func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.ReserveReleaseRequest) (*reservepb.ReserveReleaseResponse, error) {
 	ctx, span := tracer.Start(ctx, "Release")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*reservepb.ReserveReleaseResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
 
@@ -257,7 +257,7 @@ func (s *ReserveService[RQ, WQ]) Release(ctx context.Context, req *reservepb.Res
 func (s *ReserveService[RQ, WQ]) Cancel(ctx context.Context, req *reservepb.ReserveCancelRequest) (*reservepb.ReserveCancelResponse, error) {
 	ctx, span := tracer.Start(ctx, "Cancel")
 	defer span.End()
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*reservepb.ReserveCancelResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*reservepb.ReserveCancelResponse, error) {
 		resQuery := s.resq(tx)
 		whQuery := s.whq(tx)
 
