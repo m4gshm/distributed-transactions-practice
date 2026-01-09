@@ -30,7 +30,11 @@ public class R2dbcConnectionFactoryAutoConfiguration {
         var configuration = new DefaultConfiguration();
         configuration.set(dialect(connectionFactory));
         configuration.set(tConnectionFactory);
-        configuration.set(new Settings().withParamType(INLINED).withStatementType(STATIC_STATEMENT));
+        configuration.set(new Settings()
+                        .withRenderSchema(false)
+//                .withParamType(INLINED)
+//                .withStatementType(STATIC_STATEMENT)
+        );
         configuration.set(new SubscriberProvider<>() {
 
             @Override
