@@ -80,8 +80,8 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static ScenarioBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
+                                               String scenarioName,
+                                               Function<HttpRequestActionBuilder, HttpRequestActionBuilder> customizer
     ) {
         var create = http("CreateOrder")
                 .post(API_V1 + "/order")
@@ -120,27 +120,27 @@ public class OrderFlowSimulation extends Simulation {
     }
 
     private static PopulationBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            ClosedInjectionStep closedInjectionStep) {
+                                                 String scenarioName,
+                                                 Function<HttpRequestActionBuilder,
+                                                         HttpRequestActionBuilder> customizer,
+                                                 ClosedInjectionStep closedInjectionStep) {
         return newScenario1(scenarioName, customizer, closedInjectionStep, null);
     }
 
     private static PopulationBuilder newScenario(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            OpenInjectionStep openInjectionStep) {
+                                                 String scenarioName,
+                                                 Function<HttpRequestActionBuilder,
+                                                         HttpRequestActionBuilder> customizer,
+                                                 OpenInjectionStep openInjectionStep) {
         return newScenario1(scenarioName, customizer, null, openInjectionStep);
     }
 
     private static PopulationBuilder newScenario1(
-            String scenarioName,
-            Function<HttpRequestActionBuilder,
-                    HttpRequestActionBuilder> customizer,
-            ClosedInjectionStep closedInjectionStep,
-            OpenInjectionStep openInjectionStep) {
+                                                  String scenarioName,
+                                                  Function<HttpRequestActionBuilder,
+                                                          HttpRequestActionBuilder> customizer,
+                                                  ClosedInjectionStep closedInjectionStep,
+                                                  OpenInjectionStep openInjectionStep) {
         var scenarioBuilder = newScenario(scenarioName, customizer);
         return (closedInjectionStep != null
                 ? scenarioBuilder.injectClosed(closedInjectionStep)

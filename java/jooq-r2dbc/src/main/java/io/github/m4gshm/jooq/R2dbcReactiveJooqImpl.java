@@ -10,6 +10,7 @@ import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.r2dbc.connection.ConnectionHolder;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.ReactiveTransaction;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionContext;
@@ -21,6 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_NEVER;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRED;
 import static org.springframework.transaction.TransactionDefinition.PROPAGATION_REQUIRES_NEW;
+import static org.springframework.transaction.TransactionDefinition.PROPAGATION_SUPPORTS;
 import static org.springframework.transaction.reactive.TransactionalOperator.create;
 
 @Slf4j
@@ -28,6 +30,7 @@ import static org.springframework.transaction.reactive.TransactionalOperator.cre
 public class R2dbcReactiveJooqImpl extends AbstractReactiveJooqImpl<ReactiveTransaction> {
     ConnectionFactory connectionFactory;
     Configuration configuration;
+    DSLContext dslContext;
 
     static DSLContext newDsl(Configuration configuration) {
         return DSL.using(configuration);
@@ -58,28 +61,32 @@ public class R2dbcReactiveJooqImpl extends AbstractReactiveJooqImpl<ReactiveTran
             ConnectionFactory connectionFactory,
             Configuration configuration,
             OpenTelemetry openTelemetry,
-            TraceService traceService) {
+            TraceService traceService,
+            DSLContext dslContext,
+            DatabaseClient databaseClient) {
         super(
                 newTransactionalExecutor(transactionManager, PROPAGATION_REQUIRED),
                 newTransactionalExecutor(transactionManager, PROPAGATION_REQUIRES_NEW),
                 newTransactionalExecutor(transactionManager, PROPAGATION_NEVER),
-                openTelemetry,
+                newTransactionalExecutor(transactionManager, PROPAGATION_SUPPORTS),
                 traceService
         );
         this.connectionFactory = connectionFactory;
         this.configuration = configuration;
+        this.dslContext = dslContext;
     }
 
     private Connection getConnection(ContextView context) {
         var transactionContext = context.get(TransactionContext.class);
         var connectionHolder = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
-        return connectionHolder != null ? connectionHolder.getConnection() : null;
+        var connection = connectionHolder != null ? connectionHolder.getConnection() : null;
+        return connection;
     }
 
     @Override
     protected DSLContext getDslContext(ContextView context) {
-//        return this.dslContext;
-        return super.getDslContext(context);
+        return this.dslContext;
+//        return super.getDslContext(context);
     }
 
     @Override

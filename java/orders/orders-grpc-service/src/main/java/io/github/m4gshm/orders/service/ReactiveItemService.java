@@ -5,6 +5,6 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
-public interface ItemService {
+public interface ReactiveItemService {
     Mono<Double> getSumCost(List<Order.Item> items);
 }

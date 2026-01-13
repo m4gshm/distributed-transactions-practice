@@ -9,11 +9,13 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.Configuration;
+import org.jooq.DSLContext;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.boot.r2dbc.autoconfigure.R2dbcTransactionManagerAutoConfiguration;
 import org.springframework.context.annotation.Bean;
+import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.ReactiveTransactionManager;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -22,9 +24,9 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @ConditionalOnBean(ConnectionFactory.class)
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-@AutoConfiguration(after = {R2dbcAutoConfiguration.class,
+@AutoConfiguration(after = { R2dbcAutoConfiguration.class,
         R2dbcTransactionManagerAutoConfiguration.class,
-        DSLContextAutoConfiguration.class})
+        DSLContextAutoConfiguration.class })
 public class R2dbcReactiveJooqAutoConfiguration {
 
     @Bean
@@ -32,12 +34,16 @@ public class R2dbcReactiveJooqAutoConfiguration {
                                      ConnectionFactory connectionFactory,
                                      Configuration configuration,
                                      OpenTelemetry openTelemetry,
-                                     TraceService traceService) {
+                                     TraceService traceService,
+                                     DSLContext dslContext,
+                                     DatabaseClient databaseClient) {
         return new R2dbcReactiveJooqImpl(transactionManager,
                 connectionFactory,
                 configuration,
                 openTelemetry,
-                traceService);
+                traceService,
+                dslContext,
+                databaseClient);
     }
 
 }

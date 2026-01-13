@@ -17,6 +17,10 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+import static io.github.m4gshm.payments.data.AccountStorageUtils.selectForUpdate;
+import static io.github.m4gshm.payments.data.AccountStorageUtils.updateAccountAddAmount;
+import static io.github.m4gshm.payments.data.AccountStorageUtils.updateAccountLock;
+import static io.github.m4gshm.payments.data.AccountStorageUtils.updateAccountLockedAmount;
 import static io.github.m4gshm.payments.data.AccountStorageUtils.updateAccountUnlock;
 import static java.util.Optional.ofNullable;
 import static lombok.AccessLevel.PRIVATE;
@@ -35,8 +39,8 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
 
     @Override
     public Mono<BalanceResult> addAmount(String clientId, double replenishment) {
-        return jooq.inTransaction(dsl -> {
-            return from(AccountStorageUtils.updateAccountAddAmount(dsl, clientId, replenishment)).map(accountRecord -> {
+        return jooq.supportTransaction("addAmount", dsl -> {
+            return from(updateAccountAddAmount(dsl, clientId, replenishment)).map(accountRecord -> {
                 var balance = accountRecord.get(ACCOUNT.AMOUNT) - accountRecord.get(ACCOUNT.LOCKED);
                 if (balance < 0) {
                     throw new IllegalStateException("balance overflow " + balance
@@ -52,8 +56,8 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
 
     @Override
     public Mono<LockResult> addLock(String clientId, @Positive double amount) {
-        return jooq.inTransaction(dsl -> {
-            return Mono.from(AccountStorageUtils.selectForUpdate(dsl, clientId)).flatMap(record -> {
+        return jooq.inTransaction("addLock", dsl -> {
+            return Mono.from(selectForUpdate(dsl, clientId)).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
                 double newLocked = locked + amount;
@@ -62,7 +66,7 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
                 if (totalAmount < newLocked) {
                     return Mono.just(result.success(false).insufficientAmount(newLocked - totalAmount).build());
                 } else {
-                    return from(AccountStorageUtils.updateAccountLock(dsl, clientId, amount)).flatMap(
+                    return from(updateAccountLock(dsl, clientId, amount)).flatMap(
                             ReactiveUpdateUtils.checkUpdateCount(
                                     "account",
                                     clientId,
@@ -75,14 +79,14 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
 
     @Override
     public Mono<List<Account>> findAll() {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction("findAll", dsl -> {
             return Flux.from(AccountStorageUtils.selectAccounts(dsl)).map(AccountStorageUtils::toAccount).collectList();
         });
     }
 
     @Override
     public Mono<Account> findById(String id) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction("findById", dsl -> {
             return from(AccountStorageUtils.selectAccountById(dsl, id))
                     .map(AccountStorageUtils::toAccount);
         });
@@ -90,8 +94,8 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
 
     @Override
     public Mono<Void> unlock(String clientId, @Positive double amount) {
-        return jooq.inTransaction(dsl -> {
-            return Mono.from(AccountStorageUtils.selectForUpdate(dsl, clientId)).flatMap(record -> {
+        return jooq.inTransaction("unlock", dsl -> {
+            return Mono.from(selectForUpdate(dsl, clientId)).flatMap(record -> {
                 double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
                 double newLocked = locked - amount;
                 if (newLocked < 0) {
@@ -110,26 +114,27 @@ public class ReactiveAccountStorageR2dbc implements ReactiveAccountStorage {
 
     @Override
     public Mono<BalanceResult> writeOff(String clientId, @Positive double amount) {
-        return jooq.inTransaction(dsl -> Mono.from(AccountStorageUtils.selectForUpdate(dsl, clientId))
-                .flatMap(record -> {
-                    double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
-                    double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
-                    double newLocked = locked - amount;
-                    double newAmount = totalAmount - amount;
-                    if (newLocked < 0 || newAmount < 0) {
-                        return error(new WriteOffException(clientId,
-                                newLocked < 0 ? -newLocked : 0,
-                                newAmount < 0 ? -newAmount : 0
-                        ));
-                    }
-                    return from(AccountStorageUtils.updateAccountLockedAmount(dsl, clientId, newLocked, newAmount))
-                            .flatMap(ReactiveUpdateUtils.checkUpdateCount(
-                                    "account",
-                                    clientId,
-                                    () -> BalanceResult.builder()
-                                            .balance(newAmount)
-                                            .build()
-                            ));
-                }));
+        return jooq.inTransaction("writeOff",
+                dsl -> Mono.from(selectForUpdate(dsl, clientId))
+                        .flatMap(record -> {
+                            double locked = ofNullable(record.get(ACCOUNT.LOCKED)).orElse(0.0);
+                            double totalAmount = ofNullable(record.get(ACCOUNT.AMOUNT)).orElse(0.0);
+                            double newLocked = locked - amount;
+                            double newAmount = totalAmount - amount;
+                            if (newLocked < 0 || newAmount < 0) {
+                                return error(new WriteOffException(clientId,
+                                        newLocked < 0 ? -newLocked : 0,
+                                        newAmount < 0 ? -newAmount : 0
+                                ));
+                            }
+                            return from(updateAccountLockedAmount(dsl, clientId, newLocked, newAmount))
+                                    .flatMap(ReactiveUpdateUtils.checkUpdateCount(
+                                            "account",
+                                            clientId,
+                                            () -> BalanceResult.builder()
+                                                    .balance(newAmount)
+                                                    .build()
+                                    ));
+                        }));
     }
 }

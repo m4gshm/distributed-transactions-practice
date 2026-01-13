@@ -3,6 +3,7 @@ package io.github.m4gshm.reserve.data;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
+import org.jooq.Batch;
 import org.jooq.DSLContext;
 import org.jooq.InsertOnDuplicateSetMoreStep;
 import org.jooq.Record;
@@ -12,12 +13,14 @@ import org.jooq.impl.DSL;
 import reserve.data.access.jooq.tables.records.ReserveItemRecord;
 import reserve.data.access.jooq.tables.records.ReserveRecord;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;
 
 import static io.github.m4gshm.DateTimeUtils.orNow;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
+import static java.util.stream.Stream.ofNullable;
 import static reserve.data.access.jooq.Tables.RESERVE;
 import static reserve.data.access.jooq.Tables.RESERVE_ITEM;
 
@@ -38,7 +41,15 @@ public class ReserveStorageJooqUtils {
                 .set(RESERVE_ITEM.RESERVED, item.reserved());
     }
 
-    public static InsertOnDuplicateSetMoreStep<ReserveRecord> mergeReserve(Reserve reserve, DSLContext dsl) {
+    public static List<InsertOnDuplicateSetMoreStep<ReserveItemRecord>> mergeItems(DSLContext dsl,
+                                                                                   String reserveId,
+                                                                                   Collection<Reserve.Item> items) {
+        return ofNullable(items).flatMap(Collection::stream).map(item -> {
+            return mergeItem(dsl, reserveId, item);
+        }).toList();
+    }
+
+    public static InsertOnDuplicateSetMoreStep<ReserveRecord> mergeReserve(DSLContext dsl, Reserve reserve) {
         return dsl.insertInto(RESERVE)
                 .set(RESERVE.ID, reserve.id())
                 .set(RESERVE.CREATED_AT, orNow(reserve.createdAt()))
@@ -47,6 +58,18 @@ public class ReserveStorageJooqUtils {
                 .onDuplicateKeyUpdate()
                 .set(RESERVE.STATUS, DSL.excluded(RESERVE.STATUS))
                 .set(RESERVE.UPDATED_AT, orNow(reserve.updatedAt()));
+    }
+
+    public static Batch mergeReserveFullBatch(DSLContext dsl, Reserve reserve) {
+        return dsl.batch(mergeReserveFullQueries(dsl, reserve));
+    }
+
+    public static List<InsertOnDuplicateSetMoreStep<?>> mergeReserveFullQueries(DSLContext dsl, Reserve reserve) {
+        var items = mergeItems(dsl, reserve.id(), reserve.items());
+        var queries = new ArrayList<InsertOnDuplicateSetMoreStep<?>>(items.size() + 1);
+        queries.add(mergeReserve(dsl, reserve));
+        queries.addAll(items);
+        return queries;
     }
 
     public static SelectConditionStep<Record> selectItemsByReserveId(DSLContext dsl, String id) {

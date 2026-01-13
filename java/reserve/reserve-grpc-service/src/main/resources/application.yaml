@@ -88,12 +88,9 @@ spring:
     username: postgres
     password: postgres
     pool:
-      initial-size: 1
+      initial-size: 8
       max-size: 32
       min-idle: 8
-      max-idle-time: 1m
-      validation-depth: LOCAL
-#      validation-query: select 1;
   liquibase:
     enabled: true
     url: ${spring.datasource.url}
@@ -104,10 +101,12 @@ spring:
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
       group-id: payments
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   application:
     name: jvm-reserve-reactive
 

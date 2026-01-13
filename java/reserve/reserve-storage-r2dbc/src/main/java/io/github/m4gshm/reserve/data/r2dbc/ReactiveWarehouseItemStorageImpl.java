@@ -20,6 +20,11 @@ import java.util.Collection;
 import java.util.List;
 
 import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.selectAmountByItemIdsForNonKeyUpdate;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.selectAmountForUpdate;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.selectItems;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.updateAmountById;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.updateAmountReservedMinus;
+import static io.github.m4gshm.reserve.data.WarehouseItemStorageJooqUtils.updateReservedMinusById;
 import static io.github.m4gshm.storage.jooq.ReactiveUpdateUtils.checkUpdateCount;
 import static java.util.Objects.requireNonNull;
 import static java.util.stream.Collectors.groupingBy;
@@ -40,7 +45,7 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
 
     @Override
     public Mono<List<ItemOp.Result>> cancelReserve(Collection<ItemOp> items) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.inTransaction("cancelReserve", dsl -> {
             var amountPerId = items.stream()
                     .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 
@@ -58,10 +63,9 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
                 var remainder = totalAmount + newReserved;
                 var resultBuilder = ItemOp.Result.builder().id(id);
                 if (newReserved >= 0) {
-                    return Mono.from(WarehouseItemStorageJooqUtils.updateReservedMinusById(dsl, amountForReserve, id))
+                    return Mono.from(updateReservedMinusById(dsl, amountForReserve, id))
                             .flatMap(checkUpdateCount("item", id, () -> {
-                                return resultBuilder.remainder(remainder)
-                                        .build();
+                                return resultBuilder.remainder(remainder).build();
                             }));
                 } else {
                     log.info("reserved cannot be less tah zero: item [{}], reserved [{}]", id, newReserved);
@@ -73,14 +77,15 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
 
     @Override
     public Mono<List<WarehouseItem>> findAll() {
-        return jooq.inTransaction(dsl -> Flux.from(WarehouseItemStorageJooqUtils.selectItems(dsl))
-                .map(WarehouseItemStorageJooqUtils::toWarehouseItem)
-                .collectList());
+        return jooq.supportTransaction("findAll",
+                dsl -> Flux.from(selectItems(dsl))
+                        .map(WarehouseItemStorageJooqUtils::toWarehouseItem)
+                        .collectList());
     }
 
     @Override
     public Mono<WarehouseItem> findById(String id) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction("findById", dsl -> {
             return Mono.from(WarehouseItemStorageJooqUtils.selectItemsByWarehouseId(dsl, id))
                     .map(WarehouseItemStorageJooqUtils::toWarehouseItem);
         });
@@ -88,11 +93,11 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
 
     @Override
     public Mono<List<ItemOp.Result>> release(Collection<ItemOp> items) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.inTransaction("release", dsl -> {
             var amountPerId = items.stream()
                     .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
             var reserveIds = amountPerId.keySet();
-            return Flux.from(WarehouseItemStorageJooqUtils.selectAmountByItemIdsForNonKeyUpdate(dsl, reserveIds))
+            return Flux.from(selectAmountByItemIdsForNonKeyUpdate(dsl, reserveIds))
                     .flatMap(record -> {
                         var id = record.get(WAREHOUSE_ITEM.ID);
                         var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
@@ -105,7 +110,7 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
                         if (reserved < 0 || newTotalAmount < 0) {
                             return Mono.error(new ReleaseItemException(id, -reserved, -newTotalAmount));
                         } else {
-                            return Mono.from(WarehouseItemStorageJooqUtils.updateAmountReservedMinus(dsl,
+                            return Mono.from(updateAmountReservedMinus(dsl,
                                     amountForRelease,
                                     id))
                                     .flatMap(checkUpdateCount("item",
@@ -122,13 +127,13 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
 
     @Override
     public Mono<List<ItemOp.ReserveResult>> reserve(Collection<ItemOp> items) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.inTransaction("reserve", dsl -> {
             var amountPerId = items.stream()
                     .collect(groupingBy(ItemOp::id, mapping(ItemOp::amount, summingInt(i -> i))));
 
             var reserveIds = amountPerId.keySet();
 
-            return Flux.from(WarehouseItemStorageJooqUtils.selectAmountByItemIdsForNonKeyUpdate(dsl, reserveIds))
+            return Flux.from(selectAmountByItemIdsForNonKeyUpdate(dsl, reserveIds))
                     .flatMap(record -> {
                         var id = record.get(WAREHOUSE_ITEM.ID);
                         var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
@@ -158,14 +163,14 @@ public class ReactiveWarehouseItemStorageImpl implements ReactiveWarehouseItemSt
 
     @Override
     public Mono<ItemOp.Result> topUp(String id, @Min(1) int amount) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.inTransaction("topUp", dsl -> {
             var resultBuilder = ItemOp.Result.builder().id(id);
-            return Mono.from(WarehouseItemStorageJooqUtils.selectAmountForUpdate(dsl, id)).flatMap(record -> {
+            return Mono.from(selectAmountForUpdate(dsl, id)).flatMap(record -> {
                 var totalAmount = record.get(WAREHOUSE_ITEM.AMOUNT);
                 var alreadyReserved = record.get(WAREHOUSE_ITEM.RESERVED);
                 var newTotalAmount = totalAmount + amount;
                 var available = newTotalAmount - alreadyReserved;
-                return Mono.from(WarehouseItemStorageJooqUtils.updateAmountById(dsl, id, newTotalAmount))
+                return Mono.from(updateAmountById(dsl, id, newTotalAmount))
                         .flatMap(checkUpdateCount("item", id, () -> resultBuilder.remainder(available).build()));
             });
         });

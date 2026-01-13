@@ -31,14 +31,14 @@ public class R2dbcReactiveMessageStorageMaintenanceService implements ReactiveMe
 
     @Override
     public Mono<Void> addPartition(@NonNull PartitionDuration partition) {
-        return dslFactory.provide(dsl -> {
+        return dslFactory.provide("addPartition", dsl -> {
             return from(createPartition(dsl, table, partitionSuffixPattern, partition)).then();
         }).name("addPartition");
     }
 
     @Override
     public Mono<Void> createTable() {
-        return dslFactory.provide(dsl -> {
+        return dslFactory.provide("createTable", dsl -> {
             var query = MessageStorageMaintenanceJooqUtils.createTable(dsl, table);
             log.debug("create table: {}", query);
             return from(query).then();

@@ -9,9 +9,12 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-autoconfigure")
     implementation("org.springframework:spring-context")
     implementation("org.springframework:spring-jdbc")
+    implementation("org.springframework:spring-tx")
 
     implementation("io.projectreactor:reactor-core")
     implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
     //autoconfig order
     compileOnly("org.springframework.boot:spring-boot-jooq")
+
+    compileOnly("org.springframework:spring-r2dbc")
 }

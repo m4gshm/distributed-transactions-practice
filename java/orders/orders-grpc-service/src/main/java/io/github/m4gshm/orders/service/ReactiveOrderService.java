@@ -10,7 +10,7 @@ import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
 import reactor.core.publisher.Mono;
 
-public interface OrderService {
+public interface ReactiveOrderService {
     Mono<OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit);
 
     Mono<OrderCancelResponse> cancel(String orderId, boolean twoPhaseCommit);

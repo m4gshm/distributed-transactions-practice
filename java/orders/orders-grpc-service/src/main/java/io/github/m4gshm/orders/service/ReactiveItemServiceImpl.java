@@ -19,7 +19,7 @@ import static warehouse.v1.WarehouseService.GetItemCostRequest;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = AccessLevel.PRIVATE)
-public class ItemServiceImpl implements ItemService {
+public class ReactiveItemServiceImpl implements ReactiveItemService {
     WarehouseItemServiceStub warehouseClient;
     ObservationRegistry observationRegistry;
 

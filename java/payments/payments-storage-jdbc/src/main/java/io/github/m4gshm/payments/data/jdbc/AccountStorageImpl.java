@@ -108,7 +108,8 @@ public class AccountStorageImpl implements AccountStorage {
         double newAmount = totalAmount - amount;
         if (newLocked < 0 || newAmount < 0) {
             throw new WriteOffException(
-                    clientId, newLocked < 0 ? -newLocked : 0,
+                    clientId,
+                    newLocked < 0 ? -newLocked : 0,
                     newAmount < 0 ? -newAmount : 0
             );
         }

@@ -2,9 +2,7 @@ package io.github.m4gshm.jooq;
 
 import io.github.m4gshm.tracing.TraceService;
 import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.Span;
 import io.opentelemetry.api.trace.Tracer;
-import io.opentelemetry.context.Context;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -26,64 +24,62 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     TransactionalExecutor<TS> required;
     TransactionalExecutor<TS> requiredNew;
     TransactionalExecutor<TS> neverTransaction;
-    Tracer tracer;
+    private final TransactionalExecutor<TS> supportTransaction;
     TraceService traceService;
 
-    private static Tracer newTracer(OpenTelemetry openTelemetry) {
-        return openTelemetry.getTracer("jooq");
-    }
-
     protected AbstractReactiveJooqImpl(TransactionalExecutor<TS> required,
-            TransactionalExecutor<TS> requiredNew,
-            TransactionalExecutor<TS> neverTransaction,
-            OpenTelemetry openTelemetry,
-            TraceService traceService) {
+                                       TransactionalExecutor<TS> requiredNew,
+                                       TransactionalExecutor<TS> neverTransaction,
+                                       TransactionalExecutor<TS> supportTransaction,
+                                       TraceService traceService) {
         this.required = required;
         this.requiredNew = requiredNew;
         this.neverTransaction = neverTransaction;
-        this.tracer = newTracer(openTelemetry);
+        this.supportTransaction = supportTransaction;
         this.traceService = traceService;
+    }
+
+    private static Tracer newTracer(OpenTelemetry openTelemetry) {
+        return openTelemetry.getTracer("jooq");
     }
 
     protected <T> Mono<T> execute(String name,
                                   TransactionalExecutor<TS> operator,
                                   Function<DSLContext, Mono<T>> routine) {
         var trace = traceService.startNewObservation(name);
-        try (var _ = traceService.startLocalEvent(trace, "init")) {
-            return operator.execute(name, transaction -> deferContextual(context -> {
-                try (var _ = traceService.startLocalEvent(trace, "execute:init")) {
-                    log.debug("jooq execute hasTransaction {}, isNewTransaction {}, isRollbackOnly {}",
-                            transaction.hasTransaction(),
-                            transaction.isNewTransaction(),
-                            transaction.isRollbackOnly());
-                    return routine.apply(getDslContext(context)).doOnSubscribe(_ -> {
-                        traceService.addEvent(trace, "execute:subscribe");
-                    }).doFinally(_ -> {
-                        traceService.addEvent(trace, "execute:finally");
-                    });
-                }
-            }))
-                    .contextWrite(this::initDslContext)
-                    .contextWrite(context -> traceService.putToReactContext(context, trace))
-                    .singleOrEmpty()
-                    .doOnError(e -> {
-                        log.error("transactional error", e);
-                        traceService.addEvent(trace, "error");
-                        traceService.error(trace, e);
-                    })
-                    .doOnSubscribe(_ -> {
-                        log.trace("start {}", name);
-                        traceService.addEvent(trace, "subscribe");
-                    })
-                    .doOnRequest(_ -> {
-                        log.trace("request {}", name);
-                        traceService.addEvent(trace, "request");
-                    })
-                    .doFinally(s -> {
-                        log.trace("end {} with signal {}", name, s);
-                        traceService.stop(trace);
-                    });
-        }
+        return operator.execute(name, transaction -> deferContextual(context -> {
+                    try (var _ = traceService.startLocalEvent(trace, "execute:init")) {
+                        log.debug("jooq execute hasTransaction {}, isNewTransaction {}, isRollbackOnly {}",
+                                transaction.hasTransaction(),
+                                transaction.isNewTransaction(),
+                                transaction.isRollbackOnly());
+                        return routine.apply(getDslContext(context)).doOnSubscribe(_ -> {
+                            traceService.addEvent(trace, "execute:subscribe");
+                        }).doFinally(_ -> {
+                            traceService.addEvent(trace, "execute:finally");
+                        });
+                    }
+                }))
+                .contextWrite(this::initDslContext)
+                .contextWrite(context -> traceService.putToReactContext(context, trace))
+                .singleOrEmpty()
+                .doOnError(e -> {
+                    log.error("transactional error", e);
+                    traceService.addEvent(trace, "error");
+                    traceService.error(trace, e);
+                })
+                .doOnSubscribe(_ -> {
+                    log.trace("start {}", name);
+                    traceService.addEvent(trace, "subscribe");
+                })
+                .doOnRequest(_ -> {
+                    log.trace("request {}", name);
+                    traceService.addEvent(trace, "request");
+                })
+                .doFinally(s -> {
+                    log.trace("end {} with signal {}", name, s);
+                    traceService.stop(trace);
+                });
     }
 
     protected DSLContext getDslContext(ContextView context) {
@@ -112,8 +108,8 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     }
 
     @Override
-    public <T> Mono<T> inTransaction(Function<DSLContext, Mono<T>> function) {
-        return execute("inTransaction", required, function);
+    public <T> Mono<T> inTransaction(String op, Function<DSLContext, Mono<T>> function) {
+        return execute("inTransaction:" + op, required, function);
     }
 
     protected reactor.util.context.Context initDslContext(reactor.util.context.Context context) {
@@ -126,21 +122,18 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     protected abstract DSLContext newDslContext(ContextView context);
 
     @Override
-    public <T> Mono<T> newTransaction(Function<DSLContext, Mono<T>> function) {
-        return execute("newTransaction", requiredNew, function);
+    public <T> Mono<T> newTransaction(String op, Function<DSLContext, Mono<T>> function) {
+        return execute("newTransaction:" + op, requiredNew, function);
     }
 
     @Override
-    public <T> Mono<T> outOfTransaction(Function<DSLContext, Mono<T>> function) {
-        return execute("outOfTransaction", neverTransaction, function);
+    public <T> Mono<T> outOfTransaction(String op, Function<DSLContext, Mono<T>> function) {
+        return execute("outOfTransaction:" + op, neverTransaction, function);
     }
 
-    private Span startSpan(String spanName, Context parent) {
-        return tracer.spanBuilder(spanName).setParent(parent).startSpan();
-    }
-
-    private static final class DSLContextHolder {
-        private final AtomicReference<DSLContext> holder = new AtomicReference<>();
+    @Override
+    public <T> Mono<T> supportTransaction(String op, Function<DSLContext, Mono<T>> function) {
+        return execute("supportTransaction:" + op, supportTransaction, function);
     }
 
     public interface TransactionalExecutor<TS extends TransactionExecution> {
@@ -150,5 +143,9 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
             @Override
             Publisher<T> apply(TS status);
         }
+    }
+
+    private static final class DSLContextHolder {
+        private final AtomicReference<DSLContext> holder = new AtomicReference<>();
     }
 }

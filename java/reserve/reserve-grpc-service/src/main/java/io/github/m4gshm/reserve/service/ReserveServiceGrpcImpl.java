@@ -1,7 +1,5 @@
 package io.github.m4gshm.reserve.service;
 
-import io.github.m4gshm.LogUtils;
-import io.github.m4gshm.jooq.ReactiveJooq;
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
 import io.github.m4gshm.reactive.GrpcReactive;
 import io.github.m4gshm.reserve.data.model.Reserve;
@@ -58,7 +56,6 @@ import static reserve.data.access.jooq.enums.ReserveStatus.RELEASED;
 public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImplBase {
     ReactiveReserveStorage reactiveReserveStorage;
     ReactiveWarehouseItemStorage reactiveWarehouseItemStorage;
-    ReactiveJooq jooq;
     GrpcReactive grpc;
     ReactivePreparedTransactionService reactivePreparedTransactionService;
 
@@ -106,8 +103,8 @@ public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImp
                         }
                         var response = newApproveResponse(reserveResults, reserveId);
                         return reactiveReserveStorage.save(updatingReserve
-                                        .items(items1)
-                                        .build())
+                                .items(items1)
+                                .build())
                                 .map(_ -> response)
                                 .defaultIfEmpty(response);
                     }));
@@ -179,10 +176,6 @@ public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImp
         }));
     }
 
-    private <T> Mono<T> log(String category, Mono<T> mono) {
-        return LogUtils.log(getClass(), category, mono);
-    }
-
     @Override
     public void release(ReserveReleaseRequest request, StreamObserver<ReserveReleaseResponse> responseObserver) {
         var reserveId = request.getId();
@@ -209,11 +202,9 @@ public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImp
                                      String id,
                                      Set<ReserveStatus> expected,
                                      Function<Reserve, Mono<? extends T>> routine) {
-        grpc.subscribe(opName,
-                responseObserver,
-                () -> log(opName, jooq.inTransaction(dsl -> reactiveReserveStorage.getById(id).flatMap(reserve -> {
-                    return checkStatus(opName, "reserve", id, reserve.status(), expected, null).then(routine.apply(
-                            reserve));
-                }))));
+        grpc.subscribe(opName, responseObserver, () -> reactiveReserveStorage.getById(id).flatMap(reserve -> {
+            return checkStatus(opName, "reserve", id, reserve.status(), expected, null).then(routine.apply(
+                    reserve));
+        }));
     }
 }

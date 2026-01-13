@@ -16,18 +16,9 @@ import reactor.netty.resources.LoopResources;
 @AutoConfiguration(after = LoopResourcesAutoConfiguration.class)
 public class LoopResourcesConsumerAutoConfiguration {
 
-//    @Bean
-//    @ConditionalOnBean(LoopResources.class)
-//    @ConditionalOnClass(ConnectionFactoryOptionsBuilderCustomizer.class)
-//    public ConnectionFactoryOptionsBuilderCustomizer connectionFactoryOptionsBuilderCustomizer(
-//                                                                                               LoopResources sharedLoopResources
-//    ) {
-//        return builder -> builder.option(LOOP_RESOURCES, sharedLoopResources);
-//    }
-
     @Bean
     @ConditionalOnBean(LoopResources.class)
-    GrpcServerCustomizer grpcServerCustomizer(LoopResources sharedLoopResources) {
+    GrpcServerCustomizer grpcServerCustomizerLoopResources(LoopResources sharedLoopResources) {
         return serverBuilder -> {
             if (serverBuilder instanceof NettyServerBuilder nettyServerBuilder) {
                 var bossEventLoopGroup = sharedLoopResources.onServerSelect(true);
@@ -36,7 +27,6 @@ public class LoopResourcesConsumerAutoConfiguration {
                 nettyServerBuilder.bossEventLoopGroup(bossEventLoopGroup);
                 nettyServerBuilder.workerEventLoopGroup(workerEventLoopGroup);
                 nettyServerBuilder.channelType(channelType);
-                serverBuilder.directExecutor();
             }
         };
     }

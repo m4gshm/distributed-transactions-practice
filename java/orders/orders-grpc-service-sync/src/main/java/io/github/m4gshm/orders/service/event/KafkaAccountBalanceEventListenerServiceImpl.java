@@ -6,7 +6,7 @@ import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.orders.service.OrderService;
 import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
-import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.observation.annotation.Observed;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +14,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentServiceGrpc;
 import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.util.Set;
 
@@ -25,13 +26,13 @@ import static lombok.AccessLevel.PRIVATE;
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class KafkaAccountBalanceEventListenerServiceImpl {
+    final JsonMapper jsonMapper;
     final OrderStorage orderStorage;
     final OrderService ordersService;
     final PaymentServiceGrpc.PaymentServiceBlockingStub paymentServiceStub;
     final MessageStorage messageStorage;
     // todo move to config of order table
     final boolean twoPhaseCommit = false;
-    final ObservationRegistry observationRegistry;
 
     private static PaymentGetRequest paymentGetRequest(String paymentId) {
         return PaymentGetRequest.newBuilder()
@@ -81,9 +82,10 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
         }
     }
 
+    @Observed
     @KafkaListener(topics = "balance", groupId = "${spring.kafka.consumer.group-id}")
-    public void listen(AccountBalanceEvent value) {
+    public void listen(String value) {
         log.info("received account balance event from kafka consumer: value {}", value);
-        handle(value);
+        handle(jsonMapper.readValue(value, AccountBalanceEvent.class));
     }
 }

@@ -6,7 +6,6 @@ import io.github.m4gshm.orders.data.storage.ReactiveOrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils.PrepareTransactionException;
 import io.github.m4gshm.storage.NotFoundException;
-import io.opentelemetry.context.Context;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -74,7 +73,7 @@ import static reactor.core.publisher.Mono.just;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PROTECTED)
-public class OrderServiceImpl implements OrderService {
+public class ReactiveOrderServiceImpl implements ReactiveOrderService {
     ReactiveOrderStorage orderStorage;
     ReactivePreparedTransactionService preparedTransactionService;
 
@@ -83,7 +82,7 @@ public class OrderServiceImpl implements OrderService {
     TwoPhaseCommitServiceStub reserveClientTcp;
     PaymentServiceStub paymentsClient;
     TwoPhaseCommitServiceStub paymentsClientTcp;
-    ItemService itemService;
+    ReactiveItemService reactiveItemService;
 
     @Override
     public Mono<OrderApproveResponse> approve(String orderId, boolean twoPhaseCommit) {
@@ -158,7 +157,7 @@ public class OrderServiceImpl implements OrderService {
         var orderId = order.id();
         var items = order.items();
         var paymentTransactionId = order.paymentTransactionId();
-        var paymentRoutine = itemService.getSumCost(items).map(cost -> {
+        var paymentRoutine = reactiveItemService.getSumCost(items).map(cost -> {
             var paymentRequestBuilder = PaymentCreateRequest.newBuilder()
                     .setBody(PaymentCreateRequest.PaymentCreate.newBuilder()
                             .setExternalRef(orderId)
@@ -206,31 +205,27 @@ public class OrderServiceImpl implements OrderService {
 
     @Override
     public Mono<OrderCreateResponse> create(OrderCreateRequest.OrderCreate createRequest, boolean twoPhaseCommit) {
-        var context = Context.current();
         return fromSupplier(UUID::randomUUID).map(OrderServiceUtils::string).flatMap(orderId -> {
-            try (var _ = context.makeCurrent()) {
-                var itemsList = createRequest.getItemsList();
+            var itemsList = createRequest.getItemsList();
 
-                var orderBuilder = Order.builder()
-                        .id(orderId)
-                        .status(CREATING)
-                        .customerId(createRequest.getCustomerId())
-                        .delivery(createRequest.hasDelivery()
-                                ? toDelivery(createRequest.getDelivery())
-                                : null)
-                        .items(itemsList.stream().map(OrderServiceUtils::toItem).toList());
+            var orderBuilder = Order.builder()
+                    .id(orderId)
+                    .status(CREATING)
+                    .customerId(createRequest.getCustomerId())
+                    .delivery(createRequest.hasDelivery()
+                            ? toDelivery(createRequest.getDelivery())
+                            : null)
+                    .items(itemsList.stream().map(OrderServiceUtils::toItem).toList());
 
-                if (twoPhaseCommit) {
-                    orderBuilder
-                            .paymentTransactionId(UUID.randomUUID().toString())
-                            .reserveTransactionId(UUID.randomUUID().toString());
-                }
-
-                return orderStorage.save(orderBuilder.build()).flatMap(order -> {
-                    return create(order, twoPhaseCommit);
-                });
-
+            if (twoPhaseCommit) {
+                orderBuilder
+                        .paymentTransactionId(UUID.randomUUID().toString())
+                        .reserveTransactionId(UUID.randomUUID().toString());
             }
+
+            return orderStorage.save(orderBuilder.build()).flatMap(order -> {
+                return create(order, twoPhaseCommit);
+            });
         }).map(OrderServiceUtils::toOrderCreateResponse);
     }
 

@@ -3,6 +3,7 @@ package io.github.m4gshm.reserve.data;
 import io.github.m4gshm.reserve.data.model.ItemOp;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
 import io.github.m4gshm.storage.ReadOperations;
+import jakarta.validation.constraints.Min;
 
 import java.util.Collection;
 import java.util.List;
@@ -15,6 +16,6 @@ public interface WarehouseItemStorage extends ReadOperations<WarehouseItem, Stri
 
     List<ItemOp.ReserveResult> reserve(Collection<ItemOp> items);
 
-    ItemOp.Result topUp(String id, int amount);
+    ItemOp.Result topUp(String id, @Min(1) int amount);
 
 }

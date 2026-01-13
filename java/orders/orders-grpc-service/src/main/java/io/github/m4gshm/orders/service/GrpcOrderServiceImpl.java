@@ -28,7 +28,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class GrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceImplBase {
     GrpcReactive grpc;
-    OrderService ordersService;
+    ReactiveOrderService ordersService;
 
     @Override
     public void approve(OrderApproveRequest request,

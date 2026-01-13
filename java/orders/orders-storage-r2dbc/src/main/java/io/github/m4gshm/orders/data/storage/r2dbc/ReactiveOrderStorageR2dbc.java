@@ -18,18 +18,15 @@ import java.util.Collection;
 import java.util.List;
 
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqMapperUtils.toOrder;
-import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.insertItem;
-import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.mergeDelivery;
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.mergeOrder;
+import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.mergeOrderFullBatch;
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.selectItemsByOrderId;
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.selectOrdersJoinDelivery;
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.selectOrdersJoinDeliveryByCustomerIdAndStatusIn;
 import static io.github.m4gshm.orders.data.storage.jooq.OrderStorageJooqUtils.selectOrdersJoinDeliveryById;
 import static io.github.m4gshm.storage.jooq.Query.selectAllFrom;
-import static java.util.Optional.ofNullable;
 import static java.util.stream.Collectors.groupingBy;
 import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Flux.fromIterable;
 import static reactor.core.publisher.Mono.from;
 
 @Slf4j
@@ -42,9 +39,13 @@ public class ReactiveOrderStorageR2dbc implements ReactiveOrderStorage {
     ReactiveJooq jooq;
     TraceService traceService;
 
+    private static String getOp(String op) {
+        return Order.class.getSimpleName() + ":" + op;
+    }
+
     @Override
     public Mono<List<Order>> findAll() {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("findAll"), dsl -> {
             return Flux.from(selectOrdersJoinDelivery(dsl))
                     .map(record -> toOrder(record, record, List.of()))
                     .collectList();
@@ -53,7 +54,7 @@ public class ReactiveOrderStorageR2dbc implements ReactiveOrderStorage {
 
     @Override
     public Mono<List<Order>> findByClientIdAndStatuses(String clientId, Collection<OrderStatus> statuses) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("findByClientIdAndStatuses"), dsl -> {
             var selectOrder = selectOrdersJoinDeliveryByCustomerIdAndStatusIn(dsl,
                     clientId,
                     statuses
@@ -75,51 +76,28 @@ public class ReactiveOrderStorageR2dbc implements ReactiveOrderStorage {
 
     @Override
     public Mono<Order> findById(String id) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("findById"), dsl -> {
             var selectOrder = selectOrdersJoinDeliveryById(dsl, id);
             var selectItems = selectItemsByOrderId(dsl, id);
-            var local = traceService.getLocal();
             return from(selectOrder).zipWith(Flux.from(selectItems).collectList(), (order, items) -> {
                 return toOrder(order, order, items);
             });
         });
     }
 
-    private <T> Mono<T> log(String category, Mono<T> mono) {
-        return mono;
-//        return LogUtils.log(getClass(), category, mono);
-    }
-
     @Override
     public Mono<Order> save(Order order) {
-        return jooq.inTransaction(dsl -> {
-            var delivery = order.delivery();
-
-            var mergeDelivery = delivery != null
-                    ? from(mergeDelivery(dsl, order, delivery))
-                    : Mono.<Integer>empty();
-
-            var mergeAllItems = fromIterable(ofNullable(order.items()).orElse(List.of())
-                    .stream()
-                    .map(item -> insertItem(dsl, order, item))
-                    .map(Mono::from)
-                    .toList()).flatMap(i1 -> i1)
-                    .reduce(Integer::sum);
-
-            return from(mergeOrder(dsl, order)).flatMap(count -> {
-    //            log.debug("stored order rows {}", count);
-                return log("mergeDelivery", mergeDelivery.doOnSuccess(deliveryRows -> {
-    //                log.debug("stored delivery rows {}", deliveryRows);
-                })).zipWith(log("mergeAllItems", mergeAllItems.doOnSuccess(itemRows -> {
-    //                log.debug("stored item rows {}", itemRows);
-                })), (deliveryRows, itemRows) -> order).thenReturn(order);
-            });
+        return jooq.supportTransaction(getOp("save"), dsl -> {
+            Mono<Void> merge;
+//            merge = Flux.concat(mergeOrderFullQueries(dsl, order).stream().map(Mono::from).toList()).then();
+            merge = Mono.from(mergeOrderFullBatch(dsl, order)).then();
+            return merge.thenReturn(order);
         });
     }
 
     @Override
     public Mono<Order> saveOrderOnly(Order order) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("saveOrderOnly"), dsl -> {
             return from(mergeOrder(dsl, order)).thenReturn(order);
         });
     }

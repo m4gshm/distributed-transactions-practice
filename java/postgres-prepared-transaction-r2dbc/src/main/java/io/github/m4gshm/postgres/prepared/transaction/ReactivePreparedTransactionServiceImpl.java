@@ -33,29 +33,30 @@ public class ReactivePreparedTransactionServiceImpl implements ReactivePreparedT
 
     @Override
     public Mono<Void> commit(String id) {
-        return jooq.outOfTransaction(dsl -> notFoundable(id,
-                ReactiveTwoPhaseTransactionUtils.commit(dsl, id)));
+        return jooq.outOfTransaction("commit",
+                dsl -> notFoundable(id,
+                        ReactiveTwoPhaseTransactionUtils.commit(dsl, id)));
     }
 
     @Override
     public Mono<List<PreparedTransaction>> findAll() {
-        return jooq.outOfTransaction(dsl -> listPrepared(dsl).collectList());
+        return jooq.supportTransaction("findAll", dsl -> listPrepared(dsl).collectList());
     }
 
     @Override
     public Mono<PreparedTransaction> findById(String id) {
-        return jooq.outOfTransaction(dsl -> notFoundable(id,
-                getPreparedById(dsl, id)));
+        return jooq.supportTransaction("findById", dsl -> notFoundable(id, getPreparedById(dsl, id)));
     }
 
     @Override
     public Mono<Void> prepare(String id) {
-        return jooq.inTransaction(dsl -> ReactiveTwoPhaseTransactionUtils.prepare(dsl, id));
+        return jooq.inTransaction("prepare", dsl -> ReactiveTwoPhaseTransactionUtils.prepare(dsl, id));
     }
 
     @Override
     public Mono<Void> rollback(String id) {
-        return jooq.outOfTransaction(dsl -> notFoundable(id,
-                ReactiveTwoPhaseTransactionUtils.rollback(dsl, id)));
+        return jooq.outOfTransaction("rollback",
+                dsl -> notFoundable(id,
+                        ReactiveTwoPhaseTransactionUtils.rollback(dsl, id)));
     }
 }

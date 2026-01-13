@@ -126,15 +126,6 @@ public class OrderServiceImpl implements OrderService {
                                           TwoPhaseCommitServiceBlockingStub paymentsClientTcp
     ) {
         return paymentsClientTcp.commit(newCommitRequest(transactionId));
-//        OrderServiceUtils.completeIfNoTransaction(operationName, e, transactionId)
-    }
-
-    private TwoPhaseCommitResponse commitPayment(String transactionId) {
-        return commit("paymentsClientTcp::commit", transactionId, paymentsClientTcp);
-    }
-
-    private TwoPhaseCommitResponse commitReserve(String transactionId) {
-        return commit("reserveClientTcp::commit", transactionId, reserveClientTcp);
     }
 
     private Order create(Order order, boolean twoPhaseCommit) {

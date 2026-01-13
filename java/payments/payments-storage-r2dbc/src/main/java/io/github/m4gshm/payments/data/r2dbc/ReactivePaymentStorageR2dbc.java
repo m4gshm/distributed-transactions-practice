@@ -29,28 +29,31 @@ public class ReactivePaymentStorageR2dbc implements ReactivePaymentStorage {
     private final Class<Payment> entityClass = Payment.class;
     ReactiveJooq jooq;
 
+    private static String getOp(String op) {
+        return Payment.class.getSimpleName() + ":" + op;
+    }
+
     @Override
     public Mono<List<Payment>> findAll() {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("findAll"), dsl -> {
             return Flux.from(selectPayments(dsl)).map(PaymentStorageUtils::toPayment).collectList();
         });
     }
 
     @Override
     public Mono<Payment> findById(String id) {
-        return jooq.inTransaction(dsl -> {
+        return jooq.supportTransaction(getOp("findById"), dsl -> {
             return Mono.from(selectPaymentById(id, dsl)).map(PaymentStorageUtils::toPayment);
         });
     }
 
     @Override
     public Mono<Payment> save(@Valid Payment payment) {
-        return jooq.inTransaction(dsl -> {
-            return Mono.from(upsertPayment(payment, dsl))
-                    .map(count -> {
+        return jooq.supportTransaction(getOp("save"), dsl -> {
+            return Mono.from(upsertPayment(payment, dsl)).map(count -> {
 //                        log.debug("stored payment rows {}", count);
-                        return payment;
-                    });
+                return payment;
+            });
         });
     }
 }

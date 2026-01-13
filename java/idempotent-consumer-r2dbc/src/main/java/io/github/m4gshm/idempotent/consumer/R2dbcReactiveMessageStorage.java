@@ -1,28 +1,27 @@
 package io.github.m4gshm.idempotent.consumer;
 
-import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
-import static io.github.m4gshm.idempotent.consumer.PartitionType.CURRENT;
-import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.INPUT_MESSAGES;
-import static java.util.Optional.ofNullable;
-import static lombok.AccessLevel.PRIVATE;
-import static reactor.core.publisher.Mono.error;
-import static reactor.core.publisher.Mono.from;
+import io.github.m4gshm.idempotent.consumer.storage.tables.records.InputMessagesRecord;
+import io.r2dbc.postgresql.api.PostgresqlException;
+import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
+import lombok.extern.slf4j.Slf4j;
+import org.jooq.DSLContext;
+import org.jooq.InsertReturningStep;
+import org.springframework.beans.factory.InitializingBean;
+import reactor.core.publisher.Mono;
 
 import java.time.Clock;
 import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.function.Function;
 
-import io.github.m4gshm.idempotent.consumer.storage.tables.records.InputMessagesRecord;
-import org.jooq.DSLContext;
-import org.jooq.InsertReturningStep;
-import org.springframework.beans.factory.InitializingBean;
-
-import io.r2dbc.postgresql.api.PostgresqlException;
-import lombok.RequiredArgsConstructor;
-import lombok.experimental.FieldDefaults;
-import lombok.extern.slf4j.Slf4j;
-import reactor.core.publisher.Mono;
+import static io.github.m4gshm.idempotent.consumer.PartitionType.CURRENT;
+import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.INPUT_MESSAGES;
+import static io.github.m4gshm.r2dbc.postgres.PostgresqlExceptionUtils.getPostgresqlException;
+import static java.util.Optional.ofNullable;
+import static lombok.AccessLevel.PRIVATE;
+import static reactor.core.publisher.Mono.error;
+import static reactor.core.publisher.Mono.from;
 
 @Slf4j
 @RequiredArgsConstructor
@@ -74,11 +73,12 @@ public class R2dbcReactiveMessageStorage implements InitializingBean, ReactiveMe
                                  OffsetDateTime createdAt,
                                  OffsetDateTime timestamp,
                                  LocalDate partitionId) {
-        return dslContextProvider.provide(dsl -> from(getInputMessagesRecordInsertReturningStep(message,
-                createdAt,
-                timestamp,
-                partitionId,
-                dsl)));
+        return dslContextProvider.provide("insert",
+                dsl -> from(getInputMessagesRecordInsertReturningStep(message,
+                        createdAt,
+                        timestamp,
+                        partitionId,
+                        dsl)));
     }
 
     @Override
@@ -106,6 +106,6 @@ public class R2dbcReactiveMessageStorage implements InitializingBean, ReactiveMe
 
     @FunctionalInterface
     public interface DslContextProvider {
-        <T> Mono<T> provide(Function<DSLContext, Mono<T>> dslContextMonoFunction);
+        <T> Mono<T> provide(String op, Function<DSLContext, Mono<T>> dslContextMonoFunction);
     }
 }

@@ -1,6 +1,5 @@
 package io.github.m4gshm.orders.service.event.config;
 
-import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import lombok.RequiredArgsConstructor;
 import org.springframework.boot.kafka.autoconfigure.KafkaProperties;
 import org.springframework.context.annotation.Bean;
@@ -16,8 +15,8 @@ public class KafkaConfiguration {
     private final KafkaProperties kafkaProperties;
 
     @Bean
-    public ReceiverOptions<String, AccountBalanceEvent> balanceReceiverOptions() {
-        return ReceiverOptions.<String, AccountBalanceEvent>create(kafkaProperties.buildConsumerProperties())
+    public ReceiverOptions<String, String> balanceReceiverOptions() {
+        return ReceiverOptions.<String, String>create(kafkaProperties.buildConsumerProperties())
                 .subscription(List.of("balance"));
     }
 

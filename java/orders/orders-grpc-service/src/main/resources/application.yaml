@@ -14,14 +14,18 @@ logging:
           TaskRunner: INFO
     org:
       springframework:
+        aop:
+          support:
+            DefaultListableBeanFactory: INFO
         boot:
           autoconfigure:
             logging:
-              ConditionEvaluationReportLogger: DEBUG # auto configs report
+#              ConditionEvaluationReportLogger: DEBUG # auto configs report
         r2dbc:
-          connection: INFO # log sql
+          connection:
+#            R2dbcTransactionManager: DEBUG
         transaction:
-          reactive: INFO # log sql
+#          reactive: DEBUG
       apache:
         kafka:
           clients:
@@ -39,18 +43,27 @@ logging:
             okhttp:
               internal: INFO
       micrometer:
+        tracing:
+          otel:
+            bridge:
+              Slf4JEventListener: INFO
+              Slf4JBaggageEventListener: INFO
         observation:
           contextpropagation:
             ObservationThreadLocalAccessor: INFO
       grpc: INFO
       github:
-#        m4gshm: TRACE
+        m4gshm: INFO
       r2dbc:
+        proxy:
+#          observation:
+#            ObservationProxyExecutionListener: TRACE
         pool:
+#          ConnectionPool: DEBUG
 #          PooledConnection: TRACE
         postgresql:
           client: INFO # log sql
-          QUERY: INFO
+#          QUERY: DEBUG
     java:
       io:
         serialization: INFO
@@ -87,14 +100,13 @@ spring:
   threads:
     virtual:
       enabled: true
-#  reactor.context-propagation: AUTO
+  reactor.context-propagation: AUTO
   #for liquibase
   datasource:
     url: jdbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
     hikari:
-      keepalive-time: 30000
       minimum-idle: 2
       maximum-pool-size: 120
   r2dbc:
@@ -102,26 +114,26 @@ spring:
     username: postgres
     password: postgres
     pool:
-      initial-size: 1
+      initial-size: 8
       max-size: 32
       min-idle: 8
-      max-idle-time: 1m
-      validation-depth: LOCAL
-#      validation-query: select 1;
   liquibase:
     enabled: true
     url: ${spring.datasource.url}
     user: ${spring.datasource.username}
     password: ${spring.datasource.password}
   kafka:
+    enabled: false
     bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
       group-id: orders
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
       bootstrap-servers: ${spring.kafka.bootstrap-servers}
       client-id: orders-1
@@ -136,10 +148,13 @@ spring:
 
 service:
   reserve:
+#    executor-type: DIRECT
     address: localhost:9081
   warehouse:
+#    executor-type: DIRECT
     address: localhost:9081
   payments:
+#    executor-type: DIRECT
     address: localhost:9082
 
 #idempotent-consumer:
@@ -185,7 +200,7 @@ otel:
     spring-webflux:
       enabled: false
     common:
-      default-enabled: true
+      default-enabled: false
 #      logging:
 #        trace-id: traceId
 #        span-id: spanId

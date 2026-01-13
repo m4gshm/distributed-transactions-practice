@@ -104,7 +104,11 @@ spring:
     username: postgres
     password: postgres
     hikari:
-      keepalive-time: 30000
+      auto-commit: false
+      connection-init-sql:
+      connection-test-query:
+      connection-timeout: 10000
+#      keepalive-time: 30000
       minimum-idle: 8
       maximum-pool-size: 120
   liquibase:
@@ -117,16 +121,13 @@ spring:
     consumer:
       group-id: orders
       key-deserializer: org.springframework.kafka.support.serializer.ErrorHandlingDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
       bootstrap-servers: ${spring.kafka.bootstrap-servers}
       client-id: orders-1
       properties:
         spring.deserializer.key.delegate.class: org.apache.kafka.common.serialization.StringDeserializer
-        spring:
-          json:
-            trusted:
-              packages: "io.github.m4gshm.payments.event.model"
+        spring.json.trusted.packages: "io.github.m4gshm.payments.event.model"
   application:
     name: jvm-orders-sync
 

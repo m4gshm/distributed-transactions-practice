@@ -3,6 +3,7 @@ package io.github.m4gshm.reserve.data.r2dbc;
 import io.github.m4gshm.reserve.data.model.ItemOp;
 import io.github.m4gshm.reserve.data.model.WarehouseItem;
 import io.github.m4gshm.storage.ReactiveReadOperations;
+import jakarta.validation.constraints.Min;
 import reactor.core.publisher.Mono;
 
 import java.util.Collection;
@@ -16,6 +17,6 @@ public interface ReactiveWarehouseItemStorage extends ReactiveReadOperations<War
 
     Mono<List<ItemOp.ReserveResult>> reserve(Collection<ItemOp> items);
 
-    Mono<ItemOp.Result> topUp(String id, int amount);
+    Mono<ItemOp.Result> topUp(String id, @Min(1) int amount);
 
 }

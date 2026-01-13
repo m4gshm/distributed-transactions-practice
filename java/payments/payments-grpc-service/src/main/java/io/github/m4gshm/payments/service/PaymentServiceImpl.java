@@ -95,13 +95,13 @@ public class PaymentServiceImpl extends PaymentServiceImplBase {
                 request.getId(),
                 Set.of(CREATED, INSUFFICIENT, HOLD),
                 (payment, account) -> {
-                    return reactiveAccountStorage.unlock(account.clientId(), payment.amount()).onErrorComplete(e-> {
-                                if (e instanceof InvalidUnlockFundValueException) {
-                                    log.warn("account funds unlock error", e);
-                                    return true;
-                                }
-                                return false;
-                            })
+                    return reactiveAccountStorage.unlock(account.clientId(), payment.amount()).onErrorComplete(e -> {
+                        if (e instanceof InvalidUnlockFundValueException) {
+                            log.warn("account funds unlock error", e);
+                            return true;
+                        }
+                        return false;
+                    })
                             .then(reactivePaymentStorage.save(withStatus(payment, CANCELLED)).map(savedPaymant -> {
                                 return PaymentCancelResponse.newBuilder()
                                         .setId(savedPaymant.id())

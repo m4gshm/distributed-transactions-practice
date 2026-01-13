@@ -1,11 +1,11 @@
 package io.github.m4gshm.orders.service.event;
 
-import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.ReactiveOrderStorage;
-import io.github.m4gshm.orders.service.OrderService;
-import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import io.github.m4gshm.idempotent.consumer.MessageImpl;
 import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorage;
+import io.github.m4gshm.orders.data.model.Order;
+import io.github.m4gshm.orders.data.storage.ReactiveOrderStorage;
+import io.github.m4gshm.orders.service.ReactiveOrderService;
+import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
 import io.micrometer.observation.ObservationRegistry;
 import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
@@ -13,6 +13,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
@@ -20,6 +21,7 @@ import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import reactor.kafka.receiver.ReceiverOptions;
+import tools.jackson.databind.json.JsonMapper;
 
 import java.time.Instant;
 import java.util.Set;
@@ -34,10 +36,12 @@ import static reactor.kafka.receiver.KafkaReceiver.create;
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(level = PRIVATE)
+@ConditionalOnProperty(value = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaAccountBalanceEventListenerServiceImpl {
-    final ReceiverOptions<String, AccountBalanceEvent> balanceReceiverOptions;
+    final JsonMapper jsonMapper;
+    final ReceiverOptions<String, String> balanceReceiverOptions;
     final ReactiveOrderStorage orderStorage;
-    final OrderService ordersService;
+    final ReactiveOrderService ordersService;
     final PaymentServiceStub paymentServiceStub;
     final ReactiveMessageStorage reactiveMessageStorage;
     // todo move to config of order table
@@ -88,7 +92,7 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
             return value;
         }).doOnError(error -> {
             log.error("receive account balance event error", error);
-        }).flatMap(this::handle).doOnError(error -> {
+        }).map(this::readEvent).flatMap(this::handle).doOnError(error -> {
             log.error("handle account balance event error", error);
         }).subscribe();
     }
@@ -131,5 +135,13 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
                         .onErrorContinue((error, response) -> {
                             log.error("approve order on account balance event error", error);
                         }));
+    }
+
+    private AccountBalanceEvent readEvent(String value) {
+        try {
+            return jsonMapper.readValue(value, AccountBalanceEvent.class);
+        } catch (Exception e) {
+            throw new RuntimeException("deserialize AccountBalanceEvent error", e);
+        }
     }
 }

@@ -86,10 +86,16 @@ tasks:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
 
   run-docker-java:
-    desc: "Run docker java services"
+    desc: "Run docker java reactive services"
     dir: ../docker
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml up -d
+
+  run-docker-java-sync:
+    desc: "Run docker java sync services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml up -d
 
   stop-docker-go:
     desc: "Run docker go services"
