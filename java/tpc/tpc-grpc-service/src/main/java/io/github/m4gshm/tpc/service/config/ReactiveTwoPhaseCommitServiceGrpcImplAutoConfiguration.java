@@ -1,7 +1,7 @@
 package io.github.m4gshm.tpc.service.config;
 
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.github.m4gshm.tpc.service.ReactiveTwoPhaseCommitServiceGrpcImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -18,7 +18,7 @@ import static tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class ReactiveTwoPhaseCommitServiceGrpcImplAutoConfiguration {
 
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
     ReactivePreparedTransactionService transactionService;
 
     @Bean

@@ -26,10 +26,11 @@ public class ReserveServiceClientConfiguration {
 
     @Bean
     public ReserveServiceBlockingStub reserveClient() {
-        return ReserveServiceGrpc.newBlockingStub(newManagedChannelBuilder(
+        var nettyChannelBuilder = newManagedChannelBuilder(
                 reserveClientProperties(),
                 clientInterceptors
-        ).build());
+        );
+        return ReserveServiceGrpc.newBlockingStub(nettyChannelBuilder.build());
     }
 
     @Bean

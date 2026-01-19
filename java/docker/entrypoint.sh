@@ -26,4 +26,4 @@ java \
 -XX:ReservedCodeCacheSize=${RESERVED_CODE_CACHE_SIZE_MB}M \
 -XX:MaxDirectMemorySize=${DIRECT_MEMORY_SIZE_MB}M \
 -XX:NativeMemoryTracking=summary \
--jar app.jar
+-jar -agentpath:/async-profiler/lib/libasyncProfiler.so=start,event=cpu,file=/tmp/profile.html app.jar

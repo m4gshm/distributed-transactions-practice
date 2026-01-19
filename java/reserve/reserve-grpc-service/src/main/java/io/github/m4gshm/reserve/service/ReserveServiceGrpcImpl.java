@@ -1,7 +1,7 @@
 package io.github.m4gshm.reserve.service;
 
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.github.m4gshm.reserve.data.model.Reserve;
 import io.github.m4gshm.reserve.data.r2dbc.ReactiveReserveStorage;
 import io.github.m4gshm.reserve.data.r2dbc.ReactiveWarehouseItemStorage;
@@ -56,7 +56,7 @@ import static reserve.data.access.jooq.enums.ReserveStatus.RELEASED;
 public class ReserveServiceGrpcImpl extends ReserveServiceGrpc.ReserveServiceImplBase {
     ReactiveReserveStorage reactiveReserveStorage;
     ReactiveWarehouseItemStorage reactiveWarehouseItemStorage;
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
     ReactivePreparedTransactionService reactivePreparedTransactionService;
 
     private static Reserve witStatus(Reserve reserve, ReserveStatus status) {

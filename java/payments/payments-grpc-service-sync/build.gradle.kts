@@ -10,7 +10,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":storage-api"))
-    api(project(":grpc-common"))
+    api(project(":grpc-service-common"))
     api(project(":protobuf-utils"))
 //    api(project(":postgres-prepared-transaction"))
     api(project(":postgres-prepared-transaction-jdbc"))

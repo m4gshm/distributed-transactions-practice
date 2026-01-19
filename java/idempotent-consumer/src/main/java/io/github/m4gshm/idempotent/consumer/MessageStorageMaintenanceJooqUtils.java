@@ -14,24 +14,29 @@ public class MessageStorageMaintenanceJooqUtils {
                                                 InputMessages table,
                                                 String partitionSuffixPattern,
                                                 PartitionDuration partition) {
+        return dsl.query(createPartitionSql(table, partitionSuffixPattern, partition));
+    }
+
+    public static String createPartitionSql(InputMessages table,
+                                            String partitionSuffixPattern,
+                                            PartitionDuration partition) {
         var partitionedTable = table.getName();
         var partitionSuffix = partition.from().format(ofPattern(partitionSuffixPattern));
         var partitionName = partitionedTable + "_" + partitionSuffix;
-        return createPartition(dsl, partitionedTable, partitionName, partition);
+        return createPartitionSql(partitionedTable, partitionName, partition);
     }
 
-    public static RowCountQuery createPartition(DSLContext dsl,
-                                                String partitionedTable,
-                                                String partitionName,
-                                                PartitionDuration partition) {
-        return dsl.query("create table if not exists " + partitionName
+    public static String createPartitionSql(String partitionedTable,
+                                            String partitionName,
+                                            PartitionDuration partition) {
+        return "create table if not exists " + partitionName
                 + " partition of "
                 + partitionedTable
                 + " for values from ('"
                 + partition.from().format(ISO_DATE)
                 + "') TO ('"
                 + partition.to().format(ISO_DATE)
-                + "')");
+                + "')";
     }
 
     public static RowCountQuery createTable(DSLContext dsl, InputMessages table) {

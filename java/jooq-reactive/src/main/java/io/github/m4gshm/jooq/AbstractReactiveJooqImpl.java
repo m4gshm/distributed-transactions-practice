@@ -27,11 +27,15 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     private final TransactionalExecutor<TS> supportTransaction;
     TraceService traceService;
 
+    private static Tracer newTracer(OpenTelemetry openTelemetry) {
+        return openTelemetry.getTracer("jooq");
+    }
+
     protected AbstractReactiveJooqImpl(TransactionalExecutor<TS> required,
-                                       TransactionalExecutor<TS> requiredNew,
-                                       TransactionalExecutor<TS> neverTransaction,
-                                       TransactionalExecutor<TS> supportTransaction,
-                                       TraceService traceService) {
+            TransactionalExecutor<TS> requiredNew,
+            TransactionalExecutor<TS> neverTransaction,
+            TransactionalExecutor<TS> supportTransaction,
+            TraceService traceService) {
         this.required = required;
         this.requiredNew = requiredNew;
         this.neverTransaction = neverTransaction;
@@ -39,27 +43,23 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
         this.traceService = traceService;
     }
 
-    private static Tracer newTracer(OpenTelemetry openTelemetry) {
-        return openTelemetry.getTracer("jooq");
-    }
-
     protected <T> Mono<T> execute(String name,
                                   TransactionalExecutor<TS> operator,
                                   Function<DSLContext, Mono<T>> routine) {
         var trace = traceService.startNewObservation(name);
         return operator.execute(name, transaction -> deferContextual(context -> {
-                    try (var _ = traceService.startLocalEvent(trace, "execute:init")) {
-                        log.debug("jooq execute hasTransaction {}, isNewTransaction {}, isRollbackOnly {}",
-                                transaction.hasTransaction(),
-                                transaction.isNewTransaction(),
-                                transaction.isRollbackOnly());
-                        return routine.apply(getDslContext(context)).doOnSubscribe(_ -> {
-                            traceService.addEvent(trace, "execute:subscribe");
-                        }).doFinally(_ -> {
-                            traceService.addEvent(trace, "execute:finally");
-                        });
-                    }
-                }))
+            try (var _ = traceService.startLocalEvent(trace, "execute:init")) {
+                log.debug("jooq execute hasTransaction {}, isNewTransaction {}, isRollbackOnly {}",
+                        transaction.hasTransaction(),
+                        transaction.isNewTransaction(),
+                        transaction.isRollbackOnly());
+                return routine.apply(getDslContext(context)).doOnSubscribe(_ -> {
+                    traceService.addEvent(trace, "execute:subscribe");
+                }).doFinally(_ -> {
+                    traceService.addEvent(trace, "execute:finally");
+                });
+            }
+        }))
                 .contextWrite(this::initDslContext)
                 .contextWrite(context -> traceService.putToReactContext(context, trace))
                 .singleOrEmpty()
@@ -136,6 +136,10 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
         return execute("supportTransaction:" + op, supportTransaction, function);
     }
 
+    private static final class DSLContextHolder {
+        private final AtomicReference<DSLContext> holder = new AtomicReference<>();
+    }
+
     public interface TransactionalExecutor<TS extends TransactionExecution> {
         <T> Flux<T> execute(String name, TransactionalExecutor.TransactionCallback<T, TS> action);
 
@@ -143,9 +147,5 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
             @Override
             Publisher<T> apply(TS status);
         }
-    }
-
-    private static final class DSLContextHolder {
-        private final AtomicReference<DSLContext> holder = new AtomicReference<>();
     }
 }

@@ -19,6 +19,9 @@ tasks.register<Sync>(DockerConventionJvmApplicationPlugin.SYNC_BUILD_CONTEXT_TAS
         into(".") {
             from(rootProject.layout.projectDirectory.dir("docker"))
         }
+        into("./async-profiler") {
+            from(rootProject.layout.projectDirectory.dir("async-profiler-4.2.1-linux-x64"))
+        }
     })
 }
 
@@ -32,6 +35,7 @@ tasks.register<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_
     runCommand("chmod +x /entrypoint.sh")
     environmentVariable("METASPACE_SIZE_MB", "150")
     entryPoint("/entrypoint.sh")
+    copyFile(Dockerfile.CopyFile("async-profiler", "async-profiler"))
 }
 
 tasks.register<DockerBuildImage>(DockerConventionJvmApplicationPlugin.BUILD_IMAGE_TASK_NAME) {

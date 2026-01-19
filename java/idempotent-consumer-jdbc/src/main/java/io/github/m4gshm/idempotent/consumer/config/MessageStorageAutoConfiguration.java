@@ -10,9 +10,12 @@ import org.jooq.DSLContext;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.jdbc.autoconfigure.DataSourceTransactionManagerAutoConfiguration;
 import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import java.time.Clock;
 
@@ -20,22 +23,26 @@ import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.
 
 @EnableScheduling
 @RequiredArgsConstructor
-@AutoConfiguration(after = { IdempotentConsumerPropertiesAutoConfiguration.class, JooqAutoConfiguration.class })
+@AutoConfiguration(after = {IdempotentConsumerPropertiesAutoConfiguration.class,
+        JooqAutoConfiguration.class,
+        DataSourceTransactionManagerAutoConfiguration.class})
 public class MessageStorageAutoConfiguration {
 
     private final IdempotentConsumerProperties properties;
 
+    private static Clock getClock() {
+        return Clock.systemDefaultZone();
+    }
+
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(DSLContext.class)
-    public MessageStorage messageStorage(DSLContext dslContext) {
+    public MessageStorage messageStorage(DSLContext dslContext, MessageStorageMaintenanceService maintenanceService) {
         return new MessageStorageImpl(
-                messageStorageMaintenanceService(dslContext),
+                maintenanceService,
                 dslContext,
                 INPUT_MESSAGES,
-                Clock.systemDefaultZone(),
-                properties.createTable(),
-                properties.createPartition(),
+                getClock(),
                 properties.createPartitionOnInputMessage()
         );
     }
@@ -43,11 +50,17 @@ public class MessageStorageAutoConfiguration {
     @Bean
     @ConditionalOnMissingBean
     @ConditionalOnBean(DSLContext.class)
-    public MessageStorageMaintenanceService messageStorageMaintenanceService(DSLContext dslContext) {
+    public MessageStorageMaintenanceService messageStorageMaintenanceService(
+            DSLContext dslContext,
+            PlatformTransactionManager transactionManager) {
         return new MessageStorageMaintenanceServiceImpl(
                 dslContext,
+                new TransactionTemplate(transactionManager),
                 INPUT_MESSAGES,
-                properties.partitionSuffixPattern());
+                properties.partitionSuffixPattern(),
+                getClock(),
+                properties.createTable(),
+                properties.createPartition());
     }
 
 }

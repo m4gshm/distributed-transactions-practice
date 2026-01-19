@@ -22,8 +22,9 @@ public class NettyChannelBuilderUtils {
         if (lr != null) {
             var eventLoopGroup = lr.onClient(true);
             var channelType = lr.onChannelClass(SocketChannel.class, eventLoopGroup);
-            builder.eventLoopGroup(eventLoopGroup)
-                    .channelFactory(new ReflectiveChannelFactory<>(channelType));
+            builder
+                    .eventLoopGroup(eventLoopGroup)
+                    .channelType(channelType);
         } else {
             log.info("LoopResources not provided for grpc client");
         }
@@ -31,11 +32,11 @@ public class NettyChannelBuilderUtils {
     }
 
     public static ManagedChannelBuilder<? extends ManagedChannelBuilder<?>> newManagedChannelBuilder(
-                                                                                                     ClientProperties clientProperties,
-                                                                                                     List<ClientInterceptor> interceptors,
-                                                                                                     ObjectProvider<
-                                                                                                             LoopResources> sharedLoopResources
+            ClientProperties clientProperties,
+            List<ClientInterceptor> interceptors,
+            ObjectProvider<LoopResources> sharedLoopResources
     ) {
+//        return ClientProperties.newManagedChannelBuilder(clientProperties, interceptors);
         return initBuilderByLoopResources(sharedLoopResources,
                 ClientProperties.newManagedChannelBuilder(clientProperties, interceptors)
         );

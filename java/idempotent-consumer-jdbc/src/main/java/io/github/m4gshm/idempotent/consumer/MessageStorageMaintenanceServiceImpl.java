@@ -1,50 +1,79 @@
 package io.github.m4gshm.idempotent.consumer;
 
 import io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages;
+import jakarta.annotation.PostConstruct;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
+import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.jooq.TableField;
 import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionTemplate;
 
+import java.time.Clock;
 import java.time.OffsetDateTime;
-import java.util.List;
 
 import static io.github.m4gshm.idempotent.consumer.MessageStorageMaintenanceJooqUtils.createPartition;
 import static io.github.m4gshm.idempotent.consumer.PartitionType.CURRENT;
 import static io.github.m4gshm.idempotent.consumer.PartitionType.NEXT;
+import static lombok.AccessLevel.PRIVATE;
 import static org.springframework.scheduling.annotation.Scheduled.CRON_DISABLED;
+import static org.springframework.transaction.annotation.Propagation.REQUIRES_NEW;
 
 @Slf4j
 @RequiredArgsConstructor
+@FieldDefaults(makeFinal = true, level = PRIVATE)
 public class MessageStorageMaintenanceServiceImpl implements MessageStorageMaintenanceService {
-    private final DSLContext dsl;
-    private final InputMessages table;
-    private final String partitionSuffixPattern;
+    DSLContext dsl;
+    TransactionTemplate transactionTemplate;
+    InputMessages table;
+    String partitionSuffixPattern;
+    Clock clock;
+    boolean createTable;
+    boolean createPartition;
 
-    @SuppressWarnings("unchecked")
-    private static <R extends org.jooq.Record> TableField<R, ?>[] getArray(List<TableField<R, ?>> refs) {
-        return (TableField<R, ?>[]) refs.toArray(new TableField[0]);
-    }
-
-    @Override
     public void addPartition(@NonNull PartitionDuration partition) {
         createPartition(dsl, table, partitionSuffixPattern, partition).execute();
     }
 
     @Override
+    @Transactional(propagation = REQUIRES_NEW)
+    public void addPartition(@NonNull PartitionType partitionType, @NonNull OffsetDateTime moment) {
+        transactionTemplate.executeWithoutResult(_ -> {
+            addPartition(newPartitionDuration(getPartitionStart(partitionType, moment)));
+        });
+    }
+
+    @PostConstruct
+    public void afterPropertiesSet() {
+        if (createTable) {
+            createTable();
+        }
+        var now = OffsetDateTime.now(clock);
+        if (createPartition) {
+            addPartition(CURRENT, now);
+        }
+    }
+
+    @Override
+    @Transactional(propagation = REQUIRES_NEW)
     public void createTable() {
-        var query = MessageStorageMaintenanceJooqUtils.createTable(dsl, table);
-        log.debug("create table: {}", query);
-        query.execute();
+        transactionTemplate.executeWithoutResult(_ -> {
+            var query = MessageStorageMaintenanceJooqUtils.createTable(dsl, table);
+            log.debug("create table: {}", query);
+            query.execute();
+        });
+
     }
 
     @Scheduled(cron = "${idempotent-consumer.create-partition-scheduler:" + CRON_DISABLED + "}")
     public void scheduledCreatePartition() {
         log.info("starting scheduled create partition");
-        var now = OffsetDateTime.now();
-        addPartition(CURRENT, now);
-        addPartition(NEXT, now);
+        transactionTemplate.executeWithoutResult(_ -> {
+            var now = OffsetDateTime.now();
+            addPartition(CURRENT, now);
+            addPartition(NEXT, now);
+        });
     }
 }

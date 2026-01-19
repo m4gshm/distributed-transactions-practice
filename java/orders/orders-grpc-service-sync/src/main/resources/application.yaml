@@ -9,9 +9,13 @@ logging:
         concurrent:
           TaskRunner: INFO
     org:
-      jooq:
-#        tools: DEBUG
+      postgresql:
+        core:
+          v3:
+#            QueryExecutorImpl: TRACE
+#      jooq: TRACE
       springframework:
+#        transaction: TRACE
         boot:
           autoconfigure:
             logging:
@@ -104,7 +108,7 @@ spring:
     username: postgres
     password: postgres
     hikari:
-      auto-commit: false
+#      auto-commit: false
       connection-init-sql:
       connection-test-query:
       connection-timeout: 10000

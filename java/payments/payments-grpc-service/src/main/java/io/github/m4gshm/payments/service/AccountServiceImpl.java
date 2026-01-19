@@ -9,7 +9,7 @@ import account.v1.AccountServiceOuterClass.AccountTopUpRequest;
 import account.v1.AccountServiceOuterClass.AccountTopUpResponse;
 import io.github.m4gshm.payments.data.ReactiveAccountStorage;
 import io.github.m4gshm.payments.service.event.ReactiveAccountEventService;
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -26,7 +26,7 @@ import static reactor.core.publisher.Mono.defer;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class AccountServiceImpl extends AccountServiceImplBase {
 
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
     ReactiveAccountStorage reactiveAccountStorage;
     ReactiveAccountEventService reactiveAccountEventService;
 

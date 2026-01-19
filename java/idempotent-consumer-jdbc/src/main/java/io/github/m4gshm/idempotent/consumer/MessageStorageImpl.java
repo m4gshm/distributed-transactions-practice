@@ -5,7 +5,6 @@ import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
-import org.springframework.beans.factory.InitializingBean;
 
 import java.time.Clock;
 import java.time.LocalDate;
@@ -20,33 +19,19 @@ import static lombok.AccessLevel.PRIVATE;
 @Slf4j
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
-public class MessageStorageImpl implements InitializingBean, MessageStorage {
+public class MessageStorageImpl implements MessageStorage {
     MessageStorageMaintenanceService maintenanceService;
-
     DSLContext dsl;
     InputMessages table;
     Clock clock;
-    boolean createTable;
-    boolean createPartition;
     boolean createPartitionOnStore;
 
     private static boolean isNoPartitionOfRelation(Throwable e) {
         return ofNullable(getPostgresqlException(e)).filter(errorDetails -> {
             var code = errorDetails.getSQLState();
             var detailsMessage = errorDetails.getMessage();
-            return "23514".equals(code) && detailsMessage.startsWith("no partition of relation");
+            return "23514".equals(code) && detailsMessage.contains("no partition of relation");
         }).isPresent();
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        if (createTable) {
-            maintenanceService.createTable();
-        }
-        var now = OffsetDateTime.now(clock);
-        if (createPartition) {
-            maintenanceService.addPartition(CURRENT, now);
-        }
     }
 
     private int insert(Message message,

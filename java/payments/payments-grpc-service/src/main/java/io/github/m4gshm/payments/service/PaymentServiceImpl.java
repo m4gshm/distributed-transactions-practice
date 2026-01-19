@@ -7,7 +7,7 @@ import io.github.m4gshm.payments.data.ReactivePaymentStorage;
 import io.github.m4gshm.payments.data.model.Account;
 import io.github.m4gshm.payments.data.model.Payment;
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -52,7 +52,7 @@ import static reactor.core.publisher.Mono.defer;
 @FieldDefaults(level = PRIVATE, makeFinal = true)
 public class PaymentServiceImpl extends PaymentServiceImplBase {
 
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
     ReactivePaymentStorage reactivePaymentStorage;
     ReactiveAccountStorage reactiveAccountStorage;
 

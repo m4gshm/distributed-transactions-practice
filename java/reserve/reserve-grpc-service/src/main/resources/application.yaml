@@ -52,6 +52,7 @@ server:
     include-message: always
 grpc:
   server:
+    executor-type: DIRECT
     port: 9081
     channelz:
       enabled: true

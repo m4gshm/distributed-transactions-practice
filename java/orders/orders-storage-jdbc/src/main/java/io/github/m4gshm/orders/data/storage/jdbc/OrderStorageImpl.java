@@ -102,6 +102,7 @@ public class OrderStorageImpl implements OrderStorage {
     }
 
     @Override
+    @Transactional
     public Order saveOrderOnly(Order order) {
         mergeOrder(dsl, order).execute();
         return order;

@@ -9,7 +9,8 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    api(project(":grpc-common"))
+    api(project(":jfr-rest-api"))
+    api(project(":grpc-service-common"))
     api(project(":grpc-client"))
     api(project(":protobuf-utils"))
     api(project(":postgres-prepared-transaction-jdbc"))

@@ -5,7 +5,7 @@ plugins {
 dependencies {
     api(project(":tpc:tpc-grpc-api"))
     api(project(":postgres-prepared-transaction-jdbc"))
-    api(project(":grpc-common"))
+    api(project(":grpc-service-common"))
 
     implementation("org.jooq:jooq")
     implementation("io.grpc:grpc-stub")

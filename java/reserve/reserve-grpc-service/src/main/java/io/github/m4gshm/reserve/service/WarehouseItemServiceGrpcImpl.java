@@ -1,6 +1,6 @@
 package io.github.m4gshm.reserve.service;
 
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.github.m4gshm.reserve.data.r2dbc.ReactiveWarehouseItemStorage;
 import io.grpc.stub.StreamObserver;
 import lombok.AccessLevel;
@@ -24,7 +24,7 @@ import static reactor.core.publisher.Mono.defer;
 @FieldDefaults(level = AccessLevel.PRIVATE, makeFinal = true)
 public class WarehouseItemServiceGrpcImpl extends WarehouseItemServiceGrpc.WarehouseItemServiceImplBase {
     ReactiveWarehouseItemStorage reactiveWarehouseItemStorage;
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
 
     @Override
     public void getItemCost(GetItemCostRequest request,

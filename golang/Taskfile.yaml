@@ -54,7 +54,7 @@ tasks:
       - go get -u ./...
 
   rebuild:
-    desc: "Build Golang implementations of the services"  
+    desc: "Build Golang implementations of the services"
     cmds:
       - task: install
       - task: clean-gen
@@ -85,11 +85,23 @@ tasks:
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
 
+  stop-docker-java:
+    desc: "Stop docker java services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service jvm-payments-grpc-service jvm-reserve-grpc-service
+
   run-docker-java:
     desc: "Run docker java reactive services"
     dir: ../docker
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml up -d
+
+  stop-docker-java-sync:
+    desc: "Stop docker java services"
+    dir: ../docker
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
 
   run-docker-java-sync:
     desc: "Run docker java sync services"
@@ -98,10 +110,10 @@ tasks:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml up -d
 
   stop-docker-go:
-    desc: "Run docker go services"
+    desc: "Stop docker go services"
     dir: ../docker
     cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down go-orders-grpc-service go-payments-grpc-service go-reserve-grpc-service
 
   run-docker-go:
     desc: "Run docker go services"
@@ -118,7 +130,7 @@ tasks:
         GOMEMLIMIT=64MiB GOGC=off ./orders.exe &
         GOMEMLIMIT=64MiB GOGC=off ./payments.exe &
         GOMEMLIMIT=64MiB GOGC=off ./reserve.exe &
-        wait  
+        wait
 
   clean:
     desc: "Clean generated files"
@@ -128,11 +140,11 @@ tasks:
   recreate-docker-requirements:
     desc: "Clean docker required services and restart"
     dir: ../docker
-    cmds: 
+    cmds:
       - |
         docker-compose down
         docker volume rm distributed-transactions-practice_db-data
-      - task: run-docker-requirements 
+      - task: run-docker-requirements
 
   goose-status:
     cmds:

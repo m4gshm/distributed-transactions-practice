@@ -9,11 +9,7 @@ import static java.time.ZoneId.systemDefault;
 
 public interface MessageStorageMaintenanceService {
 
-    default void addPartition(@NonNull PartitionType partitionType, @NonNull OffsetDateTime moment) {
-        addPartition(newPartitionDuration(getPartitionStart(partitionType, moment)));
-    }
-
-    void addPartition(PartitionDuration partition);
+    void addPartition(@NonNull PartitionType partitionType, @NonNull OffsetDateTime moment);
 
     void createTable();
 

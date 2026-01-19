@@ -11,6 +11,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jooq.Batch;
 import org.jooq.DSLContext;
 import org.jooq.InsertOnDuplicateSetMoreStep;
+import org.jooq.InsertReturningStep;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectConditionStep;
@@ -35,19 +36,6 @@ import static org.jooq.impl.DSL.excluded;
 public class OrderStorageJooqUtils {
 
     @Nonnull
-    public static InsertOnDuplicateSetMoreStep<ItemRecord> insertItem(
-                                                                      DSLContext dsl,
-                                                                      Order order,
-                                                                      Order.Item item) {
-        return dsl.insertInto(ITEM)
-                .set(ITEM.ORDER_ID, order.id())
-                .set(ITEM.ID, item.id())
-                .set(ITEM.AMOUNT, item.amount())
-                .onDuplicateKeyUpdate()
-                .set(ITEM.AMOUNT, excluded(ITEM.AMOUNT));
-    }
-
-    @Nonnull
     public static InsertOnDuplicateSetMoreStep<DeliveryRecord> mergeDelivery(
                                                                              DSLContext dsl,
                                                                              Order order,
@@ -59,6 +47,19 @@ public class OrderStorageJooqUtils {
                 .onDuplicateKeyUpdate()
                 .set(DELIVERY.ADDRESS, excluded(DELIVERY.ADDRESS))
                 .set(DELIVERY.TYPE, excluded(DELIVERY.TYPE));
+    }
+
+    @Nonnull
+    public static InsertOnDuplicateSetMoreStep<ItemRecord> mergeItem(
+                                                                     DSLContext dsl,
+                                                                     Order order,
+                                                                     Order.Item item) {
+        return dsl.insertInto(ITEM)
+                .set(ITEM.ORDER_ID, order.id())
+                .set(ITEM.ID, item.id())
+                .set(ITEM.AMOUNT, item.amount())
+                .onDuplicateKeyUpdate()
+                .set(ITEM.AMOUNT, item.amount());
     }
 
     @Nonnull
@@ -74,18 +75,18 @@ public class OrderStorageJooqUtils {
                 .set(ORDERS.RESERVE_TRANSACTION_ID, order.reserveTransactionId())
                 .onDuplicateKeyUpdate()
                 .set(ORDERS.UPDATED_AT, orNow(order.updatedAt()))
-                .set(ORDERS.STATUS, excluded(ORDERS.STATUS))
-                .set(ORDERS.RESERVE_ID, coalesce(excluded(ORDERS.RESERVE_ID), ORDERS.RESERVE_ID))
-                .set(ORDERS.PAYMENT_ID, coalesce(excluded(ORDERS.PAYMENT_ID), ORDERS.PAYMENT_ID));
+                .set(ORDERS.STATUS, order.status())
+                .set(ORDERS.PAYMENT_ID, coalesce(excluded(ORDERS.PAYMENT_ID), order.paymentTransactionId()))
+                .set(ORDERS.RESERVE_ID, coalesce(excluded(ORDERS.RESERVE_ID), order.reserveTransactionId()));
     }
 
     public static Batch mergeOrderFullBatch(DSLContext dsl, Order order) {
         return dsl.batch(mergeOrderFullQueries(dsl, order));
     }
 
-    public static List<InsertOnDuplicateSetMoreStep<?>> mergeOrderFullQueries(DSLContext dsl, Order order) {
+    public static List<InsertReturningStep<?>> mergeOrderFullQueries(DSLContext dsl, Order order) {
         var items = ofNullable(order.items()).orElse(List.of());
-        var queries = new ArrayList<InsertOnDuplicateSetMoreStep<?>>(2 + items.size());
+        var queries = new ArrayList<InsertReturningStep<?>>(2 + items.size());
         queries.add(mergeOrder(dsl, order));
 
         var delivery = order.delivery();
@@ -95,9 +96,7 @@ public class OrderStorageJooqUtils {
             queries.add(mergeDelivery);
         }
 
-        var insert = items.stream().map(item -> insertItem(dsl, order, item));
-        var list = insert.toList();
-        queries.addAll(list);
+        queries.addAll(items.stream().map(item -> mergeItem(dsl, order, item)).toList());
         return queries;
     }
 

@@ -7,7 +7,7 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    api(project(":grpc-common"))
+    api(project(":grpc-service-common"))
     api(project(":orders:orders-storage-jooq"))
 //    api(project(":grpc-client"))
     api(project(":protobuf-utils"))

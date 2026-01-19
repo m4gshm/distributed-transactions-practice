@@ -5,7 +5,7 @@ plugins {
 dependencies {
     api(project(":tpc:tpc-grpc-api"))
     api(project(":postgres-prepared-transaction-r2dbc"))
-    api(project(":grpc-webflux"))
+    api(project(":grpc-service-webflux"))
 
     implementation("org.jooq:jooq")
     implementation("io.grpc:grpc-stub")

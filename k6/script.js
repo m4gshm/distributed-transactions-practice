@@ -1,8 +1,5 @@
-import http from 'k6/http';
-import exec from 'k6/execution';
 import grpc from 'k6/net/grpc';
-import { check, sleep, fail } from 'k6';
-import { uuidv4 } from 'https://jslib.k6.io/k6-utils/1.4.0/index.js';
+import { check } from 'k6';
 
 const ORDER_ADDRESS = __ENV.ORDER_ADDRESS || 'localhost:9080';
 

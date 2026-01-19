@@ -1,7 +1,7 @@
 package io.github.m4gshm.tpc.service;
 
 import io.github.m4gshm.postgres.prepared.transaction.ReactivePreparedTransactionService;
-import io.github.m4gshm.reactive.GrpcReactive;
+import io.github.m4gshm.reactive.ReactiveGrpc;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -20,7 +20,7 @@ import static lombok.AccessLevel.PRIVATE;
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class ReactiveTwoPhaseCommitServiceGrpcImpl extends
         tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceImplBase {
-    GrpcReactive grpc;
+    ReactiveGrpc grpc;
     ReactivePreparedTransactionService transactionService;
 
     @Override
