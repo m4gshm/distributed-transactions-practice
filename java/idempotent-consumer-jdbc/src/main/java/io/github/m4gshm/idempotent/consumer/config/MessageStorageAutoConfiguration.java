@@ -23,9 +23,9 @@ import static io.github.m4gshm.idempotent.consumer.storage.tables.InputMessages.
 
 @EnableScheduling
 @RequiredArgsConstructor
-@AutoConfiguration(after = {IdempotentConsumerPropertiesAutoConfiguration.class,
+@AutoConfiguration(after = { IdempotentConsumerPropertiesAutoConfiguration.class,
         JooqAutoConfiguration.class,
-        DataSourceTransactionManagerAutoConfiguration.class})
+        DataSourceTransactionManagerAutoConfiguration.class })
 public class MessageStorageAutoConfiguration {
 
     private final IdempotentConsumerProperties properties;
@@ -51,8 +51,8 @@ public class MessageStorageAutoConfiguration {
     @ConditionalOnMissingBean
     @ConditionalOnBean(DSLContext.class)
     public MessageStorageMaintenanceService messageStorageMaintenanceService(
-            DSLContext dslContext,
-            PlatformTransactionManager transactionManager) {
+                                                                             DSLContext dslContext,
+                                                                             PlatformTransactionManager transactionManager) {
         return new MessageStorageMaintenanceServiceImpl(
                 dslContext,
                 new TransactionTemplate(transactionManager),

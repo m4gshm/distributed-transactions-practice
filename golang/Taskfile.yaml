@@ -1,6 +1,8 @@
 version: "3"
-
-# vars:
+includes:
+  docker:
+    taskfile: ../docker/Taskfile.yaml
+    dir: ../docker
 
 tasks:
   default:
@@ -79,52 +81,10 @@ tasks:
       - docker buildx build --build-arg EXEC_NAME=payments -t go-payments-grpc-service:latest ./docker
       - docker buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest ./docker
 
-  run-docker-requirements:
-    desc: "Run docker required services (postgres, kafka, etc.)"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
-
-  stop-docker-java:
-    desc: "Stop docker java services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service jvm-payments-grpc-service jvm-reserve-grpc-service
-
-  run-docker-java:
-    desc: "Run docker java reactive services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml up -d
-
-  stop-docker-java-sync:
-    desc: "Stop docker java services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
-
-  run-docker-java-sync:
-    desc: "Run docker java sync services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml up -d
-
-  stop-docker-go:
-    desc: "Stop docker go services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down go-orders-grpc-service go-payments-grpc-service go-reserve-grpc-service
-
-  run-docker-go:
-    desc: "Run docker go services"
-    dir: ../docker
-    cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml up -d
-
   run:
     desc: "Run services"
     cmds:
-      - task: run-docker-requirements
+      - task: docker:run-requirements
       - |
         cd ./bin
         GOMEMLIMIT=64MiB GOGC=off ./orders.exe &
@@ -136,15 +96,6 @@ tasks:
     desc: "Clean generated files"
     cmds:
       - rm -rf {{.GO_OUT_DIR}}/*
-
-  recreate-docker-requirements:
-    desc: "Clean docker required services and restart"
-    dir: ../docker
-    cmds:
-      - |
-        docker-compose down
-        docker volume rm distributed-transactions-practice_db-data
-      - task: run-docker-requirements
 
   goose-status:
     cmds:

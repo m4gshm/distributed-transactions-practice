@@ -1,0 +1,49 @@
+version: "3"
+
+tasks:
+  default:
+    cmds:
+      - task: run-docker-requirements
+
+  run-requirements:
+    desc: "Run docker required services (postgres, kafka, etc.)"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
+
+  stop-java:
+    desc: "Stop docker java services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service jvm-payments-grpc-service jvm-reserve-grpc-service
+
+  run-java:
+    desc: "Run docker java reactive services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml up -d
+
+  stop-java-sync:
+    desc: "Stop docker java services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
+
+  run-java-sync:
+    desc: "Run docker java sync services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml up -d
+
+  stop-go:
+    desc: "Stop docker go services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down go-orders-grpc-service go-payments-grpc-service go-reserve-grpc-service
+
+  run-go:
+    desc: "Run docker go services"
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml up -d
+
+  recreate-requirements:
+    desc: "Clean docker required services and restart"
+    cmds:
+      - |
+        docker-compose down
+        docker volume rm distributed-transactions-practice_db-data
+      - task: run-docker-requirements

@@ -4,7 +4,6 @@ import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.NettyChannelBuilder;
-import io.netty.channel.ReflectiveChannelFactory;
 import io.netty.channel.socket.SocketChannel;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
@@ -32,9 +31,10 @@ public class NettyChannelBuilderUtils {
     }
 
     public static ManagedChannelBuilder<? extends ManagedChannelBuilder<?>> newManagedChannelBuilder(
-            ClientProperties clientProperties,
-            List<ClientInterceptor> interceptors,
-            ObjectProvider<LoopResources> sharedLoopResources
+                                                                                                     ClientProperties clientProperties,
+                                                                                                     List<ClientInterceptor> interceptors,
+                                                                                                     ObjectProvider<
+                                                                                                             LoopResources> sharedLoopResources
     ) {
 //        return ClientProperties.newManagedChannelBuilder(clientProperties, interceptors);
         return initBuilderByLoopResources(sharedLoopResources,

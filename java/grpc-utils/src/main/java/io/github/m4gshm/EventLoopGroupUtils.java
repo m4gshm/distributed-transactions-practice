@@ -60,7 +60,9 @@ public class EventLoopGroupUtils {
         }
     }
 
-    public static EventLoopGroup newVirtualThreadEventLoopGroup(String name, int numEventLoops, boolean epollAvailable) {
+    public static EventLoopGroup newVirtualThreadEventLoopGroup(String name,
+                                                                int numEventLoops,
+                                                                boolean epollAvailable) {
         var threadFactory = Thread.ofVirtual().name(name, 0L).factory();
         return epollAvailable
                 ? createEpollEventLoopGroup(numEventLoops, threadFactory)

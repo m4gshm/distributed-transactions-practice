@@ -33,8 +33,8 @@ public class ClientProperties {
 
     @SneakyThrows
     public static NettyChannelBuilder newManagedChannelBuilder(
-            ClientProperties clientProperties,
-            List<ClientInterceptor> interceptors
+                                                               ClientProperties clientProperties,
+                                                               List<ClientInterceptor> interceptors
     ) {
         var address = clientProperties.address;
         var parts = address.split(":");
@@ -71,7 +71,7 @@ public class ClientProperties {
     }
 
     public enum ExecutorType {
-        DIRECT, VIRTUAL_THREAD;
+            DIRECT, VIRTUAL_THREAD;
     }
 
 }

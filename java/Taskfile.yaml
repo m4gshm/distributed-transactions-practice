@@ -1,0 +1,36 @@
+version: "3"
+includes:
+  docker:
+    taskfile: ../docker/Taskfile.yaml
+    dir: ../docker
+
+tasks:
+  default:
+    cmds:
+      - task: rebuild
+
+  rebuild:
+    desc: "Build Java implementations of the services"
+    cmds:
+      - task: docker:run-requirements
+      - cmd: gradle clean build   
+
+  run:
+    desc: "Run services"
+    cmds:
+      - task: docker:run-requirements
+      - |
+        java -jar ./orders/orders-grpc-service/build/libs/orders-grpc-service.jar &
+        java -jar ./payments/payments-grpc-service/build/libs/payments-grpc-service.jar &
+        java -jar ./reserve/reserve-grpc-service/build/libs/reserve-grpc-service.jar &
+        wait
+
+  run-sync:
+    desc: "Run services"
+    cmds:
+      - task: docker:run-requirements
+      - |
+        java -jar ./orders/orders-grpc-service-sync/build/libs/orders-grpc-service-sync.jar &
+        java -jar ./payments/payments-grpc-service-sync/build/libs/payments-grpc-service-sync.jar &
+        java -jar ./reserve/reserve-grpc-service-sync/build/libs/reserve-grpc-service-sync.jar &
+        wait
