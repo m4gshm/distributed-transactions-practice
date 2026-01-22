@@ -9,6 +9,7 @@ import io.github.m4gshm.storage.NotFoundException;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
+import orders.v1.OrderOuterClass.Order.Status;
 import orders.v1.OrderServiceOuterClass;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
 import orders.v1.OrderServiceOuterClass.OrderCancelResponse;
@@ -18,6 +19,7 @@ import orders.v1.OrderServiceOuterClass.OrderGetResponse;
 import orders.v1.OrderServiceOuterClass.OrderListResponse;
 import orders.v1.OrderServiceOuterClass.OrderReleaseResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
+import orders.v1.OrderServiceOuterClass.Page;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentOuterClass.Payment;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
@@ -57,7 +59,9 @@ import static io.github.m4gshm.orders.service.OrderServiceUtils.newReserveCancel
 import static io.github.m4gshm.orders.service.OrderServiceUtils.newRollbackRequest;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toDelivery;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderGrpc;
+import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderStatus;
 import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderStatusGrpc;
+import static io.github.m4gshm.orders.service.OrderServiceUtils.toPage;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static java.util.Objects.requireNonNull;
 import static java.util.Optional.ofNullable;
@@ -318,16 +322,17 @@ public class ReactiveOrderServiceImpl implements ReactiveOrderService {
     }
 
     @Override
-    public Mono<OrderListResponse> list() {
-        return orderStorage.findAll().defaultIfEmpty(List.of()).map(orders -> {
-            return orders.stream()
-                    .map(order -> toOrderGrpc(order, null, null))
-                    .toList();
-        }).map(orders -> {
-            return OrderListResponse.newBuilder()
-                    .addAllOrders(orders)
-                    .build();
-        });
+    public Mono<OrderListResponse> list(Page page, Status status) {
+        return orderStorage.findAll(toPage(page), toOrderStatus(status))
+                .defaultIfEmpty(List.of()
+                )
+                .map(orders -> orders.stream()
+                        .map(order -> toOrderGrpc(order, null, null))
+                        .toList()
+                )
+                .map(orders -> OrderListResponse.newBuilder()
+                        .addAllOrders(orders)
+                        .build());
     }
 
     @Override

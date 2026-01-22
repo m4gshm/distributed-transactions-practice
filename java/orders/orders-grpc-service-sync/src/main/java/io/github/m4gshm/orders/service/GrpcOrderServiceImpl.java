@@ -1,7 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.Grpc;
-import io.github.m4gshm.storage.PageableReadOperations.Page;
+import io.github.m4gshm.storage.Page;
 import io.grpc.stub.StreamObserver;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

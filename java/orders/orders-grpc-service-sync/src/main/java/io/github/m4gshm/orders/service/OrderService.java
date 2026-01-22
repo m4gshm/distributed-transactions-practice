@@ -1,7 +1,7 @@
 package io.github.m4gshm.orders.service;
 
 import io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus;
-import io.github.m4gshm.storage.PageableReadOperations.Page;
+import io.github.m4gshm.storage.Page;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
 import orders.v1.OrderServiceOuterClass.OrderCancelResponse;
 import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;

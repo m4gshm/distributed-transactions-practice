@@ -8,7 +8,7 @@ tasks:
   run-requirements:
     desc: "Run docker required services (postgres, kafka, etc.)"
     cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-commons.yaml up -d
+      - docker-compose -f docker-compose-commons.yaml up -d
 
   stop-java:
     desc: "Stop docker java services"

@@ -198,13 +198,13 @@ FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id
   WHERE  ($1::order_status IS NULL OR o.status = $1::order_status)
-  ORDER BY o.id
+  ORDER BY o.created_at
   LIMIT $3::int
   OFFSET $2::int
 `
 
 type FindOrdersPagedParams struct {
-	Status OrderStatus
+	Status NullOrderStatus
 	Offs   int32
 	Lim    pgtype.Int4
 }

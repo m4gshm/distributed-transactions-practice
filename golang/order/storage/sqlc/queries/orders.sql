@@ -13,8 +13,8 @@ SELECT
 FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id
-  WHERE  (@status::order_status IS NULL OR o.status = @status::order_status)
-  ORDER BY o.id
+  WHERE  (sqlc.narg('status')::order_status IS NULL OR o.status = sqlc.narg('status')::order_status)
+  ORDER BY o.created_at
   LIMIT sqlc.narg('lim')::int
   OFFSET @offs::int
   ;  

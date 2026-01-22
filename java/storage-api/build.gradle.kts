@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     api(project(":jooq"))
+    api(project(":storage-api-common"))
 
     implementation("jakarta.validation:jakarta.validation-api")
 

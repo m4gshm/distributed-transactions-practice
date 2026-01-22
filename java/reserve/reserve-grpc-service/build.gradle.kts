@@ -10,7 +10,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":reserve:reserve-grpc-service-common"))
-    api(project(":storage-reactive-api"))
+    api(project(":storage-api-reactive"))
     api(project(":grpc-service-webflux"))
     api(project(":protobuf-utils"))
     api(project(":tpc:tpc-grpc-service"))

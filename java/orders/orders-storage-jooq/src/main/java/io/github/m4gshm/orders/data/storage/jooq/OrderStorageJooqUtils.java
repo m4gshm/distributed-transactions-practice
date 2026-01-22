@@ -15,6 +15,7 @@ import org.jooq.InsertReturningStep;
 import org.jooq.JoinType;
 import org.jooq.Record;
 import org.jooq.SelectConditionStep;
+import org.jooq.SelectForUpdateStep;
 import org.jooq.SelectOnConditionStep;
 
 import java.util.ArrayList;
@@ -126,5 +127,16 @@ public class OrderStorageJooqUtils {
     @Nonnull
     public static SelectConditionStep<Record> selectOrdersJoinDeliveryById(DSLContext dsl, String id) {
         return selectOrdersJoinDelivery(dsl).where(ORDERS.ID.eq(id));
+    }
+
+    public static SelectForUpdateStep<Record> selectOrdersJoinDeliveryPaged(DSLContext dsl,
+                                                                            OrderStatus status,
+                                                                            int size,
+                                                                            Integer num) {
+        var baseQuery = selectOrdersJoinDelivery(dsl);
+        var queryWithCondition = status != null ? baseQuery.where(ORDERS.STATUS.eq(status)) : baseQuery;
+        return num != null
+                ? queryWithCondition.orderBy(ORDERS.CREATED_AT).limit(size).offset(num * size)
+                : queryWithCondition;
     }
 }

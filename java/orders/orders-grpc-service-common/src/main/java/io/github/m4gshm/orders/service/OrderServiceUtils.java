@@ -14,6 +14,7 @@ import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderOuterClass;
+import orders.v1.OrderServiceOuterClass;
 import orders.v1.OrderServiceOuterClass.OrderCreateRequest.OrderCreate;
 import orders.v1.OrderServiceOuterClass.OrderCreateResponse;
 import orders.v1.OrderServiceOuterClass.OrderResumeResponse;
@@ -342,6 +343,10 @@ public class OrderServiceUtils {
                 PaymentApproveRequest.Builder::setPreparedTransactionId,
                 PaymentApproveRequest.Builder::build
         );
+    }
+
+    static io.github.m4gshm.storage.Page toPage(OrderServiceOuterClass.Page page) {
+        return page == null ? null : new io.github.m4gshm.storage.Page(page.getNum(), page.getSize());
     }
 
     public record ErrorInfo(Status status, Metadata metadata) {

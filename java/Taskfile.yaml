@@ -34,3 +34,7 @@ tasks:
         java -jar ./payments/payments-grpc-service-sync/build/libs/payments-grpc-service-sync.jar &
         java -jar ./reserve/reserve-grpc-service-sync/build/libs/reserve-grpc-service-sync.jar &
         wait
+
+  run-docker:
+    cmds:
+      - task: docker:run-java

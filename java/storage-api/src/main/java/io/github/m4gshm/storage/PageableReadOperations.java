@@ -4,7 +4,4 @@ import java.util.List;
 
 public interface PageableReadOperations<T, ID> {
     List<T> findAll(Page page);
-
-    record Page(int num, int size) {
-    }
 }

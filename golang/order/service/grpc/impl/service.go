@@ -384,16 +384,21 @@ func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest)
 	var orders []*orderspb.Order
 	if page != nil {
 		pageNum := page.Num
-		if s := page.Size; s != nil {
-			params.Lim = pgtype.Int4{Int32: pageNum, Valid: true}
-			params.Offs = pageNum * *s
-		} else {
-			// params.Lim = pgtype.Int4{Valid: false}
+		if size := page.Size; size != nil {
+			lim := *size
+			offs := pageNum * lim
+			params.Lim = pgtype.Int4{Int32: lim, Valid: true}
+			params.Offs = offs
 		}
 	}
 	if cond := req.Condition; cond != nil {
 		if s := cond.Status; s != nil {
-			params.Status = sqlc.OrderStatus(orderspb.Order_Status_name[int32(*s)])
+			if sn := orderspb.Order_Status_name[int32(*s)]; len(sn) > 0 {
+				params.Status = sqlc.NullOrderStatus{
+					OrderStatus: sqlc.OrderStatus(sn),
+					Valid:       true,
+				}
+			}
 		}
 	}
 	if params != empty {

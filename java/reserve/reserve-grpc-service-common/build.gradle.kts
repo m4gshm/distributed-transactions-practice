@@ -9,7 +9,7 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-//    api(project(":storage-reactive-api"))
+//    api(project(":storage-api-reactive"))
 //    api(project(":grpc"))
     api(project(":protobuf-utils"))
 //    api(project(":reserve:reserve-grpc-service-common"))

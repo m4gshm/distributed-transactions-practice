@@ -5,7 +5,7 @@ import io.github.m4gshm.orders.data.model.Order;
 import io.github.m4gshm.orders.data.storage.OrderStorage;
 import io.github.m4gshm.postgres.prepared.transaction.PreparedTransactionService;
 import io.github.m4gshm.postgres.prepared.transaction.TwoPhaseTransactionUtils;
-import io.github.m4gshm.storage.PageableReadOperations.Page;
+import io.github.m4gshm.storage.Page;
 import lombok.NonNull;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;

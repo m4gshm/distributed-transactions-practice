@@ -77,9 +77,9 @@ tasks:
     cmds:
       - go vet ./...
       - GOOS=linux GOARCH=amd64 go build -o ./docker/cmd ./...
-      - docker buildx build --build-arg EXEC_NAME=orders -t go-orders-grpc-service:latest ./docker
-      - docker buildx build --build-arg EXEC_NAME=payments -t go-payments-grpc-service:latest ./docker
-      - docker buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest ./docker
+      - docker buildx build --build-arg EXEC_NAME=orders -t go-orders-grpc-service:latest --load ./docker
+      - docker buildx build --build-arg EXEC_NAME=payments -t go-payments-grpc-service:latest --load ./docker
+      - docker buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest --load ./docker
 
   run:
     desc: "Run services"

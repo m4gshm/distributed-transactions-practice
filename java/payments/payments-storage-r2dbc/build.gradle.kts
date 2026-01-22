@@ -15,7 +15,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":reactive-utils"))
-    api(project(":storage-reactive-api"))
+    api(project(":storage-api-reactive"))
     api(project(":payments:payments-storage-jooq"))
 
     api(project(":jooq-r2dbc"))

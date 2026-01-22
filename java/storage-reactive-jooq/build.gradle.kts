@@ -3,7 +3,7 @@ plugins {
 }
 
 dependencies {
-    api(project(":storage-reactive-api"))
+    api(project(":storage-api-reactive"))
 
     implementation("org.slf4j:slf4j-api")
     implementation("org.jooq:jooq")

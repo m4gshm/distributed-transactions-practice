@@ -60,7 +60,11 @@ public class ReactiveGrpcOrderServiceImpl extends OrderServiceGrpc.OrderServiceI
 
     @Override
     public void list(OrderListRequest request, StreamObserver<OrderListResponse> responseObserver) {
-        grpc.subscribe("list", responseObserver, () -> ordersService.list());
+        grpc.subscribe("list", responseObserver, () -> {
+            var condition = request.getCondition();
+
+            return ordersService.list(request.getPage(), condition.hasStatus() ? condition.getStatus() : null);
+        });
     }
 
     @Override

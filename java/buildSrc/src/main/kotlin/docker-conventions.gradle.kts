@@ -20,7 +20,7 @@ tasks.register<Sync>(DockerConventionJvmApplicationPlugin.SYNC_BUILD_CONTEXT_TAS
             from(rootProject.layout.projectDirectory.dir("docker"))
         }
         into("./async-profiler") {
-            from(rootProject.layout.projectDirectory.dir("async-profiler-4.2.1-linux-x64"))
+            from(rootProject.layout.projectDirectory.dir("async-profiler-4.3-linux-x64"))
         }
     })
 }

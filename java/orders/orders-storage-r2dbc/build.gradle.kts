@@ -7,7 +7,7 @@ dependencies {
     api(project(":orders:orders-storage-reactive"))
     api(project(":orders:orders-storage-jooq"))
     api(project(":reactive-utils"))
-    api(project(":storage-reactive-api"))
+    api(project(":storage-api-reactive"))
 
     api(project(":jooq-r2dbc"))
     api(project(":postgres-prepared-transaction"))

@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-
 POD_MEM_LIMIT=$(cat /sys/fs/cgroup/memory.max)
 POD_MEM_LIMIT_MB=`expr $POD_MEM_LIMIT / 1024 / 1024`
 [[ -z "${METASPACE_SIZE_MB}" ]] && METASPACE_SIZE_MB=`expr $POD_MEM_LIMIT_MB / 5`
@@ -26,4 +25,4 @@ java \
 -XX:ReservedCodeCacheSize=${RESERVED_CODE_CACHE_SIZE_MB}M \
 -XX:MaxDirectMemorySize=${DIRECT_MEMORY_SIZE_MB}M \
 -XX:NativeMemoryTracking=summary \
--jar -agentpath:/async-profiler/lib/libasyncProfiler.so=start,event=cpu,file=/tmp/profile.html app.jar
+-jar -agentpath:/async-profiler/lib/libasyncProfiler.so app.jar

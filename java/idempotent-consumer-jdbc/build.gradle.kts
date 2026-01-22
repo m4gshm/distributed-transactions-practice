@@ -5,7 +5,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":idempotent-consumer"))
-    api(project(":storage-reactive-api"))
+    api(project(":storage-api-reactive"))
 //    api(project(":jooq-r2dbc"))
     api(project(":postgres-jdbc"))
 

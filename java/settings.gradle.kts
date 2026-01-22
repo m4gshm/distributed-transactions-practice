@@ -2,8 +2,9 @@ import org.gradle.kotlin.dsl.project
 
 enableFeaturePreview("TYPESAFE_PROJECT_ACCESSORS")
 include(":storage-reactive-jooq")
-include(":storage-reactive-api")
 include(":storage-api")
+include(":storage-api-common")
+include(":storage-api-reactive")
 include(":jooq")
 include(":jooq-r2dbc")
 include(":jooq-reactive")
