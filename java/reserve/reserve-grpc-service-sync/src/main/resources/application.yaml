@@ -58,7 +58,7 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
@@ -95,31 +95,28 @@ spring:
     name: jvm-reserve-sync
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   opentelemetry:
     tracing:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: GRPC
-  endpoints:
-    web:
-      exposure:
-        include: '*'
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
     metrics:
       export:
         enabled: false
-    logging:
-      export:
-        enabled: false
-      endpoint: ${management.otlp.tracing.endpoint}
-      transport: GRPC
-    tracing:
-      endpoint: ${otel.exporter.otlp.endpoint}
-      transport: GRPC
 otel:
   exporter:
     otlp:
@@ -127,8 +124,5 @@ otel:
       endpoint: http://localhost:4317
   instrumentation:
     common:
-      default-enabled: true
-#      logging:
-#        trace-id: traceId
-#        span-id: spanId
+      default-enabled: false
 

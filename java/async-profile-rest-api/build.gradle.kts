@@ -8,5 +8,6 @@ dependencies {
 
     implementation("org.springframework:spring-web")
     implementation("org.springframework:spring-context")
-    implementation("org.springframework.boot:spring-boot-autoconfigure")
+
+    api("tools.profiler:async-profiler:4.3")
 }

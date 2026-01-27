@@ -25,7 +25,6 @@ import static io.github.m4gshm.orders.service.OrderServiceUtils.toOrderStatus;
 import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
-//@GrpcService
 @Service
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)

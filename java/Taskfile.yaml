@@ -12,13 +12,13 @@ tasks:
   rebuild:
     desc: "Build Java implementations of the services"
     cmds:
-      - task: docker:run-requirements
+      - task: docker:run-commons-min
       - cmd: gradle clean build   
 
   run:
     desc: "Run services"
     cmds:
-      - task: docker:run-requirements
+      - task: docker:run-commons-min
       - |
         java -jar ./orders/orders-grpc-service/build/libs/orders-grpc-service.jar &
         java -jar ./payments/payments-grpc-service/build/libs/payments-grpc-service.jar &
@@ -28,7 +28,7 @@ tasks:
   run-sync:
     desc: "Run services"
     cmds:
-      - task: docker:run-requirements
+      - task: docker:run-commons-min
       - |
         java -jar ./orders/orders-grpc-service-sync/build/libs/orders-grpc-service-sync.jar &
         java -jar ./payments/payments-grpc-service-sync/build/libs/payments-grpc-service-sync.jar &

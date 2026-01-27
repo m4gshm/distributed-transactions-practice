@@ -121,7 +121,7 @@ subprojects {
             implementation("org.springframework.boot:spring-boot-health")
             implementation("org.springframework.boot:spring-boot-jooq")
             implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
-            implementation("org.springdoc:springdoc-openapi-starter-common:3.0.0")
+            implementation("org.springdoc:springdoc-openapi-starter-common")
         }
         if (isReactiveService) {
             implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
@@ -177,6 +177,7 @@ subprojects {
 
             dependency("jakarta.validation:jakarta.validation-api:3.0.2")
 
+            dependency("org.springdoc:springdoc-openapi-starter-common:3.0.0")
             dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.0")
             dependency("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 

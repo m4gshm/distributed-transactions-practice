@@ -44,11 +44,12 @@ type OrdersConfig struct {
 }
 
 type ServiceConfig struct {
-	GrpcPort int
-	HttpPort int
-	Database DatabaseConfig
-	OtlpUrl  string
-	LogLevel LogLevel
+	GrpcPort    int
+	HttpPort    int
+	Database    DatabaseConfig
+	OtlpUrl     string
+	OtlpEnabled bool
+	LogLevel    LogLevel
 }
 
 type LogLevel struct {
@@ -58,35 +59,39 @@ type LogLevel struct {
 
 func Load() *Config {
 	otlpUrl := getEnv("OTEL_EXPORTER_OTLP_ENDPOINT", "http://localhost:4317")
+	otlpEnabled := getEnvBool("OTEL_EXPORTER_ENABLED", false)
 	kafka := KafkaConfig{
 		Topic:   "balance",
 		Servers: strings.Split(getEnv("KAFKA_BOOTSTRAP_SERVERS", "localhost:9092"), ","),
 	}
 	payment := PaymentsConfig{
 		ServiceConfig: ServiceConfig{
-			GrpcPort: getEnvInt("GRPC_PORT", 9002),
-			HttpPort: getEnvInt("HTTP_PORT", 8002),
-			OtlpUrl:  otlpUrl,
-			Database: defaultDBConfig("go_payment"),
-			LogLevel: defaultLogLevel(),
+			GrpcPort:    getEnvInt("GRPC_PORT", 9002),
+			HttpPort:    getEnvInt("HTTP_PORT", 8002),
+			OtlpUrl:     otlpUrl,
+			OtlpEnabled: otlpEnabled,
+			Database:    defaultDBConfig("go_payment"),
+			LogLevel:    defaultLogLevel(),
 		},
 		KafkaConfig: kafka,
 	}
 	reserve := ServiceConfig{
-		GrpcPort: getEnvInt("GRPC_PORT", 9003),
-		HttpPort: getEnvInt("HTTP_PORT", 8003),
-		OtlpUrl:  otlpUrl,
-		Database: defaultDBConfig("go_reserve"),
-		LogLevel: defaultLogLevel(),
+		GrpcPort:    getEnvInt("GRPC_PORT", 9003),
+		HttpPort:    getEnvInt("HTTP_PORT", 8003),
+		OtlpUrl:     otlpUrl,
+		OtlpEnabled: otlpEnabled,
+		Database:    defaultDBConfig("go_reserve"),
+		LogLevel:    defaultLogLevel(),
 	}
 	return &Config{
 		Orders: OrdersConfig{
 			ServiceConfig: ServiceConfig{
-				GrpcPort: getEnvInt("GRPC_PORT", 9001),
-				HttpPort: getEnvInt("HTTP_PORT", 8001),
-				OtlpUrl:  otlpUrl,
-				Database: defaultDBConfig("go_orders"),
-				LogLevel: defaultLogLevel(),
+				GrpcPort:    getEnvInt("GRPC_PORT", 9001),
+				HttpPort:    getEnvInt("HTTP_PORT", 8001),
+				OtlpUrl:     otlpUrl,
+				OtlpEnabled: otlpEnabled,
+				Database:    defaultDBConfig("go_orders"),
+				LogLevel:    defaultLogLevel(),
 			},
 			KafkaConfig:       kafka,
 			PaymentServiceURL: getEnv("SERVICE_PAYMENTS_ADDRESS", fmt.Sprintf("localhost:%d", payment.GrpcPort)),
@@ -127,6 +132,13 @@ func getEnvInt[I ~int | ~int8](key string, defaultValue I) I {
 		if intValue, err := strconv.Atoi(value); err == nil {
 			return I(intValue)
 		}
+	}
+	return defaultValue
+}
+
+func getEnvBool[B bool](key string, defaultValue bool) bool {
+	if value := os.Getenv(key); value != "" {
+		return strings.ToLower(value) == "true"
 	}
 	return defaultValue
 }

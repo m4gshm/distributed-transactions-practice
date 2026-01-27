@@ -21,6 +21,9 @@ logging:
             logging:
               ConditionEvaluationReportLogger: DEBUG # auto configs report
       apache:
+        tomcat:
+          util:
+            net: INFO
         kafka:
           clients:
             FetchSessionHandler: INFO
@@ -57,10 +60,6 @@ server:
 grpc:
   server:
     port: 9080
-    max-inbound-message-size: 1GB
-    max-inbound-metadata-size: 1GB
-    security:
-      enabled: false
     channelz:
       enabled: true
     health:
@@ -150,31 +149,28 @@ service:
 #  create-partition-scheduler: '-'
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   opentelemetry:
     tracing:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: GRPC
-  endpoints:
-    web:
-      exposure:
-        include: '*'
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
     metrics:
       export:
         enabled: false
-    logging:
-      export:
-        enabled: false
-      endpoint: ${management.otlp.tracing.endpoint}
-      transport: GRPC
-    tracing:
-      endpoint: ${otel.exporter.otlp.endpoint}
-      transport: GRPC
 otel:
   exporter:
     otlp:
@@ -182,8 +178,8 @@ otel:
       endpoint: http://localhost:4317
   instrumentation:
     common:
-      default-enabled: true
-#      logging:
-#        trace-id: traceId
-#        span-id: spanId
+      default-enabled: false
 
+jdbc:
+  datasource-proxy:
+    enabled: false

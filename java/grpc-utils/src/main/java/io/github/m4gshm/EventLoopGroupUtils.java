@@ -13,7 +13,7 @@ import java.util.concurrent.ThreadFactory;
 @UtilityClass
 public class EventLoopGroupUtils {
 
-    private static EventLoopGroup createEpollEventLoopGroup(int parallelism, ThreadFactory threadFactory) {
+    public static EventLoopGroup createEpollEventLoopGroup(int parallelism, ThreadFactory threadFactory) {
         try {
             return epollEventLoopGroupConstructor().newInstance(parallelism, threadFactory);
         } catch (Exception e) {
@@ -60,13 +60,22 @@ public class EventLoopGroupUtils {
         }
     }
 
-    public static EventLoopGroup newVirtualThreadEventLoopGroup(String name,
-                                                                int numEventLoops,
-                                                                boolean epollAvailable) {
-        var threadFactory = Thread.ofVirtual().name(name, 0L).factory();
+    public static EventLoopGroup newEventLoopGroup(ThreadFactory threadFactory,
+                                                   int numEventLoops,
+                                                   boolean epollAvailable) {
         return epollAvailable
                 ? createEpollEventLoopGroup(numEventLoops, threadFactory)
                 : new NioEventLoopGroup(numEventLoops, threadFactory);
+    }
+
+    public static EventLoopGroup newVirtualThreadEventLoopGroup(String name,
+                                                                int numEventLoops,
+                                                                boolean epollAvailable) {
+        return newEventLoopGroup(newVirtualThreadFactory(name), numEventLoops, epollAvailable);
+    }
+
+    public static ThreadFactory newVirtualThreadFactory(String name) {
+        return Thread.ofVirtual().name(name, 0L).factory();
     }
 
 }

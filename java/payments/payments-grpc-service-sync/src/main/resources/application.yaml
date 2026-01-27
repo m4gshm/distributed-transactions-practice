@@ -52,7 +52,6 @@ server:
     include-message: always
 grpc:
   server:
-    executor-type: DIRECT
     port: 9082
     channelz:
       enabled: true
@@ -104,44 +103,34 @@ spring:
     name: jvm-payments-sync
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   opentelemetry:
     tracing:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: GRPC
-  endpoints:
-    web:
-      exposure:
-        include: '*'
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
     metrics:
       export:
         enabled: false
-    logging:
-      export:
-        enabled: false
-      endpoint: ${management.otlp.tracing.endpoint}
-      transport: GRPC
-    tracing:
-      endpoint: ${otel.exporter.otlp.endpoint}
-      transport: GRPC
 otel:
   exporter:
     otlp:
       protocol: grpc
       endpoint: http://localhost:4317
   instrumentation:
-    r2dbc:
-      enabled: false
-    spring-webflux:
-      enabled: false
     common:
-      default-enabled: true
-#      logging:
-#        trace-id: traceId
-#        span-id: spanId
+      default-enabled: false
 

@@ -9,6 +9,8 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
+    api(project(":jfr-rest-api"))
+    api(project(":async-profile-rest-api"))
     api(project(":storage-api-reactive"))
     api(project(":grpc-service-webflux"))
     api(project(":protobuf-utils"))
@@ -25,20 +27,16 @@ dependencies {
     api(project(":payments:payments-event-api"))
     api(project(":reserve:reserve-grpc-api"))
     api(project(":tpc:tpc-grpc-api"))
-//    api(project(":idempotent-consumer"))
     api(project(":idempotent-consumer-r2dbc"))
 
     implementation("io.projectreactor.kafka:reactor-kafka")
-//    implementation("org.springframework.kafka:spring-kafka")
     implementation("org.springframework.boot:spring-boot-kafka")
 
     implementation("org.postgresql:postgresql")
 
     implementation("io.projectreactor:reactor-core-micrometer")
-
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {
     exposePort(7080, 9080)
-//    exposePort(5005, 5005)
 }

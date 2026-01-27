@@ -10,6 +10,7 @@ apply(plugin = "io.spring.dependency-management")
 
 dependencies {
     api(project(":jfr-rest-api"))
+    api(project(":async-profile-rest-api"))
     api(project(":grpc-service-common"))
     api(project(":grpc-client"))
     api(project(":protobuf-utils"))
@@ -30,6 +31,8 @@ dependencies {
 
     implementation("org.mapstruct:mapstruct:1.6.3")
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
+
+    compileOnly("io.opentelemetry:opentelemetry-exporter-otlp")
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

@@ -5,16 +5,26 @@ tasks:
     cmds:
       - task: run-docker-requirements
 
-  run-requirements:
-    desc: "Run docker required services (postgres, kafka, etc.)"
+  run-commons-min:
+    desc: "Run docker required services (postgres, kafka)"
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml up -d
+  stop-commons-min:
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml down
+
+  run-commons:
+    desc: "Run docker required services (postgres, kafka, tracing, monitoring, etc.)"
     cmds:
       - docker-compose -f docker-compose-commons.yaml up -d
+  stop-commons:
+    cmds:
+      - docker-compose -f docker-compose-commons.yaml down
 
   stop-java:
     desc: "Stop docker java services"
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service jvm-payments-grpc-service jvm-reserve-grpc-service
-
   run-java:
     desc: "Run docker java reactive services"
     cmds:
@@ -23,18 +33,34 @@ tasks:
   stop-java-sync:
     desc: "Stop docker java services"
     cmds:
-      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
-
+      - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
   run-java-sync:
     desc: "Run docker java sync services"
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-java-sync.yaml up -d
 
+  stop-java-sync-min:
+    desc: "Stop docker java services"
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml -f docker-compose-java-sync.yaml down jvm-orders-grpc-service-sync jvm-payments-grpc-service-sync jvm-reserve-grpc-service-sync
+  run-java-sync-min:
+    desc: "Run docker java sync services"
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml -f docker-compose-java-sync.yaml up -d
+
+  stop-go-min:
+    desc: "Stop docker go services"
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml -f docker-compose-go.yaml down go-orders-grpc-service go-payments-grpc-service go-reserve-grpc-service
+  run-go-min:
+    desc: "Run docker go services"
+    cmds:
+      - docker-compose -f docker-compose-commons-min.yaml -f docker-compose-go.yaml up -d
+
   stop-go:
     desc: "Stop docker go services"
     cmds:
       - docker-compose -f docker-compose-commons.yaml -f docker-compose-go.yaml down go-orders-grpc-service go-payments-grpc-service go-reserve-grpc-service
-
   run-go:
     desc: "Run docker go services"
     cmds:

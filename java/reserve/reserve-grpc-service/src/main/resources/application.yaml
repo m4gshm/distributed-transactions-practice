@@ -67,7 +67,7 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
@@ -82,7 +82,7 @@ spring:
     password: postgres
     hikari:
       keepalive-time: 30000
-      minimum-idle: 2
+      minimum-idle: 8
       maximum-pool-size: 120
   r2dbc:
     url: r2dbc:postgresql://localhost:5000/jvm_reserve
@@ -112,44 +112,34 @@ spring:
     name: jvm-reserve-reactive
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   opentelemetry:
     tracing:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: GRPC
-  endpoints:
-    web:
-      exposure:
-        include: '*'
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
     metrics:
       export:
         enabled: false
-    logging:
-      export:
-        enabled: false
-      endpoint: ${management.otlp.tracing.endpoint}
-      transport: GRPC
-    tracing:
-      endpoint: ${otel.exporter.otlp.endpoint}
-      transport: GRPC
 otel:
   exporter:
     otlp:
       protocol: grpc
       endpoint: http://localhost:4317
   instrumentation:
-    r2dbc:
-      enabled: false
-    spring-webflux:
-      enabled: false
     common:
-      default-enabled: true
-#      logging:
-#        trace-id: traceId
-#        span-id: spanId
+      default-enabled: false
 

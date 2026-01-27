@@ -16,7 +16,6 @@ import java.util.List;
 import static io.github.m4gshm.EventLoopGroupUtils.getEpollSocketChannelClass;
 import static io.github.m4gshm.EventLoopGroupUtils.isEpollAvailable;
 import static io.github.m4gshm.EventLoopGroupUtils.newVirtualThreadEventLoopGroup;
-import static io.github.m4gshm.grpc.client.ClientProperties.ExecutorType.VIRTUAL_THREAD;
 import static io.netty.util.NettyRuntime.availableProcessors;
 import static java.util.concurrent.TimeUnit.MINUTES;
 import static java.util.concurrent.TimeUnit.SECONDS;
@@ -29,7 +28,7 @@ public class ClientProperties {
     private boolean secure;
     private long idleTimeoutSec = MINUTES.toSeconds(5);
     private long keepAliveSec = MINUTES.toSeconds(20);
-    private ExecutorType executorType = VIRTUAL_THREAD;
+    private ExecutorType executorType = ExecutorType.VIRTUAL_THREAD;
 
     @SneakyThrows
     public static NettyChannelBuilder newManagedChannelBuilder(
@@ -43,16 +42,19 @@ public class ClientProperties {
         var addr = Inet4Address.getByName(host);
         var builder = NettyChannelBuilder.forAddress(new InetSocketAddress(addr, port));
 
-        switch (clientProperties.executorType) {
-            case DIRECT -> builder.directExecutor();
-            case VIRTUAL_THREAD -> {
-                builder.offloadExecutor(new VirtualThreadTaskExecutor("grpc-vt-offload-" + address));
-                var epollAvailable = isEpollAvailable();
-                builder.executor(new VirtualThreadTaskExecutor("grpc-vt-exc" + address))
-                        .eventLoopGroup(newVirtualThreadEventLoopGroup("grpc-vt-ELG" + address,
-                                availableProcessors(),
-                                epollAvailable))
-                        .channelType(epollAvailable ? getEpollSocketChannelClass() : NioSocketChannel.class);
+        var executorType = clientProperties.executorType;
+        if (executorType != null) {
+            switch (executorType) {
+                case DIRECT -> builder.directExecutor();
+                case VIRTUAL_THREAD -> {
+                    builder.offloadExecutor(new VirtualThreadTaskExecutor("grpc-vt-offload-" + address));
+                    var epollAvailable = isEpollAvailable();
+                    builder.executor(new VirtualThreadTaskExecutor("grpc-vt-exc" + address))
+                            .eventLoopGroup(newVirtualThreadEventLoopGroup("grpc-vt-ELG" + address,
+                                    availableProcessors(),
+                                    epollAvailable))
+                            .channelType(epollAvailable ? getEpollSocketChannelClass() : NioSocketChannel.class);
+                }
             }
         }
         if (!clientProperties.isSecure()) {

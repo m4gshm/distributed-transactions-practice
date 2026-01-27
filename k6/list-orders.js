@@ -1,4 +1,5 @@
 import grpc from 'k6/net/grpc';
+import exec from 'k6/execution';
 import { check } from 'k6';
 
 const ORDER_ADDRESS = __ENV.ORDER_ADDRESS || 'localhost:9080';
@@ -15,8 +16,10 @@ export function setup() {
 export function teardown(data) {
 }
 
-export default function () {
-    ordersClient.connect(ORDER_ADDRESS, { plaintext: true });
+export default function() {
+    if (exec.vu.iterationInScenario == 0) {
+        ordersClient.connect(ORDER_ADDRESS, { plaintext: true });
+    }
 
     const data = {
         "page": {
@@ -51,6 +54,4 @@ export default function () {
             return vaild
         },
     });
-
-    ordersClient.close();
 }

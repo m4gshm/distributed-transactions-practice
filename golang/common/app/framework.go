@@ -59,11 +59,13 @@ func Run(
 
 	InitLog(name, cfg.LogLevel.Root)
 
-	close, err := registerOtlpExporter(ctx, cfg.OtlpUrl, name)
-	if err != nil {
-		log.Fatal().Err(err).Msg("Failed to register Otlp exported")
+	if cfg.OtlpEnabled {
+		close, err := registerOtlpExporter(ctx, cfg.OtlpUrl, name)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to register Otlp exported")
+		}
+		defer close()
 	}
-	defer close()
 
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()

@@ -1,11 +1,12 @@
-package io.github.m4gshm.orders.service;
+package io.github.m4gshm.jfr.service;
 
 import jdk.jfr.Configuration;
 import jdk.jfr.Recording;
 import lombok.SneakyThrows;
-import org.springframework.stereotype.Service;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -17,14 +18,15 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static jdk.jfr.Configuration.getConfiguration;
 
-@Service
+@Slf4j
 public class JfrRecorder {
     final AtomicReference<Recording> record = new AtomicReference<>();
-    final Configuration configuration;
 
-    {
+    private static Configuration newConfiguration(String name) {
         try {
-            configuration = getConfiguration("default");
+            final var configuration = getConfiguration(name);
+            log.info("jfr configuration name {}, settings {}", configuration.getName(), configuration.getSettings());
+            return configuration;
         } catch (IOException | ParseException e) {
             throw new IllegalStateException(e);
         }
@@ -32,8 +34,8 @@ public class JfrRecorder {
 
     @PostMapping
     @SneakyThrows
-    public void start() {
-        var newRec = new Recording(configuration);
+    public void start(@RequestParam(required = false) String config) {
+        var newRec = new Recording(newConfiguration(config == null || config.isBlank() ? "default" : config));
         if (!record.compareAndSet(null, newRec)) {
             throw new IllegalStateException("already started");
         }

@@ -100,7 +100,7 @@ springdoc:
 spring:
   threads:
     virtual:
-      enabled: true
+      enabled: false
   reactor.context-propagation: AUTO
   #for liquibase
   datasource:
@@ -149,13 +149,10 @@ spring:
 
 service:
   reserve:
-#    executor-type: DIRECT
     address: localhost:9081
   warehouse:
-#    executor-type: DIRECT
     address: localhost:9081
   payments:
-#    executor-type: DIRECT
     address: localhost:9082
 
 #idempotent-consumer:
@@ -165,31 +162,28 @@ service:
 #  create-partition-scheduler: '-'
 
 management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
   opentelemetry:
     tracing:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: GRPC
-  endpoints:
-    web:
-      exposure:
-        include: '*'
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
     metrics:
       export:
         enabled: false
-    logging:
-      export:
-        enabled: false
-      endpoint: ${management.otlp.tracing.endpoint}
-      transport: GRPC
-    tracing:
-      endpoint: ${otel.exporter.otlp.endpoint}
-      transport: GRPC
 otel:
   exporter:
     otlp:

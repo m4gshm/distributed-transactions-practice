@@ -10,8 +10,6 @@ dependencies {
     implementation("io.grpc:grpc-netty")
     implementation("io.projectreactor.netty:reactor-netty-core")
     implementation("io.projectreactor.netty:reactor-netty-http")
-//    implementation("org.springframework:spring-web")
-//    implementation("org.springframework:spring-webflux")
     implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
     implementation("io.github.danielliu1123:grpc-transcoding")
 
@@ -31,8 +29,6 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
     implementation("io.micrometer:micrometer-core")
 
-//    compileOnly("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
-//    compileOnly("io.opentelemetry:opentelemetry-exporter-otlp")
     compileOnly("io.micrometer:micrometer-tracing")
     compileOnly("org.springframework.boot:spring-boot-micrometer-observation")
 }

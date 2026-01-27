@@ -9,7 +9,7 @@ services:
     deploy: &defaultDeploy
       resources: 
         limits:
-          memory: 612m
+          memory: 1024m
         reservations:
           memory: 256m
     hostname: jvm-orders-grpc-service
