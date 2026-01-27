@@ -182,4 +182,4 @@ otel:
 
 jdbc:
   datasource-proxy:
-    enabled: false
+    enabled: true
