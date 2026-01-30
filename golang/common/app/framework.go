@@ -4,12 +4,16 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
+	netPProf "net/http/pprof"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"slices"
+	"sync/atomic"
 	"syscall"
 	"time"
 
@@ -216,11 +220,84 @@ func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJso
 
 	mux.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServerFS(swagger.UI)))
 
+	mux.HandleFunc("/profile/start", StartProfile)
+	mux.HandleFunc("/profile/stop", StopProfile)
+
+	mux.HandleFunc("/debug/pprof/", netPProf.Index)
+	mux.HandleFunc("/debug/pprof/cmdline", netPProf.Cmdline)
+	mux.HandleFunc("/debug/pprof/profile", netPProf.Profile)
+	mux.HandleFunc("/debug/pprof/symbol", netPProf.Symbol)
+	mux.HandleFunc("/debug/pprof/trace", netPProf.Trace)
+
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
 		Handler: mux,
 	}
 	return httpServer
+}
+
+func configureWriteDeadline(w http.ResponseWriter, r *http.Request, seconds float64) {
+	srv, ok := r.Context().Value(http.ServerContextKey).(*http.Server)
+	if ok && srv.WriteTimeout > 0 {
+		timeout := srv.WriteTimeout + time.Duration(seconds*float64(time.Second))
+
+		rc := http.NewResponseController(w)
+		rc.SetWriteDeadline(time.Now().Add(timeout))
+	}
+}
+
+func serveError(w http.ResponseWriter, status int, txt string) {
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Go-Pprof", "1")
+	w.Header().Del("Content-Disposition")
+	w.WriteHeader(status)
+	fmt.Fprintln(w, txt)
+}
+
+var profFile = atomic.Pointer[os.File]{}
+
+// var b *bytes.Buffer
+
+func StartProfile(w http.ResponseWriter, r *http.Request) {
+	file, err := os.CreateTemp("", "*-profile.pprof")
+	if err != nil {
+		serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not create temporary file: %s", err))
+	} else if profFile.CompareAndSwap(nil, file) {
+		// b = &bytes.Buffer{}
+		if err := pprof.StartCPUProfile(file); err != nil {
+			serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not enable CPU profiling: %s", err))
+		} else {
+			w.WriteHeader(http.StatusCreated)
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func StopProfile(w http.ResponseWriter, r *http.Request) {
+	file := profFile.Load()
+	if file != nil && profFile.CompareAndSwap(file, nil) {
+		pprof.StopCPUProfile()
+		_, _ = file.Seek(int64(0), io.SeekStart)
+		bytes, err := io.ReadAll(file)
+		_ = file.Close()
+		// var err error
+		// bytes = b.Bytes()
+		if err != nil {
+			serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not read temporary file: %s", err))
+		} else {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", `attachment; filename="profile"`)
+			if _, err = w.Write(bytes); err != nil {
+				serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not write response: %s", err))
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func NewNetListener(grpcPort int) net.Listener {

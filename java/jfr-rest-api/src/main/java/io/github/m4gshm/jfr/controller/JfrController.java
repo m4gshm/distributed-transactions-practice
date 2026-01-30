@@ -18,7 +18,7 @@ import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/jfr")
+@RequestMapping("jfr")
 public class JfrController {
 
     private static final ResponseEntity<byte[]> NOT_FOUND = ResponseEntity.notFound().build();

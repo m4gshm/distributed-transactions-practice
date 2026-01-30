@@ -27,7 +27,7 @@ import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 @Slf4j
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1/asyncprof")
+@RequestMapping("asyncprof")
 public class AsyncProfController {
 
     private static final ResponseEntity<byte[]> NOT_FOUND = ResponseEntity.notFound().build();
