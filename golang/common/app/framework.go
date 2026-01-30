@@ -8,7 +8,6 @@ import (
 	"io/fs"
 	"net"
 	"net/http"
-	netPProf "net/http/pprof"
 	"os"
 	"os/signal"
 	"runtime/pprof"
@@ -223,27 +222,11 @@ func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJso
 	mux.HandleFunc("/profile/start", StartProfile)
 	mux.HandleFunc("/profile/stop", StopProfile)
 
-	mux.HandleFunc("/debug/pprof/", netPProf.Index)
-	mux.HandleFunc("/debug/pprof/cmdline", netPProf.Cmdline)
-	mux.HandleFunc("/debug/pprof/profile", netPProf.Profile)
-	mux.HandleFunc("/debug/pprof/symbol", netPProf.Symbol)
-	mux.HandleFunc("/debug/pprof/trace", netPProf.Trace)
-
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
 		Handler: mux,
 	}
 	return httpServer
-}
-
-func configureWriteDeadline(w http.ResponseWriter, r *http.Request, seconds float64) {
-	srv, ok := r.Context().Value(http.ServerContextKey).(*http.Server)
-	if ok && srv.WriteTimeout > 0 {
-		timeout := srv.WriteTimeout + time.Duration(seconds*float64(time.Second))
-
-		rc := http.NewResponseController(w)
-		rc.SetWriteDeadline(time.Now().Add(timeout))
-	}
 }
 
 func serveError(w http.ResponseWriter, status int, txt string) {
@@ -256,14 +239,11 @@ func serveError(w http.ResponseWriter, status int, txt string) {
 
 var profFile = atomic.Pointer[os.File]{}
 
-// var b *bytes.Buffer
-
 func StartProfile(w http.ResponseWriter, r *http.Request) {
 	file, err := os.CreateTemp("", "*-profile.pprof")
 	if err != nil {
 		serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not create temporary file: %s", err))
 	} else if profFile.CompareAndSwap(nil, file) {
-		// b = &bytes.Buffer{}
 		if err := pprof.StartCPUProfile(file); err != nil {
 			serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not enable CPU profiling: %s", err))
 		} else {
@@ -278,11 +258,9 @@ func StopProfile(w http.ResponseWriter, r *http.Request) {
 	file := profFile.Load()
 	if file != nil && profFile.CompareAndSwap(file, nil) {
 		pprof.StopCPUProfile()
-		_, _ = file.Seek(int64(0), io.SeekStart)
+		_, _ = file.Seek(0, io.SeekStart)
 		bytes, err := io.ReadAll(file)
 		_ = file.Close()
-		// var err error
-		// bytes = b.Bytes()
 		if err != nil {
 			serveError(w, http.StatusInternalServerError, fmt.Sprintf("Could not read temporary file: %s", err))
 		} else {
