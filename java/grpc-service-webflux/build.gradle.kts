@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     api(project(":grpc-service-common"))
+    compileOnly(project(":grpc-service-danielliu1123-extension"))
 
     implementation("org.slf4j:slf4j-api")
     implementation("io.grpc:grpc-stub")

@@ -19,11 +19,6 @@ dependencies {
     api(project(":reserve:reserve-storage-r2dbc"))
     api(project(":reserve:reserve-grpc-api"))
 
-//    api(project(":reactive-utils"))
-//    api(project(":jooq-reactive"))
-//    api(project(":reserve:reserve-storage-jooq"))
-//    api(project(":postgres-prepared-transaction"))
-
     implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
 }

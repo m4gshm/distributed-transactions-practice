@@ -6,15 +6,12 @@ apply(plugin = "io.spring.dependency-management")
 dependencies {
     api(project(":idempotent-consumer"))
     api(project(":storage-api-reactive"))
-//    api(project(":jooq-r2dbc"))
     api(project(":postgres-jdbc"))
 
     implementation("io.projectreactor:reactor-core")
 
     implementation("org.postgresql:postgresql")
-//    implementation("org.postgresql:r2dbc-postgresql")
 
-//    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 

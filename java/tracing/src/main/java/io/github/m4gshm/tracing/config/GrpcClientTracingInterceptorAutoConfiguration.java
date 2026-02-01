@@ -8,9 +8,11 @@ import io.opentelemetry.instrumentation.grpc.v1_6.GrpcTelemetry;
 import org.springframework.boot.autoconfigure.AutoConfiguration;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.boot.micrometer.observation.autoconfigure.ObservationAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
+@ConditionalOnProperty(value = "micrometer.grpc.enabled", havingValue = "true", matchIfMissing = true)
 @AutoConfiguration(after = { GrpcTelemetryAutoConfiguration.class, ObservationAutoConfiguration.class })
 public class GrpcClientTracingInterceptorAutoConfiguration {
 

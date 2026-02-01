@@ -378,8 +378,9 @@ func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest)
 	query := sqlc.New(s.db)
 
 	page := req.Page
-	params := sqlc.FindOrdersPagedParams{}
-	empty := params
+	params := sqlc.FindOrdersPagedParams{
+		Lim: pgtype.Int4{Int32: 100, Valid: true},
+	}
 
 	var orders []*orderspb.Order
 	if page != nil {
@@ -401,23 +402,13 @@ func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest)
 			}
 		}
 	}
-	if params != empty {
-		rows, err := query.FindOrdersPaged(ctx, params)
-		if err != nil {
-			return nil, err
-		}
-		orders = slice.Convert(rows, func(row sqlc.FindOrdersPagedRow) *orderspb.Order {
-			return toProtoOrder(row.Order, row.Delivery)
-		})
-	} else {
-		rows, err := query.FindAllOrders(ctx)
-		if err != nil {
-			return nil, err
-		}
-		orders = slice.Convert(rows, func(row sqlc.FindAllOrdersRow) *orderspb.Order {
-			return toProtoOrder(row.Order, row.Delivery)
-		})
+	rows, err := query.FindOrdersPaged(ctx, params)
+	if err != nil {
+		return nil, err
 	}
+	orders = slice.Convert(rows, func(row sqlc.FindOrdersPagedRow) *orderspb.Order {
+		return toProtoOrder(row.Order, row.Delivery)
+	})
 	return &orderspb.OrderListResponse{Orders: orders}, nil
 }
 

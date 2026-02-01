@@ -2,6 +2,10 @@ plugins {
     `java-library`
 }
 
+java {
+    targetCompatibility = JavaVersion.VERSION_24
+}
+
 dependencies {
     api(project(":jooq"))
     api(project(":storage-api-common"))

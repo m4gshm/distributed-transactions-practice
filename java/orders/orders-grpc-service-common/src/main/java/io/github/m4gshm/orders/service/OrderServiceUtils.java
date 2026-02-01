@@ -58,12 +58,14 @@ public class OrderServiceUtils {
                                              Payment.Status paymentStatus,
                                              List<Reserve.Item> items
     ) {
+        var createdAt = toTimestamp(order.createdAt());
+        var updatedAt = toTimestamp(order.updatedAt());
         var builder = OrderOuterClass.Order.newBuilder()
                 .setId(order.id())
-                .setCreatedAt(toTimestamp(order.createdAt()))
+                .mergeCreatedAt(createdAt)
                 .setCustomerId(order.customerId())
                 .addAllItems(items != null ? items : List.of())
-                .mergeUpdatedAt(toTimestamp(order.updatedAt()))
+                .mergeUpdatedAt(updatedAt)
                 .mergeDelivery(toDeliveryGrpc(order.delivery()));
 
         ofNullable(toOrderStatusGrpc(order.status())).ifPresent(builder::setStatus);

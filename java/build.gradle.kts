@@ -8,7 +8,6 @@ plugins {
     id("org.liquibase.gradle") version "3.0.2" apply false
     id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
     id("com.diffplug.spotless") version "7.2.1"
-//    id("com.bmuschko.docker-spring-boot-application") version "10.0.0" apply false
 }
 
 buildscript {
@@ -30,9 +29,12 @@ subprojects {
     apply(plugin = "java-library")
     apply(plugin = "checkstyle")
 
-
     the<CheckstyleExtension>().apply {
         toolVersion = "11.0.0"
+    }
+    the<JavaPluginExtension>().apply {
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
     }
 
     val isSyncService = project.path in setOf(
@@ -47,20 +49,8 @@ subprojects {
         ":reserve:reserve-grpc-service"
     )
 
-//    if (isReactiveService) {
-//        apply(plugin = "com.bmuschko.docker-spring-boot-application")
-//        fun DockerExtension.`springBootApplication`(configure: Action<DockerSpringBootApplication>): Unit =
-//            (this as ExtensionAware).extensions.configure("springBootApplication", configure)
-//        the<DockerExtension>().apply {
-//            springBootApplication {
-//                baseImage.set("eclipse-temurin:25.0.1_8-jre-ubi10-minimal")
-//                ports.set(listOf(8080))
-//                images.set(setOf("jvm-" + project.name + ":latest"))
-//            }
-//        }
-//    }
-
     dependencies {
+        fun api(notation: Any) = add("api", notation)
         fun implementation(notation: Any) = add("implementation", notation)
         fun runtimeOnly(notation: Any) = add("runtimeOnly", notation)
         fun testImplementation(notation: Any) = add("testImplementation", notation)
@@ -95,12 +85,18 @@ subprojects {
             implementation("io.micrometer:micrometer-registry-otlp")
             implementation("io.micrometer:micrometer-registry-prometheus")
 
-            implementation("io.github.danielliu1123:grpc-transcoding")
-            implementation("io.github.danielliu1123:grpc-server-boot-starter")
-            implementation("io.github.danielliu1123:grpc-starter-protovalidate")
-            implementation("io.github.danielliu1123:grpc-starter-transcoding")
-            implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
-            implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
+            if (project.path == ":orders:orders-grpc-service-sync") {
+                implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
+                api(project(":grpc-service-spring-extension"))
+            } else {
+                implementation("io.github.danielliu1123:grpc-transcoding")
+                implementation("io.github.danielliu1123:grpc-server-boot-starter")
+                implementation("io.github.danielliu1123:grpc-starter-protovalidate")
+                implementation("io.github.danielliu1123:grpc-starter-transcoding")
+                implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+                implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
+                api(project(":grpc-service-danielliu1123-extension"))
+            }
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
 
@@ -167,7 +163,6 @@ subprojects {
             dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.23.0-alpha")
             dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.23.0-alpha")
             dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.52.0-alpha")
-//            dependency("io.opentelemetry:opentelemetry-exporter-otlp:1.57.0")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 
@@ -207,8 +202,6 @@ subprojects {
             dependency("org.jooq:jooq-postgres-extensions:3.20.6")
 
             dependency("io.grpc:grpc-netty:$grpcVer")
-
-//            dependency("org.junit.jupiter:junit-jupiter:5.12.2")
         }
         the<SpotlessExtension>().apply {
             java {

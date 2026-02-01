@@ -12,8 +12,6 @@ dependencies {
     api(project(":jooq-r2dbc"))
     api(project(":postgres-prepared-transaction"))
 
-//    api("jakarta.validation:jakarta.validation-api")
-
     api("org.postgresql:r2dbc-postgresql")
 
     implementation("io.opentelemetry:opentelemetry-context")

@@ -31,7 +31,8 @@ dependencies {
 val dbSchema by project.extra { "public" }
 val dbUsername by project.extra { "postgres" }
 val dbPassword by project.extra { "postgres" }
-val dbUrl by project.extra { "jdbc:postgresql://localhost:5000/jvm_orders" }
+val dbAddress by project.extra { "localhost:5000" }
+val dbUrl by project.extra { "jdbc:postgresql://$dbAddress/jvm_orders" }
 
 jooq {
     configuration {

@@ -48,6 +48,8 @@ export default function() {
                     if (!vaild) {
                         console.log("invalid order id" + id)
                         break
+                    } else {
+                        // console.log("order: " + JSON.stringify(order))
                     }
                 }
             }

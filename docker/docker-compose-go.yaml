@@ -7,9 +7,13 @@ services:
     depends_on:
       - postgres
       - kafka-1
-    mem_limit: 128m
-    memswap_limit: 0m
-    mem_swappiness: 0
+    deploy: &defaultDeploy
+      resources:
+        limits:
+#          cpus: '4'
+          memory: 256m
+        reservations:
+          memory: 128m
     hostname: go-orders-grpc-service
     image: go-orders-grpc-service:latest
     ports:
@@ -29,9 +33,7 @@ services:
     depends_on:
       - postgres
       - kafka-1
-    mem_limit: 128m
-    memswap_limit: 0m
-    mem_swappiness: 0
+    deploy: *defaultDeploy
     hostname: go-payments-grpc-service
     image: go-payments-grpc-service:latest
     ports:
@@ -42,9 +44,7 @@ services:
     depends_on:
       - postgres
       - kafka-1      
-    mem_limit: 128m
-    memswap_limit: 0m
-    mem_swappiness: 0
+    deploy: *defaultDeploy
     hostname: go-reserve-grpc-service
     image: go-reserve-grpc-service:latest
     ports:

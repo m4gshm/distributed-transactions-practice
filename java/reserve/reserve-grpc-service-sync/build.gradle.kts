@@ -9,7 +9,6 @@ plugins {
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-//    api(project(":storage-api-reactive"))
     api(project(":grpc-service-common"))
     api(project(":protobuf-utils"))
     api(project(":reserve:reserve-grpc-service-common"))
@@ -21,12 +20,6 @@ dependencies {
 
     api(project(":tpc:tpc-grpc-service-sync"))
 
-//    api(project(":reactive-utils"))
-//    api(project(":jooq-reactive"))
-//    api(project(":reserve:reserve-storage-jooq"))
-//    api(project(":postgres-prepared-transaction"))
-
-//    implementation("io.projectreactor.kafka:reactor-kafka")
     implementation("org.springframework.kafka:spring-kafka")
 }
 

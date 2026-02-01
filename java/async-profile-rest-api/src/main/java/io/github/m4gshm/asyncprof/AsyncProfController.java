@@ -17,11 +17,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static io.github.m4gshm.asyncprof.AsyncProfController.Event.cpu;
 import static io.github.m4gshm.asyncprof.AsyncProfController.Format.flamegraph;
 import static java.io.File.createTempFile;
+import static java.lang.String.join;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;
 
 @Slf4j
@@ -69,19 +71,21 @@ public class AsyncProfController {
 
     @PostMapping
     @SneakyThrows
-    public void start(@RequestParam(name = "event", required = false) Event event,
+    public void start(@RequestParam(name = "event", required = false) List<Event> event,
                       @RequestParam(name = "format", required = false) Format format,
                       @RequestParam(name = "options", required = false) String options) {
-        var usedEvent = event != null ? event : cpu;
+        var usedEvents = event != null && !event.isEmpty() ? event : List.<Event>of();
         var usedFormat = format != null ? format : flamegraph;
         var file = createTempFile("asyncprof", usedFormat.name());
         if (profilerOut.compareAndSet(null, file)) {
             this.format = usedFormat;
             var command = "start," + usedFormat.name()
                     + ",event="
-                    + usedEvent
-                    +
-                    (options == null || options.isBlank() ? "" : "," + options);
+                    + usedEvents.stream()
+                            .map(Enum::name)
+                            .reduce((l, r) -> join(",", l, r))
+                            .orElse(cpu.name())
+                    + (options == null || options.isBlank() ? "" : "," + options);
             log.info("start profiling command {}", command);
             var execute = profiler.execute(command);
             log.info("start result {}", execute);
@@ -122,6 +126,7 @@ public class AsyncProfController {
     @RequiredArgsConstructor
     public enum Event {
             cpu,
+            wall,
             ctimer,
             ;
     }

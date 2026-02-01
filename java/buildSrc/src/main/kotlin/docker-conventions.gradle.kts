@@ -29,13 +29,25 @@ tasks.register<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_
     group = DockerRemoteApiPlugin.DEFAULT_TASK_GROUP
     mustRunAfter(DockerConventionJvmApplicationPlugin.SYNC_BUILD_CONTEXT_TASK_NAME)
 
-    from("eclipse-temurin:25.0.1_8-jre-ubi10-minimal")
+//    from("eclipse-temurin:25.0.1_8-jre-ubi10-minimal")
+        from("gcr.io/distroless/java25-debian13:latest")
+//    from("cgr.dev/chainguard/jre:latest")
+
     copyFile(Dockerfile.CopyFile("app.jar", "app.jar"))
-    copyFile(Dockerfile.CopyFile("entrypoint.sh", "/entrypoint.sh"))
-    runCommand("chmod +x /entrypoint.sh")
-    environmentVariable("METASPACE_SIZE_MB", "150")
-    entryPoint("/entrypoint.sh")
     copyFile(Dockerfile.CopyFile("async-profiler", "async-profiler"))
+    entryPoint(
+        "java",
+        "-XX:MaxRAMPercentage=75.0",
+        "-XX:+UseG1GC",
+        "-XX:+UseStringDeduplication",
+        "-XX:+ExitOnOutOfMemoryError",
+        "-jar", "/app.jar"
+    )
+
+//    copyFile(Dockerfile.CopyFile("entrypoint.sh", "/entrypoint.sh"))
+//    runCommand("chmod +x /entrypoint.sh")
+//    environmentVariable("METASPACE_SIZE_MB", "150")
+//    entryPoint("/entrypoint.sh")
 }
 
 tasks.register<DockerBuildImage>(DockerConventionJvmApplicationPlugin.BUILD_IMAGE_TASK_NAME) {

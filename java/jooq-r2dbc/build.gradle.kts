@@ -9,7 +9,6 @@ dependencies {
     implementation("org.slf4j:slf4j-api")
     implementation("org.jooq:jooq")
     implementation("io.projectreactor:reactor-core")
-//    implementation("org.springframework:spring-r2dbc")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
     implementation("org.springframework.boot:spring-boot-r2dbc")
     compileOnly("org.springframework.boot:spring-boot-jooq")

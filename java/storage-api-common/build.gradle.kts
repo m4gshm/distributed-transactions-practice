@@ -2,11 +2,11 @@ plugins {
     `java-library`
 }
 
-dependencies {
-//    api(project(":jooq"))
-//
-//    implementation("jakarta.validation:jakarta.validation-api")
+java {
+    targetCompatibility = JavaVersion.VERSION_24
+}
 
+dependencies {
     implementation("org.slf4j:slf4j-api")
     implementation("org.springframework:spring-web")
 }

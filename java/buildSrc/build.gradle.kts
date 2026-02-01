@@ -8,5 +8,5 @@ repositories {
 }
 
 dependencies {
-    implementation("com.bmuschko:gradle-docker-plugin:6.7.0")
+    implementation("com.bmuschko:gradle-docker-plugin:10.0.0")
 }

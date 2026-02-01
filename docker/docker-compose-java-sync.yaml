@@ -4,12 +4,13 @@ name: distributed-transactions-practice
 
 services:
   jvm-orders-grpc-service-sync:
-    depends_on:
-      - postgres  
+#    depends_on:
+#      - postgres
     deploy: &defaultDeploy
-      resources: 
+      resources:
         limits:
-          memory: 1024m
+#          cpus: '4'
+          memory: 2048m
         reservations:
           memory: 256m
     hostname: jvm-orders-grpc-service
@@ -20,6 +21,10 @@ services:
       - "5005:5005"
     environment:
       # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      SQLC_ENABLED: false
+      JDBC_DATASOURCE_PROXY_ENABLED: false
+      MICROMETER_GRPC_ENABLED: false
+#      GRPC_SERVER_EVENT_LOOP_GROUP_SIZE: 16
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
@@ -30,8 +35,8 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-orders
   jvm-payments-grpc-service-sync:
-    depends_on:
-      - postgres  
+#    depends_on:
+#      - postgres
     deploy: *defaultDeploy
     hostname: jvm-payments-grpc-service
     image: jvm-payments-grpc-service-sync:latest
@@ -47,8 +52,8 @@ services:
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-payments
   jvm-reserve-grpc-service-sync:
-    depends_on:
-      - postgres  
+#    depends_on:
+#      - postgres
     deploy: *defaultDeploy
     hostname: jvm-reserve-grpc-service
     image: jvm-reserve-grpc-service-sync:latest

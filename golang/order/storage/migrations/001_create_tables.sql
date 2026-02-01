@@ -49,7 +49,7 @@ CREATE TABLE
     reserve_transaction_id TEXT
   );
   
-CREATE INDEX orders_created_at_idx ON public.orders_created_at_i (created_at);
+CREATE INDEX orders_created_at_idx ON public.orders (created_at);
 
 CREATE TABLE
   IF NOT EXISTS item (

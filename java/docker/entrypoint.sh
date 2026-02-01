@@ -19,10 +19,9 @@ echo -Xmx${HEAP_SIZE_MB}M \
 java \
 -Xms${HEAP_SIZE_MB}M \
 -Xmx${HEAP_SIZE_MB}M \
--Xss1M \
 -XX:MaxMetaspaceSize=${METASPACE_SIZE_MB}M \
 -XX:CompressedClassSpaceSize=${COMPRESSED_CLASS_SPACE_SIZE_MB}M \
 -XX:ReservedCodeCacheSize=${RESERVED_CODE_CACHE_SIZE_MB}M \
 -XX:MaxDirectMemorySize=${DIRECT_MEMORY_SIZE_MB}M \
--XX:NativeMemoryTracking=summary \
+-XX:+UseStringDeduplication -XX:+ExitOnOutOfMemoryError \
 -jar -agentpath:/async-profiler/lib/libasyncProfiler.so app.jar

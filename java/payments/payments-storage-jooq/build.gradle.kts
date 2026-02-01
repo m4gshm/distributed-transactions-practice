@@ -14,10 +14,6 @@ sourceSets {
 }
 
 dependencies {
-
-//    api(project(":reactive-utils"))
-//    api(project(":storage-api-reactive"))
-
     api(project(":jooq"))
     api(project(":postgres-prepared-transaction"))
 
@@ -25,22 +21,19 @@ dependencies {
 
     implementation("org.liquibase:liquibase-core")
     implementation("org.postgresql:postgresql")
-//    implementation("org.postgresql:r2dbc-postgresql")
 
     liquibaseRuntime("org.liquibase:liquibase-core")
     liquibaseRuntime("info.picocli:picocli")
     liquibaseRuntime("org.postgresql:postgresql")
 
     jooqCodegen("org.postgresql:postgresql")
-
-//    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
-//    implementation("org.springframework.boot:spring-boot-starter-jooq")
 }
 
 val dbSchema by project.extra { "public" }
 val dbUsername by project.extra { "postgres" }
 val dbPassword by project.extra { "postgres" }
-val dbUrl by project.extra { "jdbc:postgresql://localhost:5000/jvm_payments" }
+val dbAddress by project.extra { "localhost:5000" }
+val dbUrl by project.extra { "jdbc:postgresql://$dbAddress/jvm_payments" }
 
 jooq {
     configuration {

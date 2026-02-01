@@ -69,7 +69,7 @@ tasks:
     desc: "Build services"
     cmds:
       - go vet ./...
-      - mkdir ./bin
+      - mkdir -p ./bin
       - go build -o ./bin ./...
 
   build-docker:
@@ -82,7 +82,12 @@ tasks:
       - docker-buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest --load ./docker
 
   run:
-    desc: "Run services"
+    cmds:
+      - task: run-windows
+      - task: run-unix
+  run-windows:
+    desc: "Run services (windows)"
+    platforms: [windows]
     cmds:
       - task: docker:run-commons-min
       - |
@@ -90,6 +95,17 @@ tasks:
         GOMEMLIMIT=64MiB GOGC=off ./orders.exe &
         GOMEMLIMIT=64MiB GOGC=off ./payments.exe &
         GOMEMLIMIT=64MiB GOGC=off ./reserve.exe &
+        wait
+  run-unix:
+    desc: "Run services (linux, darwin)"
+    platforms: ["linux", "darwin"]
+    cmds:
+      - task: docker:run-commons-min
+      - |
+        cd ./bin
+        GOMEMLIMIT=64MiB GOGC=off ./orders &
+        GOMEMLIMIT=64MiB GOGC=off ./payments &
+        GOMEMLIMIT=64MiB GOGC=off ./reserve &
         wait
 
   clean:
