@@ -42,9 +42,9 @@
 | GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
 | Docker container builder | Gradle plugin com.bmuschko.docker-java-application | native |
 | Kafka lib | Spring Kafka, reactor-kafka | franz-go |
-| Tracing (Otel) | opentelemetry-spring-boot-starter | ? |
-| Otel exporter | ? | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrp |
-| DB connection tracing | ? | ? |
+| Tracing (Otel) | micrometer | ? |
+| Otel exporter | spring-boot-micrometer-tracing-opentelemetry | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrp |
+| DB connection tracing | net.ttddyy.observation:datasource-micrometer | github.com/exaring/otelpgx |
 | GRPC connection tracing | ? | ? |
 | Prometheus http api provider | actuator | github.com/prometheus/client\_golang/prometheus/promhttp |
 | Prometheus DB connection collector | actuator | github.com/cmackenzie1/pgxpool-prometheus |

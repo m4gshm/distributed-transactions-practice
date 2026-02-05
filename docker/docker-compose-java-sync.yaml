@@ -20,11 +20,9 @@ services:
       - "9080:9080"
       - "5005:5005"
     environment:
-      # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
       SQLC_ENABLED: false
       JDBC_DATASOURCE_PROXY_ENABLED: false
       MICROMETER_GRPC_ENABLED: false
-#      GRPC_SERVER_EVENT_LOOP_GROUP_SIZE: 16
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders

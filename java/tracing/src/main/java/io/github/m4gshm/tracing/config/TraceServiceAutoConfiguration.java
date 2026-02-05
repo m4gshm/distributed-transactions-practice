@@ -11,7 +11,7 @@ import static io.micrometer.observation.ObservationRegistry.NOOP;
 @AutoConfiguration
 public class TraceServiceAutoConfiguration {
     @Bean
-    public TraceService traceService(/* Tracer otelTracer, */ ObjectProvider<ObservationRegistry> observationRegistry) {
-        return new TraceService(/* otelTracer, */ observationRegistry.getIfAvailable(() -> NOOP));
+    public TraceService traceService(ObjectProvider<ObservationRegistry> observationRegistry) {
+        return new TraceService(observationRegistry.getIfAvailable(() -> NOOP));
     }
 }
