@@ -85,10 +85,10 @@ subprojects {
             implementation("io.micrometer:micrometer-registry-otlp")
             implementation("io.micrometer:micrometer-registry-prometheus")
 
-            if (project.path == ":orders:orders-grpc-service-sync") {
-                implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
-                api(project(":grpc-service-spring-extension"))
-            } else {
+//            if (project.path == ":orders:orders-grpc-service-sync") {
+//                implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
+//                api(project(":grpc-service-spring-extension"))
+//            } else {
                 implementation("io.github.danielliu1123:grpc-transcoding")
                 implementation("io.github.danielliu1123:grpc-server-boot-starter")
                 implementation("io.github.danielliu1123:grpc-starter-protovalidate")
@@ -96,7 +96,7 @@ subprojects {
                 implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
                 implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
                 api(project(":grpc-service-danielliu1123-extension"))
-            }
+//            }
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
 

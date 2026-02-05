@@ -58,6 +58,9 @@ logging:
 server:
   port: 7080
 grpc:
+#  grpc:
+#    transcoding:
+#      endpoint: localhost:9080
   server:
     port: 9080
     channelz:
@@ -86,18 +89,18 @@ spring:
       include-binding-errors: always
       include-stacktrace: always
       include-message: always
-  grpc:
-    server:
-      port: 9080
-      exception-handling:
-        enabled: true
-      reflection:
-        enabled: true
-      ssl:
-        enabled: false
-      health:
-        actuator:
-          enabled: true
+#  grpc:
+#    server:
+#      port: 9080
+#      exception-handling:
+#        enabled: true
+#      reflection:
+#        enabled: true
+#      ssl:
+#        enabled: false
+#      health:
+#        actuator:
+#          enabled: true
   threads:
     virtual:
       enabled: true
