@@ -70,8 +70,8 @@ tasks.named("jooqCodegen") {
     dependsOn("liquibaseUpdate")
 }
 
-tasks.withType<JavaCompile> {
-    if (!project.hasProperty("no-codegen")) {
-        dependsOn(tasks.named("jooqCodegen"))
-    }
-}
+//tasks.withType<JavaCompile> {
+//    if (!project.hasProperty("no-codegen")) {
+//        dependsOn(tasks.named("jooqCodegen"))
+//    }
+//}

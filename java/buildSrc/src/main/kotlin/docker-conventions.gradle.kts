@@ -37,7 +37,7 @@ tasks.register<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_
     copyFile(Dockerfile.CopyFile("async-profiler", "async-profiler"))
     entryPoint(
         "java",
-        "-XX:MaxRAMPercentage=75.0",
+        "-XX:MaxRAMPercentage=70.0",
         "-XX:+UseG1GC",
         "-XX:+UseStringDeduplication",
         "-XX:+ExitOnOutOfMemoryError",

@@ -117,6 +117,7 @@ subprojects {
             implementation("org.springframework.boot:spring-boot-health")
             implementation("org.springframework.boot:spring-boot-jooq")
             implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
+            implementation("org.springframework.boot:spring-boot-starter-liquibase")
             implementation("org.springdoc:springdoc-openapi-starter-common")
         }
         if (isReactiveService) {

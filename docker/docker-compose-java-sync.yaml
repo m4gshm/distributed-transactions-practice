@@ -10,7 +10,7 @@ services:
       resources:
         limits:
 #          cpus: '4'
-          memory: 2048m
+          memory: 512m
         reservations:
           memory: 256m
     hostname: jvm-orders-grpc-service
