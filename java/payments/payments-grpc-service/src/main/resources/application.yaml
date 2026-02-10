@@ -123,7 +123,7 @@ management:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
-          transport: GRPC
+          transport: grpc
   logging:
     export:
       enabled: false

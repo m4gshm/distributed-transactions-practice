@@ -26,8 +26,6 @@ dependencies {
     api(project(":tpc:tpc-grpc-service-sync"))
     api(project(":idempotent-consumer-jdbc"))
 
-    implementation("io.grpc:grpc-netty")
-
     implementation("org.springframework.boot:spring-boot-kafka")
 
     implementation("org.mapstruct:mapstruct:1.6.3")

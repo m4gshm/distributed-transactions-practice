@@ -3,8 +3,9 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
-    implementation("io.grpc:grpc-netty")
     implementation("org.jooq:jooq")
 
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
+
+    compileOnly("io.grpc:grpc-netty")
 }

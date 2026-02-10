@@ -1,8 +1,6 @@
 package io.github.m4gshm.jooq;
 
 import io.github.m4gshm.tracing.TraceService;
-import io.opentelemetry.api.OpenTelemetry;
-import io.opentelemetry.api.trace.Tracer;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import org.jooq.DSLContext;
@@ -26,10 +24,6 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     TransactionalExecutor<TS> neverTransaction;
     private final TransactionalExecutor<TS> supportTransaction;
     TraceService traceService;
-
-    private static Tracer newTracer(OpenTelemetry openTelemetry) {
-        return openTelemetry.getTracer("jooq");
-    }
 
     protected AbstractReactiveJooqImpl(TransactionalExecutor<TS> required,
             TransactionalExecutor<TS> requiredNew,
@@ -141,7 +135,7 @@ public abstract class AbstractReactiveJooqImpl<TS extends TransactionExecution> 
     }
 
     public interface TransactionalExecutor<TS extends TransactionExecution> {
-        <T> Flux<T> execute(String name, TransactionalExecutor.TransactionCallback<T, TS> action);
+        <T> Flux<T> execute(String name, TransactionCallback<T, TS> action);
 
         interface TransactionCallback<T, TS extends TransactionExecution> extends Function<TS, Publisher<T>> {
             @Override

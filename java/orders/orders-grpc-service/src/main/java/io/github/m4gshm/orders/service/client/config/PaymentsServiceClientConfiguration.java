@@ -1,21 +1,21 @@
 package io.github.m4gshm.orders.service.client.config;
 
+import io.github.m4gshm.grpc.client.ChannelBuilderFactory;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
+import io.grpc.ManagedChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
-import reactor.netty.resources.LoopResources;
 import tpc.v1.TwoPhaseCommitServiceGrpc;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.reactive.client.NettyChannelBuilderUtils.newManagedChannelBuilder;
+import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
 import static payment.v1.PaymentServiceGrpc.newStub;
 
 @Configuration
@@ -23,12 +23,15 @@ import static payment.v1.PaymentServiceGrpc.newStub;
 @FieldDefaults(makeFinal = true)
 public class PaymentsServiceClientConfiguration {
     List<ClientInterceptor> clientInterceptors;
+    ChannelBuilderFactory<?> channelBuilderFactory;
+
+    private ManagedChannel newManagedChannel(ClientProperties clientProperties) {
+        return newManagedChannelBuilder(clientProperties, clientInterceptors, channelBuilderFactory).build();
+    }
 
     @Bean
-    public PaymentServiceStub paymentsClient(ObjectProvider<LoopResources> loopResources) {
-        return newStub(newManagedChannelBuilder(paymentsClientProperties(),
-                clientInterceptors,
-                loopResources).build());
+    public PaymentServiceStub paymentsClient() {
+        return newStub(newManagedChannel(paymentsClientProperties()));
     }
 
     @Bean
@@ -38,10 +41,8 @@ public class PaymentsServiceClientConfiguration {
     }
 
     @Bean
-    public TwoPhaseCommitServiceStub paymentsClientTcp(ObjectProvider<LoopResources> loopResources) {
-        return TwoPhaseCommitServiceGrpc.newStub(newManagedChannelBuilder(paymentsClientProperties(),
-                clientInterceptors,
-                loopResources).build());
+    public TwoPhaseCommitServiceStub paymentsClientTcp() {
+        return TwoPhaseCommitServiceGrpc.newStub(newManagedChannel(paymentsClientProperties()));
     }
 
 }

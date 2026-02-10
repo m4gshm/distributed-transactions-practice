@@ -1,10 +1,16 @@
 #!/bin/sh
 
-echo start
-curl -X POST http://localhost:7080/asyncprof?event=cpu\&format=flamegraph\&options=threads
+: "${USERS:=30}"
+: "${DURATION:=30}"
+: "${EVENT:=cpu}"
+: "${FORMAT:=flamegraph}"
+: "${OPTIONS:=threads}"
 
-k6 run --vus 30 --duration 30s list-orders.js
-# k6 run --vus 1 --duration 1s list-orders.js
+echo start
+
+curl -X POST http://localhost:7080/asyncprof?event="${EVENT}"\&format="${FORMAT}"\&options="${OPTIONS}"
+
+k6 run --vus "$USERS" --duration "${DURATION}"s list-orders.js
 
 echo finish
-curl -X PUT --output flamegraph-java.html http://localhost:7080/asyncprof
+curl -X PUT --output "${FORMAT}"-java.html http://localhost:7080/asyncprof

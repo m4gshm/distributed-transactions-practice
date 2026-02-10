@@ -20,10 +20,13 @@ services:
       - "5005:5005"
     environment:
       # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
-      SPRING_R2DBC_POOL_MAX_SIZE: 64
+      SPRING_R2DBC_POOL_MAX_SIZE: 128
       SERVICE_RESERVE_ADDRESS: jvm-reserve-grpc-service:9081
       SERVICE_WAREHOUSE_ADDRESS: jvm-reserve-grpc-service:9081
       SERVICE_PAYMENTS_ADDRESS: jvm-payments-grpc-service:9082
@@ -40,10 +43,13 @@ services:
       - "9082:9082"
     environment:
       # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
-      SPRING_R2DBC_POOL_MAX_SIZE: 64
+      SPRING_R2DBC_POOL_MAX_SIZE: 128
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-payments
   jvm-reserve-grpc-service:
@@ -57,9 +63,12 @@ services:
       - "9081:9081"
     environment:
       # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
       SPRING_R2DBC_URL: r2dbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
-      SPRING_R2DBC_POOL_MAX_SIZE: 64
+      SPRING_R2DBC_POOL_MAX_SIZE: 128
       SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
       OTEL_SERVICE_NAME: jvm-reserve

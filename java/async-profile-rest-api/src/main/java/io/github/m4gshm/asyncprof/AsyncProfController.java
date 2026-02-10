@@ -35,6 +35,7 @@ public class AsyncProfController {
     private static final ResponseEntity<byte[]> NOT_FOUND = ResponseEntity.notFound().build();
     private final AsyncProfiler profiler = getInstance();
     private final AtomicReference<File> profilerOut = new AtomicReference<>();
+    private volatile Integer amount;
     private volatile Format format;
 
     private static AsyncProfiler getInstance() {
@@ -73,13 +74,16 @@ public class AsyncProfController {
     @SneakyThrows
     public void start(@RequestParam(name = "event", required = false) List<Event> event,
                       @RequestParam(name = "format", required = false) Format format,
+                      @RequestParam(name = "amount", required = false) Integer amount,
                       @RequestParam(name = "options", required = false) String options) {
         var usedEvents = event != null && !event.isEmpty() ? event : List.<Event>of();
         var usedFormat = format != null ? format : flamegraph;
         var file = createTempFile("asyncprof", usedFormat.name());
         if (profilerOut.compareAndSet(null, file)) {
+            this.amount = amount;
             this.format = usedFormat;
             var command = "start," + usedFormat.name()
+                    + (amount != null ? amount.toString() : "")
                     + ",event="
                     + usedEvents.stream()
                             .map(Enum::name)
@@ -136,6 +140,7 @@ public class AsyncProfController {
             jfr("jfr"),
             flamegraph("html"),
             tree("html"),
+            flat("flat"),
             ;
 
         public final String fileExtension;

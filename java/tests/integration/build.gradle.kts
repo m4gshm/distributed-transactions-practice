@@ -14,7 +14,6 @@ testing {
                 implementation("org.junit.jupiter:junit-jupiter-engine")
                 runtimeOnly("org.junit.platform:junit-platform-launcher")
                 implementation("io.grpc:grpc-testing")
-                implementation("io.grpc:grpc-netty")
                 implementation("org.springframework.boot:spring-boot-starter-test")
                 implementation("com.google.protobuf:protobuf-java-util")
                 implementation("io.projectreactor.netty:reactor-netty-core")

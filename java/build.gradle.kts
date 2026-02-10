@@ -66,10 +66,14 @@ subprojects {
             implementation("org.aspectj:aspectjtools:1.9.25")
             runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
-//            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
-//            implementation("io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
-            runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
-            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+//            runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+//            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+//            runtimeOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+//            modules {
+//                module("io.opentelemetry:opentelemetry-exporter-sender-okhttp") {
+//                    replacedBy("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+//                }
+//            }
 
             implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
 
@@ -89,21 +93,24 @@ subprojects {
 //                implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
 //                api(project(":grpc-service-spring-extension"))
 //            } else {
-                implementation("io.github.danielliu1123:grpc-transcoding")
-                implementation("io.github.danielliu1123:grpc-server-boot-starter")
-                implementation("io.github.danielliu1123:grpc-starter-protovalidate")
-                implementation("io.github.danielliu1123:grpc-starter-transcoding")
-                implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
-                implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
-                api(project(":grpc-service-danielliu1123-extension"))
+            implementation("io.github.danielliu1123:grpc-transcoding")
+            implementation("io.github.danielliu1123:grpc-server-boot-starter")
+            implementation("io.github.danielliu1123:grpc-starter-protovalidate")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+            implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
+            api(project(":grpc-service-danielliu1123-extension"))
 //            }
 
             implementation("org.springframework.boot:spring-boot-autoconfigure")
 
             implementation("io.grpc:grpc-netty")
+            implementation("io.grpc:grpc-okhttp")
+
             modules {
                 module("io.grpc:grpc-netty-shaded") {
                     replacedBy("io.grpc:grpc-netty")
+                    replacedBy("io.grpc:grpc-okhttp")
                 }
             }
 

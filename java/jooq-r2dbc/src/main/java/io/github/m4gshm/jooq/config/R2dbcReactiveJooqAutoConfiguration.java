@@ -3,7 +3,6 @@ package io.github.m4gshm.jooq.config;
 import io.github.m4gshm.jooq.R2dbcReactiveJooqImpl;
 import io.github.m4gshm.jooq.ReactiveJooq;
 import io.github.m4gshm.tracing.TraceService;
-import io.opentelemetry.api.OpenTelemetry;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
@@ -15,7 +14,6 @@ import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.boot.r2dbc.autoconfigure.R2dbcAutoConfiguration;
 import org.springframework.boot.r2dbc.autoconfigure.R2dbcTransactionManagerAutoConfiguration;
 import org.springframework.context.annotation.Bean;
-import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.ReactiveTransactionManager;
 
 import static lombok.AccessLevel.PRIVATE;
@@ -33,17 +31,14 @@ public class R2dbcReactiveJooqAutoConfiguration {
     public ReactiveJooq reactiveJooq(ReactiveTransactionManager transactionManager,
                                      ConnectionFactory connectionFactory,
                                      Configuration configuration,
-                                     OpenTelemetry openTelemetry,
                                      TraceService traceService,
-                                     DSLContext dslContext,
-                                     DatabaseClient databaseClient) {
+                                     DSLContext dslContext) {
         return new R2dbcReactiveJooqImpl(transactionManager,
                 connectionFactory,
                 configuration,
-                openTelemetry,
                 traceService,
-                dslContext,
-                databaseClient);
+                dslContext
+        );
     }
 
 }

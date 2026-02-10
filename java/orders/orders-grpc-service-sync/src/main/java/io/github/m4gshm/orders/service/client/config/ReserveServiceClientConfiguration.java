@@ -1,7 +1,9 @@
 package io.github.m4gshm.orders.service.client.config;
 
+import io.github.m4gshm.grpc.client.ChannelBuilderFactory;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
+import io.grpc.ManagedChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
@@ -23,14 +25,15 @@ import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBui
 @FieldDefaults(makeFinal = true)
 public class ReserveServiceClientConfiguration {
     List<ClientInterceptor> clientInterceptors;
+    ChannelBuilderFactory<?> channelBuilderFactory;
+
+    private ManagedChannel newManagedChannel() {
+        return newManagedChannelBuilder(reserveClientProperties(), clientInterceptors, channelBuilderFactory).build();
+    }
 
     @Bean
     public ReserveServiceBlockingStub reserveClient() {
-        var nettyChannelBuilder = newManagedChannelBuilder(
-                reserveClientProperties(),
-                clientInterceptors
-        );
-        return ReserveServiceGrpc.newBlockingStub(nettyChannelBuilder.build());
+        return ReserveServiceGrpc.newBlockingStub(newManagedChannel());
     }
 
     @Bean
@@ -41,10 +44,7 @@ public class ReserveServiceClientConfiguration {
 
     @Bean
     public TwoPhaseCommitServiceBlockingStub reserveClientTcp() {
-        return TwoPhaseCommitServiceGrpc.newBlockingStub(newManagedChannelBuilder(
-                reserveClientProperties(),
-                clientInterceptors
-        ).build());
+        return TwoPhaseCommitServiceGrpc.newBlockingStub(newManagedChannel());
     }
 
 }

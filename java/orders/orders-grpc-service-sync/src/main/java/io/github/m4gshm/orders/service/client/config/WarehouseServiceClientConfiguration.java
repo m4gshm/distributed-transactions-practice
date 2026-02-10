@@ -1,5 +1,6 @@
 package io.github.m4gshm.orders.service.client.config;
 
+import io.github.m4gshm.grpc.client.ChannelBuilderFactory;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
 import lombok.RequiredArgsConstructor;
@@ -16,13 +17,14 @@ import static warehouse.v1.WarehouseItemServiceGrpc.newBlockingStub;
 @Configuration
 @RequiredArgsConstructor
 public class WarehouseServiceClientConfiguration {
+    private final List<ClientInterceptor> clientInterceptors;
+    private final ChannelBuilderFactory<?> channelBuilderFactory;
 
     @Bean
-    public WarehouseItemServiceBlockingStub warehouseClient(
-                                                            ClientProperties warehouseClientProperties,
-                                                            List<ClientInterceptor> clientInterceptors
-    ) {
-        return newBlockingStub(newManagedChannelBuilder(warehouseClientProperties, clientInterceptors).build());
+    public WarehouseItemServiceBlockingStub warehouseClient() {
+        return newBlockingStub(newManagedChannelBuilder(warehouseClientProperties(),
+                clientInterceptors,
+                channelBuilderFactory).build());
     }
 
     @Bean

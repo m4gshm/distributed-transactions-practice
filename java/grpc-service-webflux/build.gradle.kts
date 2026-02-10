@@ -8,7 +8,7 @@ dependencies {
 
     implementation("org.slf4j:slf4j-api")
     implementation("io.grpc:grpc-stub")
-    implementation("io.grpc:grpc-netty")
+    compileOnly("io.grpc:grpc-netty")
     implementation("io.projectreactor.netty:reactor-netty-core")
     implementation("io.projectreactor.netty:reactor-netty-http")
     implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")

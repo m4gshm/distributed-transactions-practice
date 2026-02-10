@@ -57,12 +57,12 @@ public class ReactiveOrderStorageR2dbc implements ReactiveOrderStorage {
     @Override
     public Mono<List<Order>> findAll(Page page, OrderStatus status) {
         return Mono.defer(() -> {
-            var num = page != null ? page.num() : null;
-            var hasNum = num != null;
-            if (hasNum && num < 0) {
+            var num = Page.getNum(page);
+            if (num < 0) {
                 throw new IllegalArgumentException("page.num cannot be less than 0");
             }
-            var size = page != null ? page.size() : 10;
+
+            var size = Page.getSize(page);
             if (size <= 0) {
                 throw new IllegalArgumentException("page.size must be more than 0");
             }

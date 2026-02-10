@@ -1,7 +1,6 @@
 package io.github.m4gshm.jooq;
 
 import io.github.m4gshm.tracing.TraceService;
-import io.opentelemetry.api.OpenTelemetry;
 import io.r2dbc.spi.Connection;
 import io.r2dbc.spi.ConnectionFactory;
 import lombok.experimental.FieldDefaults;
@@ -10,7 +9,6 @@ import org.jooq.Configuration;
 import org.jooq.DSLContext;
 import org.jooq.impl.DSL;
 import org.springframework.r2dbc.connection.ConnectionHolder;
-import org.springframework.r2dbc.core.DatabaseClient;
 import org.springframework.transaction.ReactiveTransaction;
 import org.springframework.transaction.ReactiveTransactionManager;
 import org.springframework.transaction.reactive.TransactionContext;
@@ -60,10 +58,8 @@ public class R2dbcReactiveJooqImpl extends AbstractReactiveJooqImpl<ReactiveTran
     public R2dbcReactiveJooqImpl(ReactiveTransactionManager transactionManager,
             ConnectionFactory connectionFactory,
             Configuration configuration,
-            OpenTelemetry openTelemetry,
             TraceService traceService,
-            DSLContext dslContext,
-            DatabaseClient databaseClient) {
+            DSLContext dslContext) {
         super(
                 newTransactionalExecutor(transactionManager, PROPAGATION_REQUIRED),
                 newTransactionalExecutor(transactionManager, PROPAGATION_REQUIRES_NEW),
@@ -79,8 +75,7 @@ public class R2dbcReactiveJooqImpl extends AbstractReactiveJooqImpl<ReactiveTran
     private Connection getConnection(ContextView context) {
         var transactionContext = context.get(TransactionContext.class);
         var connectionHolder = (ConnectionHolder) transactionContext.getResources().get(connectionFactory);
-        var connection = connectionHolder != null ? connectionHolder.getConnection() : null;
-        return connection;
+        return connectionHolder != null ? connectionHolder.getConnection() : null;
     }
 
     @Override

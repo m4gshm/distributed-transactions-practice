@@ -41,6 +41,8 @@ tasks.register<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_
         "-XX:+UseG1GC",
         "-XX:+UseStringDeduplication",
         "-XX:+ExitOnOutOfMemoryError",
+        "-XX:+UnlockDiagnosticVMOptions",
+//        "-XX:+DebugNonSafepoints",
         "-jar", "/app.jar"
     )
 

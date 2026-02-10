@@ -58,10 +58,15 @@ logging:
 server:
   port: 7080
 grpc:
+  client:
+    channel:
+      builder: okhttp
 #  grpc:
 #    transcoding:
 #      endpoint: localhost:9080
   server:
+    custom:
+      type: ${grpc.client.channel.builder}
     port: 9080
     channelz:
       enabled: true
@@ -152,6 +157,10 @@ service:
 #  create-partition-scheduler: '-'
 
 management:
+  defaults:
+    metrics:
+      export:
+        enabled: false
   endpoints:
     web:
       exposure:
@@ -161,7 +170,7 @@ management:
       export:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
-          transport: GRPC
+          transport: grpc
   logging:
     export:
       enabled: false
@@ -170,10 +179,6 @@ management:
       enabled: false
     sampling:
       probability: 1.0
-  otlp:
-    metrics:
-      export:
-        enabled: false
 otel:
   exporter:
     otlp:

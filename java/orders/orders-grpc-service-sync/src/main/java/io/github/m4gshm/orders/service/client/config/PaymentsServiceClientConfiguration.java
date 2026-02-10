@@ -1,7 +1,9 @@
 package io.github.m4gshm.orders.service.client.config;
 
+import io.github.m4gshm.grpc.client.ChannelBuilderFactory;
 import io.github.m4gshm.grpc.client.ClientProperties;
 import io.grpc.ClientInterceptor;
+import io.grpc.ManagedChannel;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import org.springframework.boot.context.properties.ConfigurationProperties;
@@ -21,12 +23,15 @@ import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBui
 @FieldDefaults(makeFinal = true)
 public class PaymentsServiceClientConfiguration {
     List<ClientInterceptor> clientInterceptors;
+    ChannelBuilderFactory<?> channelBuilderFactory;
+
+    private ManagedChannel newManagedChannel() {
+        return newManagedChannelBuilder(paymentsClientProperties(), clientInterceptors, channelBuilderFactory).build();
+    }
 
     @Bean
     public PaymentServiceBlockingStub paymentsClient() {
-        return PaymentServiceGrpc.newBlockingStub(newManagedChannelBuilder(
-                paymentsClientProperties(),
-                clientInterceptors).build());
+        return PaymentServiceGrpc.newBlockingStub(newManagedChannel());
     }
 
     @Bean
@@ -38,7 +43,6 @@ public class PaymentsServiceClientConfiguration {
     @Bean
     public TwoPhaseCommitServiceBlockingStub paymentsClientTcp() {
         return TwoPhaseCommitServiceGrpc.newBlockingStub(
-                newManagedChannelBuilder(paymentsClientProperties(), clientInterceptors).build());
+                newManagedChannel());
     }
-
 }

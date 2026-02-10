@@ -10,16 +10,17 @@ services:
     deploy: &defaultDeploy
       resources:
         limits:
-#          cpus: '4'
-          memory: 256m
-        reservations:
+          #          cpus: '4'
           memory: 128m
+        reservations:
+          memory: 64m
     hostname: go-orders-grpc-service
     image: go-orders-grpc-service:latest
     ports:
       - "8001:8001"
       - "9001:9001"
     environment: &defaultEnvs
+      OTEL_EXPORTER_ENABLED: ${TRACING_ENABLED:-false}
       OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
       GOGC: off
       GOMEMLIMIT: 64MiB
@@ -43,7 +44,7 @@ services:
   go-reserve-grpc-service:
     depends_on:
       - postgres
-      - kafka-1      
+      - kafka-1
     deploy: *defaultDeploy
     hostname: go-reserve-grpc-service
     image: go-reserve-grpc-service:latest

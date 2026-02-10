@@ -29,7 +29,6 @@ import reserve.v1.ReserveServiceGrpc;
 import reserve.v1.ReserveServiceOuterClass.ReserveCreateRequest;
 import reserve.v1.ReserveServiceOuterClass.ReserveGetRequest;
 import reserve.v1.ReserveServiceOuterClass.ReserveGetResponse;
-import tpc.v1.TpcService.TwoPhaseCommitResponse;
 import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceBlockingStub;
 
 import java.util.List;
@@ -120,14 +119,6 @@ public class OrderServiceImpl implements OrderService {
         );
     }
 
-    private TwoPhaseCommitResponse commit(
-                                          String operationName,
-                                          String transactionId,
-                                          TwoPhaseCommitServiceBlockingStub paymentsClientTcp
-    ) {
-        return paymentsClientTcp.commit(newCommitRequest(transactionId));
-    }
-
     private Order create(Order order, boolean twoPhaseCommit) {
         var orderId = order.id();
         var items = order.items();
@@ -199,8 +190,7 @@ public class OrderServiceImpl implements OrderService {
     private <T> void distributedCommit(
                                        String orderId,
                                        @NonNull String paymentTransactionId,
-                                       @NonNull String reserveTransactionId,
-                                       T result
+                                       @NonNull String reserveTransactionId
     ) {
         reserveClientTcp.commit(newCommitRequest(reserveTransactionId));
         paymentsClientTcp.commit(newCommitRequest(paymentTransactionId));
@@ -338,8 +328,7 @@ public class OrderServiceImpl implements OrderService {
                 distributedCommit(
                         orderId,
                         paymentTransactionId,
-                        reserveTransactionId,
-                        savedOrder
+                        reserveTransactionId
                 );
                 return savedOrder;
             } catch (Exception throwable) {
