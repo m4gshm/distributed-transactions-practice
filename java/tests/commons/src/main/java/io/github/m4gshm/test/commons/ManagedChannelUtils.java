@@ -8,14 +8,12 @@ import lombok.experimental.UtilityClass;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
-
 @UtilityClass
 public class ManagedChannelUtils {
     public static ManagedChannel newManagedChannel(
                                                    ClientProperties clientProperties,
                                                    List<ClientInterceptor> clientInterceptors
     ) {
-        return newManagedChannelBuilder(clientProperties, clientInterceptors, new NettyChannelBuilderFactory()).build();
+        return clientProperties.newManagedChannelBuilder(new NettyChannelBuilderFactory(), clientInterceptors).build();
     }
 }

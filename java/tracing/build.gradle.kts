@@ -18,4 +18,12 @@ dependencies {
     implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
     implementation("io.opentelemetry.contrib:opentelemetry-samplers")
     implementation("io.micrometer:micrometer-tracing")
+
+    compileOnly("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
+    compileOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+    compileOnly("io.opentelemetry:opentelemetry-exporter-common")
+    compileOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+    compileOnly("org.apache.tomcat.embed:tomcat-embed-core")
+    compileOnly("io.grpc:grpc-netty")
+    api(project(":grpc-client"))
 }

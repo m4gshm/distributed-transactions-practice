@@ -17,8 +17,6 @@ import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceBlockingStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
-
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
@@ -28,7 +26,7 @@ public class ReserveServiceClientConfiguration {
     ChannelBuilderFactory<?> channelBuilderFactory;
 
     private ManagedChannel newManagedChannel() {
-        return newManagedChannelBuilder(reserveClientProperties(), clientInterceptors, channelBuilderFactory).build();
+        return reserveClientProperties().newManagedChannelBuilder(channelBuilderFactory, clientInterceptors).build();
     }
 
     @Bean

@@ -11,7 +11,6 @@ import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceBlockingStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
 import static warehouse.v1.WarehouseItemServiceGrpc.newBlockingStub;
 
 @Configuration
@@ -22,9 +21,8 @@ public class WarehouseServiceClientConfiguration {
 
     @Bean
     public WarehouseItemServiceBlockingStub warehouseClient() {
-        return newBlockingStub(newManagedChannelBuilder(warehouseClientProperties(),
-                clientInterceptors,
-                channelBuilderFactory).build());
+        return newBlockingStub(warehouseClientProperties().newManagedChannelBuilder(channelBuilderFactory,
+                clientInterceptors).build());
     }
 
     @Bean

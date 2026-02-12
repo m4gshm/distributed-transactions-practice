@@ -38,7 +38,7 @@ export default function() {
             const orders = r.message.orders
 
             const length = orders.length
-            let vaild = length >= 0
+            let vaild = length == 100
             if (!vaild) {
                 console.log("invalid orders length:" + length)
             } else {

@@ -11,7 +11,6 @@ import warehouse.v1.WarehouseItemServiceGrpc.WarehouseItemServiceStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
 import static warehouse.v1.WarehouseItemServiceGrpc.newStub;
 
 @Configuration
@@ -22,9 +21,8 @@ public class WarehouseServiceClientConfiguration {
 
     @Bean
     public WarehouseItemServiceStub warehouseClient() {
-        return newStub(newManagedChannelBuilder(warehouseClientProperties(),
-                clientInterceptors,
-                channelBuilderFactory
+        return newStub(warehouseClientProperties().newManagedChannelBuilder(channelBuilderFactory,
+                clientInterceptors
         ).build());
     }
 

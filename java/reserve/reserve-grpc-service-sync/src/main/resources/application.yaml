@@ -43,9 +43,10 @@ server:
   error:
     include-message: always
 grpc:
+  engine: okhttp #netty 
   client:
     channel:
-      builder: okhttp
+      builder: ${grpc.engine}
   server:
     custom:
       type: ${grpc.client.channel.builder}

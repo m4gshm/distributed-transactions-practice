@@ -58,9 +58,10 @@ logging:
 server:
   port: 7080
 grpc:
+  engine: okhttp #netty 
   client:
     channel:
-      builder: okhttp
+      builder: ${grpc.engine}
 #  grpc:
 #    transcoding:
 #      endpoint: localhost:9080
@@ -171,6 +172,8 @@ management:
         otlp:
           endpoint: ${otel.exporter.otlp.endpoint}
           transport: grpc
+          grpc:
+            engine: upstream
   logging:
     export:
       enabled: false

@@ -15,7 +15,6 @@ import tpc.v1.TwoPhaseCommitServiceGrpc.TwoPhaseCommitServiceStub;
 
 import java.util.List;
 
-import static io.github.m4gshm.grpc.client.ClientProperties.newManagedChannelBuilder;
 import static payment.v1.PaymentServiceGrpc.newStub;
 
 @Configuration
@@ -26,7 +25,7 @@ public class PaymentsServiceClientConfiguration {
     ChannelBuilderFactory<?> channelBuilderFactory;
 
     private ManagedChannel newManagedChannel(ClientProperties clientProperties) {
-        return newManagedChannelBuilder(clientProperties, clientInterceptors, channelBuilderFactory).build();
+        return clientProperties.newManagedChannelBuilder(channelBuilderFactory, clientInterceptors).build();
     }
 
     @Bean

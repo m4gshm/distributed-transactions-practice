@@ -67,7 +67,8 @@ subprojects {
             runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
 //            runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
-//            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
 //            runtimeOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
 //            modules {
 //                module("io.opentelemetry:opentelemetry-exporter-sender-okhttp") {
