@@ -2,6 +2,7 @@ package io.github.m4gshm.grpc.client;
 
 import io.grpc.ManagedChannelBuilder;
 import io.grpc.netty.NettyChannelBuilder;
+import io.grpc.okhttp.OkHttpChannelBuilder;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import lombok.SneakyThrows;
 import lombok.experimental.UtilityClass;
@@ -39,8 +40,9 @@ public class ManagedChanelBuilderUtils {
     }
 
     public static void useVirtualThreads(ManagedChannelBuilder<?> builder, String suffix) {
-        builder.offloadExecutor(new VirtualThreadTaskExecutor("grpc-vt-offload-" + suffix));
-        builder.executor(new VirtualThreadTaskExecutor("grpc-vt-exc" + suffix));
+        var virtualThreadTaskExecutor = new VirtualThreadTaskExecutor("grpc-vt-" + suffix);
+        builder.offloadExecutor(virtualThreadTaskExecutor);
+        builder.executor(virtualThreadTaskExecutor);
 
         if (builder instanceof NettyChannelBuilder nettyChannelBuilder) {
             var epollAvailable = isEpollAvailable();
@@ -48,6 +50,8 @@ public class ManagedChanelBuilderUtils {
                     availableProcessors(),
                     epollAvailable))
                     .channelType(epollAvailable ? getEpollSocketChannelClass() : NioSocketChannel.class);
+        } else if (builder instanceof OkHttpChannelBuilder okHttpChannelBuilder) {
+            okHttpChannelBuilder.transportExecutor(virtualThreadTaskExecutor);
         }
     }
 }

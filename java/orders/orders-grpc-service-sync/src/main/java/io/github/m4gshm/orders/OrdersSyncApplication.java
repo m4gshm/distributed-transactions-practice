@@ -12,6 +12,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 })
 public class OrdersSyncApplication {
     public static void main(String[] args) {
+        System.setProperty("jdk.pollerMode", "VTHREAD_POLLERS");
         SpringApplication.run(OrdersSyncApplication.class, args);
     }
 }

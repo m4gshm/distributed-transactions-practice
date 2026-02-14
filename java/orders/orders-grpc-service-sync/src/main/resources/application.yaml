@@ -58,7 +58,7 @@ logging:
 server:
   port: 7080
 grpc:
-  engine: okhttp #netty 
+  engine: okhttp #netty
   client:
     channel:
       builder: ${grpc.engine}
@@ -66,6 +66,8 @@ grpc:
 #    transcoding:
 #      endpoint: localhost:9080
   server:
+    executor-type: virtual_thread
+    event-loop-group-size: 1
     custom:
       type: ${grpc.client.channel.builder}
     port: 9080

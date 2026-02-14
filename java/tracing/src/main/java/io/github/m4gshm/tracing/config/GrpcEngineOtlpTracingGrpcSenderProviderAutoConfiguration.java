@@ -20,6 +20,7 @@ import org.springframework.context.annotation.Bean;
 import static io.github.m4gshm.grpc.client.ExecutorType.VIRTUAL_THREAD;
 import static io.github.m4gshm.grpc.client.ManagedChanelBuilderUtils.newManagedChannelBuilder;
 import static io.opentelemetry.exporter.internal.ExporterBuilderUtil.validateEndpoint;
+import static java.util.concurrent.TimeUnit.MINUTES;
 
 @ConditionalOnClass({
         GrpcSenderProvider.class,
@@ -33,27 +34,32 @@ public class GrpcEngineOtlpTracingGrpcSenderProviderAutoConfiguration {
 
     @Bean
     @ConditionalOnProperty(value = "management.opentelemetry.tracing.export.otlp.grpc.engine",
-            havingValue = "upstream", matchIfMissing = true)
+            havingValue = "upstream",
+            matchIfMissing = true)
     @ConditionalOnClass({OtlpTracingConnectionDetails.class, UpstreamGrpcSenderProvider.class})
     @ConditionalOnBean(ChannelBuilderFactory.class)
-    public OtlpGrpcSpanExporterBuilderCustomizer otlpGrpcSpanExporterBuilderCustomizerUpstreamGrpcSenderProvider(
-            OtlpTracingConnectionDetails connectionDetails,
-            ChannelBuilderFactory<?> channelBuilderFactory,
-            @Value("${management.opentelemetry.tracing.export.otlp.grpc.executor-type:VIRTUAL_THREAD}")
-            ExecutorType executorType
+    public OtlpGrpcSpanExporterBuilderCustomizer
+    otlpGrpcSpanExporterBuilderCustomizerUpstreamGrpcSenderProvider(
+            OtlpTracingConnectionDetails connectionDetails, ChannelBuilderFactory<?> channelBuilderFactory,
+            @Value("${management.opentelemetry.tracing.export.otlp.grpc.executor-type:VIRTUAL_THREAD}") ExecutorType executorType
     ) {
         return builder -> {
-            System.getProperties().put(
-                    "io.opentelemetry.exporter.internal.grpc.GrpcSenderProvider",
-                    UpstreamGrpcSenderProvider.class.getName()
-            );
+            System.getProperties()
+                    .put(
+                            "io.opentelemetry.exporter.internal.grpc.GrpcSenderProvider",
+                            UpstreamGrpcSenderProvider.class.getName()
+                    );
 
             var uri = validateEndpoint(connectionDetails.getUrl(Transport.GRPC));
             var address = uri.getHost() + ":" + uri.getPort();
             var channelBuilder = newManagedChannelBuilder(channelBuilderFactory,
-                    address, executorType != null ? executorType : VIRTUAL_THREAD);
+                    address,
+                    executorType != null ? executorType : VIRTUAL_THREAD);
 
-            builder.setChannel(channelBuilder.build());
+            builder.setChannel(channelBuilder
+                    .usePlaintext()
+                    .keepAliveTime(30, MINUTES)
+                    .build());
         };
     }
 

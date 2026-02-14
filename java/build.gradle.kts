@@ -155,11 +155,11 @@ subprojects {
 
     the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("io.opentelemetry:opentelemetry-bom:1.57.0")
+            mavenBom("io.opentelemetry:opentelemetry-bom:1.59.0")
+//            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.25.0")
             mavenBom("io.github.danielliu1123:grpc-starter-dependencies:4.0.0")
             mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
             mavenBom("org.springframework.grpc:spring-grpc-dependencies:1.0.0")
-            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.23.0")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
         }
 
@@ -169,9 +169,9 @@ subprojects {
 
             dependency("org.projectlombok:lombok:1.18.42")
 
-            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.23.0-alpha")
-            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.23.0-alpha")
-            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.52.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.25.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.25.0-alpha")
+            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.53.0-alpha")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 
@@ -217,23 +217,22 @@ subprojects {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
                 endWithNewline()
-
                 cleanthat()
                     .version("2.23")
-                    .sourceCompatibility("24")
+                    .sourceCompatibility("25")
                     .addMutator("SafeAndConsensual")
                     .addMutator("SafeButNotConsensual")
                     .addMutator("SafeButControversial")
                     .excludeMutator("AvoidInlineConditionals")
                     .includeDraft(false)
 
-                eclipse()
-                    .sortMembersEnabled(true)
-                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
-//                    .sortMembersDoNotSortFields(false)
-//                    .sortMembersVisibilityOrderEnabled(true)
-//                    .sortMembersVisibilityOrder("B,R,D,V")
-                    .configFile("$rootDir/config/codestyle.xml")
+//                eclipse()
+//                    .sortMembersEnabled(true)
+//                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
+////                    .sortMembersDoNotSortFields(false)
+////                    .sortMembersVisibilityOrderEnabled(true)
+////                    .sortMembersVisibilityOrder("B,R,D,V")
+////                    .configFile("$rootDir/config/codestyle.xml")
             }
         }
     }
