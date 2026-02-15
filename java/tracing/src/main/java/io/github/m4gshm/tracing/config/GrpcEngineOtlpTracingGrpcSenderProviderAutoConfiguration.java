@@ -55,11 +55,11 @@ public class GrpcEngineOtlpTracingGrpcSenderProviderAutoConfiguration {
             var channelBuilder = newManagedChannelBuilder(channelBuilderFactory,
                     address,
                     executorType != null ? executorType : VIRTUAL_THREAD);
-
-            builder.setChannel(channelBuilder
-                    .usePlaintext()
-                    .keepAliveTime(30, MINUTES)
-                    .build());
+            var isPlainHttp = "http".equals(uri.getScheme());
+            if (isPlainHttp) {
+                channelBuilder.usePlaintext();
+            }
+            builder.setChannel(channelBuilder.keepAliveTime(30, MINUTES).build());
         };
     }
 

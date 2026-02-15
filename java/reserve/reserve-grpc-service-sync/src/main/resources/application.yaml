@@ -49,7 +49,7 @@ grpc:
       builder: ${grpc.engine}
   server:
     executor-type: virtual_thread
-    event-loop-group-size: 1
+#    event-loop-group-size: 1
     custom:
       type: ${grpc.client.channel.builder}
     port: 9081

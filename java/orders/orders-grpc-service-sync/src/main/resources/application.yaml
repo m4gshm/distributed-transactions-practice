@@ -67,7 +67,7 @@ grpc:
 #      endpoint: localhost:9080
   server:
     executor-type: virtual_thread
-    event-loop-group-size: 1
+#    event-loop-group-size: 1
     custom:
       type: ${grpc.client.channel.builder}
     port: 9080

@@ -9,7 +9,7 @@ services:
     deploy: &defaultDeploy
       resources:
         limits:
-          memory: 512m
+          memory: 1024m
         reservations:
           memory: 256m
     hostname: jvm-orders-grpc-service
@@ -20,6 +20,7 @@ services:
       - "5005:5005"
     environment:
       SQLC_ENABLED: false
+      VT_DELTA: ${VT_DELTA:-}
       GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-netty}
       JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
       MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
@@ -42,6 +43,7 @@ services:
       - "7082:7082"
       - "9082:9082"
     environment:
+      VT_DELTA: ${VT_DELTA:-}
       GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-netty}
       JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
       MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
@@ -60,6 +62,7 @@ services:
       - "7081:7081"
       - "9081:9081"
     environment:
+      VT_DELTA: ${VT_DELTA:-}
       GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-netty}
       JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
       MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}

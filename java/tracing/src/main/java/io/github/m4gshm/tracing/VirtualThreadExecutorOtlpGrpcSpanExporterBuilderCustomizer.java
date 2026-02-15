@@ -8,6 +8,6 @@ public class VirtualThreadExecutorOtlpGrpcSpanExporterBuilderCustomizer implemen
         OtlpGrpcSpanExporterBuilderCustomizer {
     @Override
     public void customize(OtlpGrpcSpanExporterBuilder builder) {
-        builder.setExecutorService(new VirtualThreadExecutor("otlp-grpc-export"));
+        builder.setExecutorService(new VirtualThreadExecutor("otlp-export"));
     }
 }
