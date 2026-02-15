@@ -3,6 +3,7 @@ package io.github.m4gshm.config;
 import io.github.m4gshm.GrpcServerProperties;
 import io.grpc.ServerBuilder;
 import io.grpc.netty.NettyServerBuilder;
+import io.grpc.okhttp.OkHttpServerBuilder;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.util.NettyRuntime;
 import lombok.SneakyThrows;
@@ -31,32 +32,34 @@ public class GrpcServerCustomizerAutoConfiguration {
 
     @Bean
     @SneakyThrows
-    <T extends ServerBuilder<T>> ServerBuilderCustomizer<T> grpcServerCustomizerExecutor(
-                                                                                         GrpcServerProperties grpcServerProperties) {
+    <T extends ServerBuilder<T>> ServerBuilderCustomizer<T> grpcServerCustomizerExecutor(GrpcServerProperties grpcServerProperties) {
         var virtualThreadFactory = newVirtualThreadFactory("grpc-vt-srv");
         return serverBuilder -> {
+            var executor = newThreadPerTaskExecutor(virtualThreadFactory);
             var executorType = grpcServerProperties.executorType();
             if (executorType != null) {
                 switch (executorType) {
                     case DIRECT -> serverBuilder.directExecutor();
-                    case VIRTUAL_THREAD -> serverBuilder.executor(newThreadPerTaskExecutor(virtualThreadFactory));
+                    case VIRTUAL_THREAD -> serverBuilder.executor(executor);
                 }
             }
-            if (grpcServerProperties.eventLoopGroupUseVirtualThread()
-                    && serverBuilder instanceof NettyServerBuilder nettyServerBuilder) {
-                var epollAvailable = isEpollAvailable() && !grpcServerProperties.eventLoopGroupForceNio();
-                var eventLoopGroupSize = grpcServerProperties.eventLoopGroupSize();
-                var eventLoops = eventLoopGroupSize > 0
-                        ? eventLoopGroupSize
-                        : NettyRuntime.availableProcessors();
-                var eventLoopGroup = newEventLoopGroup(virtualThreadFactory, eventLoops, epollAvailable);
-                nettyServerBuilder
-                        .workerEventLoopGroup(eventLoopGroup)
-                        .bossEventLoopGroup(eventLoopGroup)
-                        .channelType(epollAvailable ? getEpollServerSocketChannelClass()
-                                : NioServerSocketChannel.class);
+            if (grpcServerProperties.eventLoopGroupUseVirtualThread()) {
+                if (serverBuilder instanceof NettyServerBuilder nettyServerBuilder) {
+                    var epollAvailable = isEpollAvailable() && !grpcServerProperties.eventLoopGroupForceNio();
+                    var eventLoopGroupSize = grpcServerProperties.eventLoopGroupSize();
+                    var eventLoops = eventLoopGroupSize > 0
+                            ? eventLoopGroupSize
+                            : NettyRuntime.availableProcessors();
+                    var eventLoopGroup = newEventLoopGroup(virtualThreadFactory, eventLoops, epollAvailable);
+                    nettyServerBuilder
+                            .workerEventLoopGroup(eventLoopGroup)
+                            .bossEventLoopGroup(eventLoopGroup)
+                            .channelType(epollAvailable ? getEpollServerSocketChannelClass()
+                                    : NioServerSocketChannel.class);
+                } else if (serverBuilder instanceof OkHttpServerBuilder okHttpServerBuilder) {
+                    okHttpServerBuilder.transportExecutor(executor);
+                }
             }
-
             secondsOf(grpcServerProperties.keepAliveTime()).ifPresent(s -> serverBuilder.keepAliveTime(s, SECONDS));
             secondsOf(grpcServerProperties.keepAliveTimeout()).ifPresent(s -> serverBuilder.keepAliveTimeout(s,
                     SECONDS));

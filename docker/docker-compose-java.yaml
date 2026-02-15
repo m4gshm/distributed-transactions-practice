@@ -17,7 +17,7 @@ services:
     ports:
       - "7080:7080"
       - "9080:9080"
-      - "5005:5005"
+      # - "5005:5005"
     environment:
       # LOGGING_LEVEL_IO_R2DBC_POSTGRESQL_QUERY: TRACE
       JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}

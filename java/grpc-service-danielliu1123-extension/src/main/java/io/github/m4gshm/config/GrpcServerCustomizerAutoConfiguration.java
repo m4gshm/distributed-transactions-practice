@@ -35,7 +35,6 @@ public class GrpcServerCustomizerAutoConfiguration {
         var virtualThreadFactory = newVirtualThreadFactory("grpc-vt-srv");
         return serverBuilder -> {
             var executor = newThreadPerTaskExecutor(virtualThreadFactory);
-
             var executorType = grpcServerProperties.executorType();
             if (executorType != null) {
                 switch (executorType) {
@@ -43,8 +42,7 @@ public class GrpcServerCustomizerAutoConfiguration {
                     case VIRTUAL_THREAD -> serverBuilder.executor(executor);
                 }
             }
-            var eventLoopGroupUseVirtualThread = grpcServerProperties.eventLoopGroupUseVirtualThread();
-            if (eventLoopGroupUseVirtualThread) {
+            if (grpcServerProperties.eventLoopGroupUseVirtualThread()) {
                 if (serverBuilder instanceof NettyServerBuilder nettyServerBuilder) {
                     var epollAvailable = isEpollAvailable() && !grpcServerProperties.eventLoopGroupForceNio();
                     var eventLoopGroupSize = grpcServerProperties.eventLoopGroupSize();
@@ -57,8 +55,7 @@ public class GrpcServerCustomizerAutoConfiguration {
                             .bossEventLoopGroup(eventLoopGroup)
                             .channelType(epollAvailable ? getEpollServerSocketChannelClass()
                                     : NioServerSocketChannel.class);
-                }
-                if (serverBuilder instanceof OkHttpServerBuilder okHttpServerBuilder) {
+                } else if (serverBuilder instanceof OkHttpServerBuilder okHttpServerBuilder) {
                     okHttpServerBuilder.transportExecutor(executor);
                 }
             }

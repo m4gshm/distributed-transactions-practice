@@ -4,6 +4,7 @@ import io.github.m4gshm.payments.data.PaymentStorage;
 import io.github.m4gshm.payments.data.PaymentStorageUtils;
 import io.github.m4gshm.payments.data.model.Payment;
 import io.github.m4gshm.storage.UpdateUtils;
+import io.micrometer.observation.annotation.Observed;
 import jakarta.validation.Valid;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -21,6 +22,7 @@ import static lombok.AccessLevel.PRIVATE;
 
 @Slf4j
 @Validated
+@Observed
 @RequiredArgsConstructor
 @FieldDefaults(makeFinal = true, level = PRIVATE)
 public class PaymentStorageImpl implements PaymentStorage {

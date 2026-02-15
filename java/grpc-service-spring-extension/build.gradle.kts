@@ -8,4 +8,5 @@ dependencies {
     implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
 
     compileOnly("io.grpc:grpc-netty")
+    compileOnly("io.grpc:grpc-okhttp")
 }

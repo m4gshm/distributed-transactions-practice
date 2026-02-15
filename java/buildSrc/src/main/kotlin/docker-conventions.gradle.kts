@@ -33,16 +33,16 @@ tasks.register<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_
         from("gcr.io/distroless/java25-debian13:latest")
 //    from("cgr.dev/chainguard/jre:latest")
 
-    copyFile(Dockerfile.CopyFile("app.jar", "app.jar"))
+    copyFile(Dockerfile.CopyFile("app.jar", "/app.jar"))
     copyFile(Dockerfile.CopyFile("async-profiler", "async-profiler"))
     entryPoint(
         "java",
-        "-XX:MaxRAMPercentage=70.0",
+        "-XX:MaxRAMPercentage=75.0",
         "-XX:+UseG1GC",
         "-XX:+UseStringDeduplication",
         "-XX:+ExitOnOutOfMemoryError",
         "-XX:+UnlockDiagnosticVMOptions",
-//        "-XX:+DebugNonSafepoints",
+        "-XX:+DebugNonSafepoints",
         "-jar", "/app.jar"
     )
 

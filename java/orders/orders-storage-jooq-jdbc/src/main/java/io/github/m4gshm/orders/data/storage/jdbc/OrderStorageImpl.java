@@ -43,19 +43,16 @@ public class OrderStorageImpl implements OrderStorage {
     private final Class<Order> entityClass = Order.class;
     DSLContext dsl;
 
-    @Observed
     @Override
     public List<Order> findAll() {
         return findAll(null);
     }
 
-    @Observed
     @Override
     public List<Order> findAll(Page page) {
         return findAll(page, null);
     }
 
-    @Observed
     @Override
     public List<Order> findAll(Page page, OrderStatus status) {
         var num = getNum(page);
@@ -65,7 +62,6 @@ public class OrderStorageImpl implements OrderStorage {
         return records.stream().map(record -> toOrder(record, record, List.of())).toList();
     }
 
-    @Observed
     @Override
     public List<Order> findByClientIdAndStatuses(String clientId, Collection<OrderStatus> statuses) {
         var selectOrder = selectOrdersJoinDeliveryByCustomerIdAndStatusIn(dsl, clientId, statuses);
@@ -82,7 +78,6 @@ public class OrderStorageImpl implements OrderStorage {
         }).toList();
     }
 
-    @Observed
     @Override
     public Order findById(String id) {
         var selectOrder = selectOrdersJoinDeliveryById(dsl, id);
@@ -92,7 +87,6 @@ public class OrderStorageImpl implements OrderStorage {
         return order != null ? toOrder(order, order, items) : null;
     }
 
-    @Observed
     @Override
     @Transactional
     public Order save(Order order) {
@@ -102,7 +96,6 @@ public class OrderStorageImpl implements OrderStorage {
         return order;
     }
 
-    @Observed
     @Override
     @Transactional
     public Order saveOrderOnly(Order order) {

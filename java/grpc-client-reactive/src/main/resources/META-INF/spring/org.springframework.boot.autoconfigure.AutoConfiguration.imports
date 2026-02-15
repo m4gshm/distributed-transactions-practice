@@ -1,1 +1,1 @@
-io.github.m4gshm.grpc.client.config.ReactiveNettyChannelBuilderFactoryAutoConfiguration
+io.github.m4gshm.grpc.reactive.client.config.ReactiveNettyChannelBuilderFactoryAutoConfiguration
