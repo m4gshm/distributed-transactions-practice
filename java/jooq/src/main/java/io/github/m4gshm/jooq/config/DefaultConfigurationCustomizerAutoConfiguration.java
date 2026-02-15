@@ -21,8 +21,13 @@ public class DefaultConfigurationCustomizerAutoConfiguration {
     public Settings settings() {
         return new Settings()
                 .withCacheParsingConnection(true)
-//                .withCachePreparedStatementInLoader()
+                .withCachePreparedStatementInLoader(true)
+                .withCacheRecordMappers(true)
+                .withReflectionCaching(true)
                 .withRenderSchema(false)
-                .withRenderCatalog(false);
+                .withRenderCatalog(false)
+                .withBindOffsetDateTimeType(true)
+                .withBindOffsetTimeType(true)
+                ;
     }
 }
