@@ -80,7 +80,7 @@ server:
 
 grpc:
   server:
-#    executor-type: DIRECT
+    executor-type: DIRECT
     port: 9080
     channelz:
       enabled: true
@@ -115,10 +115,10 @@ spring:
     url: r2dbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
-#    pool:
-#      initial-size: 8
-#      max-size: 64
-#      min-idle: 8
+    pool:
+      initial-size: 8
+      max-size: 1024
+      min-idle: 8
   liquibase:
     enabled: true
     url: ${spring.datasource.url}
