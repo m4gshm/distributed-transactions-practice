@@ -20,32 +20,32 @@
 
 ## Comparsion
 
-|   | Java | Go |
-| --- | --- | --- |
-| version | 24 | 1.25 |
-| Build tool | Gradle 8.14 | Task |
-| Code formatter | com.diffplug.spotless gradle plugin | _built-in_ |
-| Boilerplate reducer (code gen) | org.projectlombok:lombok | fieldr |
-| Logger | slf4j | zerolog |
-| Application framework | Spring Boot | _not used_ |
-| Dep. injection | Spring Context | _not used_ |
-| Postgres driver | R2DBC | pgx/v5 |
-| RDBC access layer generator | Jooq | Sqlc |
-| DB migration lib | Liquibase | Goose |
-| Tests engine | junit5 | _built-in_ |
-| Integration tests | jvm-test-suite gradle plugin | \- |
-| Mock lib | Mockito | Mockio |
-| REST engine | Spring Webflux | _built-in http.Server_ |
-| GRPC engine lib | io.grpc:grpc-netty-shaded | google.golang.org/grpc |
-| GRPC code generator | com.google.protobuf gradle plugin | easyp |
-| GRPC-REST transcoding | io.github.danielliu1123:grpc-server-boot-starter | grpc-gateway protoc plugin |
-| GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
-| Docker container builder | Gradle plugin com.bmuschko.docker-java-application | native |
-| Kafka lib | Spring Kafka, reactor-kafka | franz-go |
-| Tracing (Otel) | micrometer | ? |
-| Otel exporter | spring-boot-micrometer-tracing-opentelemetry | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrp |
-| DB connection tracing | net.ttddyy.observation:datasource-micrometer | github.com/exaring/otelpgx |
-| GRPC connection tracing | ? | ? |
-| Prometheus http api provider | actuator | github.com/prometheus/client\_golang/prometheus/promhttp |
-| Prometheus DB connection collector | actuator | github.com/cmackenzie1/pgxpool-prometheus |
-| Config properties | Spring Boot (property files, env vars) | env vars |
+|   | Java (block io) | Java (reactive) | Go |
+| --- | --- | --- | --- |
+| version | 24 | 24 | 1.25 |
+| Build tool | Gradle 8.14 | Gradle 8.14 | Task |
+| Code formatter | com.diffplug.spotless gradle plugin | com.diffplug.spotless gradle plugin | _built-in_ |
+| Boilerplate recuder (code gen) | org.projectlombok:lombok | org.projectlombok:lombok | fieldr |
+| Logger | slf4j | slf4j | zerolog |
+| Application framework | Spring Boot | Spring Boot | _not used_ |
+| Dep. injection | Spring Context | Spring Context | _not used_ |
+| Postgres driver | JDBC | R2DBC | pgx/v5 |
+| RDBC access layer generator | Jooq | Jooq | Sqlc |
+| DB migration lib | Liquibase | Liquibase | Goose |
+| Tests engine | junit5 | junit5 | _built-in_ |
+| Integration tests | jvm-test-suite gradle plugin | jvm-test-suite gradle plugin | \- |
+| Mock lib | Mockito | Mockito | Mockio |
+| REST engine | Spring MVC | Spring Webflux | _built-in http.Server_ |
+| GRPC engine lib | okhttp | io.grpc:grpc-netty-shaded | google.golang.org/grpc |
+| GRPC code generator | com.google.protobuf gradle plugin | com.google.protobuf gradle plugin | easyp |
+| GRPC-REST transcoding | io.github.danielliu1123:grpc-server-boot-starter | io.github.danielliu1123:grpc-server-boot-starter | grpc-gateway protoc plugin |
+| GRPC-REST Open API generator | io.github.danielliu1123:grpc-starter-transcoding-springdoc | io.github.danielliu1123:grpc-starter-transcoding-springdoc | openapiv2 protoc plugin |
+| Docker container builder | Gradle plugin com.bmuschko.docker-java-application | Gradle plugin com.bmuschko.docker-java-application | native |
+| Kafka lib | Spring Kafka | Spring Kafka, reactor-kafka | franz-go |
+| Tracing (Otel) | micrometer | micrometer | ? |
+| Otel exporter | spring-boot-micrometer-tracing-opentelemetry | spring-boot-micrometer-tracing-opentelemetry | go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrp |
+| DB connection tracing | net.ttddyy.observation:datasource-micrometer | io.r2dbc:r2dbc-proxy | github.com/exaring/otelpgx |
+| GRPC connection tracing | micrometer-core | micrometer-core | ? |
+| Prometheus http api provider | actuator | actuator | github.com/prometheus/client\_golang/prometheus/promhttp |
+| Prometheus DB connection collector | actuator | actuator | github.com/cmackenzie1/pgxpool-prometheus |
+| Config properties | Spring Boot (property files, env vars) | Spring Boot (property files, env vars) | env vars |
