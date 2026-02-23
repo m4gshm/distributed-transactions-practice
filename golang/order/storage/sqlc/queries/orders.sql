@@ -6,6 +6,19 @@ FROM
   orders o
   LEFT JOIN delivery d ON o.id = d.order_id;
 
+-- name: FindOrdersPaged :many
+SELECT
+  sqlc.embed(o),
+  sqlc.embed(d)
+FROM
+  orders o
+  LEFT JOIN delivery d ON o.id = d.order_id
+  WHERE  (sqlc.narg('status')::order_status IS NULL OR o.status = sqlc.narg('status')::order_status)
+  ORDER BY o.created_at
+  LIMIT sqlc.narg('lim')::int
+  OFFSET @offs::int
+  ;  
+
 -- name: FindOrdersByClientAndStatuses :many
 SELECT
   sqlc.embed(o),
@@ -15,7 +28,7 @@ FROM
   LEFT JOIN delivery d ON o.id = d.order_id
 WHERE
   o.customer_id = $1
-  AND o.status = ANY(sqlc.arg(orderStatus)::order_status[]);
+  AND o.status = ANY(@orderStatus::order_status[]);
 
 
 -- name: FindOrderById :one
@@ -44,7 +57,6 @@ INSERT INTO
     id,
     status,
     created_at,
-    updated_at,
     customer_id,
     reserve_id,
     payment_id,
@@ -52,13 +64,13 @@ INSERT INTO
     reserve_transaction_id
   )
 VALUES
-  ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
+  ($1, $2, $3, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
 UPDATE
 SET
-  status = EXCLUDED.status,
-  updated_at = EXCLUDED.updated_at,
+  "status" = EXCLUDED.status,
   reserve_id = COALESCE(EXCLUDED.reserve_id, orders.reserve_id),
-  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id);
+  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id),
+  updated_at = COALESCE($4, CURRENT_TIMESTAMP);
 
 
 -- name: UpdateOrderStatus :exec
@@ -66,7 +78,8 @@ UPDATE
   orders
 SET
   status = $1,
-  updated_at = COALESCE($2, CURRENT_TIMESTAMP);
+  updated_at = COALESCE($2, CURRENT_TIMESTAMP)
+WHERE id = $3;
 
 
 -- name: InsertOrUpdateDelivery :exec
@@ -91,7 +104,7 @@ WHERE
 INSERT INTO
   item (order_id, id, amount)
 VALUES
-  ($1, $2, $3) ON CONFLICT(id) DO
+  ($1, $2, $3) ON CONFLICT(id, order_id) DO
 UPDATE
 SET
   amount = EXCLUDED.amount;

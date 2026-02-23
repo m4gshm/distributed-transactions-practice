@@ -3,6 +3,9 @@ package impl
 import (
 	"context"
 
+	"github.com/m4gshm/gollections/slice"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -13,8 +16,13 @@ import (
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
 	warehousepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	whsqlc "github.com/m4gshm/distributed-transactions-practice/golang/reserve/storage/warehouse/sqlc/gen"
-	"github.com/m4gshm/gollections/slice"
 )
+
+var tracerW trace.Tracer
+
+func init() {
+	tracerW = otel.Tracer("WarehouseService")
+}
 
 type WarehouseService struct {
 	warehousepb.UnimplementedWarehouseItemServiceServer
@@ -28,18 +36,19 @@ func NewWarehouseService(db *pgxpool.Pool) *WarehouseService {
 }
 
 func (s *WarehouseService) GetItemCost(ctx context.Context, req *warehousepb.GetItemCostRequest) (*warehousepb.GetItemCostResponse, error) {
+	ctx, span := tracerW.Start(ctx, "GetItemCost")
+	defer span.End()
 	query := whsqlc.New(s.db)
 	item, err := query.SelectItemByID(ctx, req.Id)
 	if err != nil {
-		// if err == sql.ErrNoRows {
-		// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
-		// }
 		return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID '%s'): %v", req.Id, err)
 	}
 	return &warehousepb.GetItemCostResponse{Cost: item.UnitCost}, nil
 }
 
 func (s *WarehouseService) ItemList(ctx context.Context, req *warehousepb.ItemListRequest) (*warehousepb.ItemListResponse, error) {
+	ctx, span := tracerW.Start(ctx, "ItemList")
+	defer span.End()
 	query := whsqlc.New(s.db)
 	rows, err := query.SelectAllItems(ctx)
 	if err != nil {
@@ -59,31 +68,23 @@ func (s *WarehouseService) ItemList(ctx context.Context, req *warehousepb.ItemLi
 }
 
 func (s *WarehouseService) TopUp(ctx context.Context, req *warehousepb.ItemTopUpRequest) (*warehousepb.ItemTopUpResponse, error) {
+	ctx, span := tracerW.Start(ctx, "TopUp")
+	defer span.End()
 	body := req.TopUp
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "top up data is required")
 	}
 
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*warehousepb.ItemTopUpResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*warehousepb.ItemTopUpResponse, error) {
 		itemID := body.Id
-
 		query := whsqlc.New(s.db)
-		item, err := query.SelectItemByID(ctx, itemID)
-		if err != nil {
-			// if err == sql.ErrNoRows {
-			// 	return nil, status.Errorf(codes.NotFound, "warehouse item not found")
-			// }
-			return nil, status.Errorf(grpc.Status(err), "failed to get warehouse item cost (itemID '%s'): %v", itemID, err)
-		}
-
-		newAmount := item.Amount + body.Amount
-		if err := query.UpdateAmountAndReserved(ctx, whsqlc.UpdateAmountAndReservedParams{
+		newAmount, err := query.IncrementAmount(ctx, whsqlc.IncrementAmountParams{
 			ID:     itemID,
-			Amount: newAmount,
-		}); err != nil {
+			Amount: body.Amount,
+		})
+		if err != nil {
 			return nil, status.Errorf(grpc.Status(err), "failed to update warehouse account (itemID '%s'): %v", itemID, err)
 		}
-
 		return &warehousepb.ItemTopUpResponse{Amount: newAmount}, nil
 	})
 }

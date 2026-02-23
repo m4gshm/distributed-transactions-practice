@@ -1,2 +1,2 @@
-io.github.m4gshm.payments.data.r2dbc.config.AccountStorageR2DBCAutoConfiguration
-io.github.m4gshm.payments.data.r2dbc.config.PaymentStorageR2DBCAutoConfiguration
+io.github.m4gshm.payments.data.r2dbc.config.ReactiveAccountStorageR2dbcAutoConfiguration
+io.github.m4gshm.payments.data.r2dbc.config.ReactivePaymentStorageR2dbcAutoConfiguration

@@ -12,6 +12,7 @@ type Querier interface {
 	DeleteReserveItems(ctx context.Context, reserveID string) error
 	FindAllReserves(ctx context.Context) ([]Reserve, error)
 	FindItemsByReserveID(ctx context.Context, reserveID string) ([]ReserveItem, error)
+	FindItemsByReserveIDOrderByID(ctx context.Context, reserveID string) ([]ReserveItem, error)
 	FindReserveByID(ctx context.Context, id string) (Reserve, error)
 	UpsertReserve(ctx context.Context, arg UpsertReserveParams) error
 	UpsertReserveItem(ctx context.Context, arg UpsertReserveItemParams) error

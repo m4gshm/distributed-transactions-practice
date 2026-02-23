@@ -1,1 +1,3 @@
-io.github.m4gshm.jooq.config.R2DBCJooqAutoConfiguration
+io.github.m4gshm.jooq.config.R2dbcConnectionFactoryAutoConfiguration
+io.github.m4gshm.jooq.config.R2dbcReactiveJooqAutoConfiguration
+

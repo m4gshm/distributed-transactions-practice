@@ -37,6 +37,40 @@
             }
           }
         },
+        "parameters": [
+          {
+            "name": "page.num",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "page.size",
+            "in": "query",
+            "required": false,
+            "type": "integer",
+            "format": "int32"
+          },
+          {
+            "name": "condition.status",
+            "in": "query",
+            "required": false,
+            "type": "string",
+            "enum": [
+              "CREATING",
+              "CREATED",
+              "APPROVING",
+              "APPROVED",
+              "RELEASING",
+              "RELEASED",
+              "INSUFFICIENT",
+              "CANCELLING",
+              "CANCELLED"
+            ],
+            "default": "CREATING"
+          }
+        ],
         "tags": [
           "OrderService"
         ]
@@ -433,6 +467,15 @@
         }
       }
     },
+    "v1OrderListCondition": {
+      "type": "object",
+      "properties": {
+        "status": {
+          "$ref": "#/definitions/v1OrderStatus",
+          "x-nullable": true
+        }
+      }
+    },
     "v1OrderListResponse": {
       "type": "object",
       "properties": {
@@ -504,6 +547,20 @@
         "CANCELLED"
       ],
       "default": "CREATING"
+    },
+    "v1Page": {
+      "type": "object",
+      "properties": {
+        "num": {
+          "type": "integer",
+          "format": "int32"
+        },
+        "size": {
+          "type": "integer",
+          "format": "int32",
+          "x-nullable": true
+        }
+      }
     },
     "v1PaymentStatus": {
       "type": "string",

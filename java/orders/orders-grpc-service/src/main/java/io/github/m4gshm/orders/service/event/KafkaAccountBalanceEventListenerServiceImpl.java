@@ -1,44 +1,54 @@
 package io.github.m4gshm.orders.service.event;
 
+import io.github.m4gshm.idempotent.consumer.MessageImpl;
+import io.github.m4gshm.idempotent.consumer.ReactiveMessageStorage;
 import io.github.m4gshm.orders.data.model.Order;
-import io.github.m4gshm.orders.data.storage.OrderStorage;
-import io.github.m4gshm.orders.service.OrderService;
+import io.github.m4gshm.orders.data.storage.ReactiveOrderStorage;
+import io.github.m4gshm.orders.service.ReactiveOrderService;
 import io.github.m4gshm.payments.event.model.AccountBalanceEvent;
-import io.github.m4gshm.reactive.idempotent.consumer.MessageImpl;
-import io.github.m4gshm.reactive.idempotent.consumer.MessageStorage;
+import io.micrometer.observation.ObservationRegistry;
+import jakarta.annotation.PostConstruct;
+import jakarta.annotation.PreDestroy;
 import lombok.RequiredArgsConstructor;
 import lombok.experimental.FieldDefaults;
 import lombok.extern.slf4j.Slf4j;
 import orders.v1.OrderServiceOuterClass.OrderApproveResponse;
-import org.springframework.kafka.core.reactive.ReactiveKafkaConsumerTemplate;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Service;
 import payment.v1.PaymentServiceGrpc.PaymentServiceStub;
 import payment.v1.PaymentServiceOuterClass.PaymentGetRequest;
+import reactor.core.Disposable;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
+import reactor.kafka.receiver.ReceiverOptions;
+import tools.jackson.databind.json.JsonMapper;
 
-import javax.annotation.PostConstruct;
+import java.time.Instant;
 import java.util.Set;
 
 import static io.github.m4gshm.orders.data.access.jooq.enums.OrderStatus.INSUFFICIENT;
 import static io.github.m4gshm.reactive.ReactiveUtils.toMono;
 import static lombok.AccessLevel.PRIVATE;
 import static reactor.core.publisher.Mono.empty;
+import static reactor.kafka.receiver.KafkaReceiver.create;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
-@FieldDefaults(makeFinal = true, level = PRIVATE)
+@FieldDefaults(level = PRIVATE)
+@ConditionalOnProperty(value = "spring.kafka.enabled", havingValue = "true", matchIfMissing = true)
 public class KafkaAccountBalanceEventListenerServiceImpl {
-
-    ReactiveKafkaConsumerTemplate<String, AccountBalanceEvent> reactiveKafkaConsumerTemplate;
-
-    OrderStorage orderStorage;
-    OrderService ordersService;
-    PaymentServiceStub paymentServiceStub;
-    MessageStorage messageStorage;
+    final JsonMapper jsonMapper;
+    final ReceiverOptions<String, String> balanceReceiverOptions;
+    final ReactiveOrderStorage orderStorage;
+    final ReactiveOrderService ordersService;
+    final PaymentServiceStub paymentServiceStub;
+    final ReactiveMessageStorage reactiveMessageStorage;
     // todo move to config of order table
-    private final boolean twoPhaseCommit = true;
+    final boolean twoPhaseCommit = false;
+    final ObservationRegistry observationRegistry;
+
+    volatile Disposable subscribe;
 
     private static PaymentGetRequest paymentGetRequest(String paymentId) {
         return PaymentGetRequest.newBuilder()
@@ -47,10 +57,12 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
     }
 
     private Mono<OrderApproveResponse> approveIfEnoughBalance(Order order, double balance) {
-        return toMono("paymentService::get", paymentGetRequest(order.paymentId()), paymentServiceStub::get)
+        return toMono("paymentService::get",
+                paymentGetRequest(order.paymentId()),
+                paymentServiceStub::get)
                 .map(response -> response.getPayment().getAmount())
                 .flatMap(paymentAmount -> {
-                    if (paymentAmount < balance) {
+                    if (paymentAmount <= balance) {
                         return ordersService.approve(order.id(), twoPhaseCommit);
                     } else {
                         log.info("insufficient balance for order: orderId [{}], need money [{}], actual balance [{}]",
@@ -64,23 +76,40 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
 
     @PostConstruct
     public void consumeRecord() {
-        reactiveKafkaConsumerTemplate.receiveAutoAck().map(r -> {
-            var key = r.key();
-            AccountBalanceEvent value = r.value();
-            log.info("received account balance event from kafka consumer: key [{}], value: [{}]", key, value);
+        var kafkaReceiver = create(balanceReceiverOptions);
+        var receive = kafkaReceiver.receive();
+        subscribe = receive.map(record -> {
+            var offset = record.receiverOffset();
+            var timestamp = Instant.ofEpochMilli(record.timestamp());
+            var key = record.key();
+            var value = record.value();
+            log.info("received account balance event from kafka consumer: key {}, value {}, offset {}, timestamp {} ",
+                    key,
+                    value,
+                    offset,
+                    timestamp);
+            offset.acknowledge();
             return value;
         }).doOnError(error -> {
             log.error("receive account balance event error", error);
-        }).flatMap(this::handle).doOnError(error -> {
+        }).map(this::readEvent).flatMap(this::handle).doOnError(error -> {
             log.error("handle account balance event error", error);
         }).subscribe();
+    }
+
+    @PreDestroy
+    public void destroy() {
+        var s = subscribe;
+        if (s != null && !s.isDisposed()) {
+            s.dispose();
+        }
     }
 
     private Flux<OrderApproveResponse> handle(AccountBalanceEvent event) {
         var requestId = event.requestId();
         var clientId = event.clientId();
         var balance = event.balance();
-        return messageStorage.storeUnique(MessageImpl.builder()
+        return reactiveMessageStorage.storeUnique(MessageImpl.builder()
                 .messageID(requestId)
                 .subscriberID("accountBalance")
                 .timestamp(event.timestamp())
@@ -106,5 +135,13 @@ public class KafkaAccountBalanceEventListenerServiceImpl {
                         .onErrorContinue((error, response) -> {
                             log.error("approve order on account balance event error", error);
                         }));
+    }
+
+    private AccountBalanceEvent readEvent(String value) {
+        try {
+            return jsonMapper.readValue(value, AccountBalanceEvent.class);
+        } catch (Exception e) {
+            throw new RuntimeException("deserialize AccountBalanceEvent error", e);
+        }
     }
 }

@@ -120,9 +120,20 @@ message OrderResumeResponse {
   Order.Status status = 2;
 }
 
-message OrderListRequest {}
+message OrderListRequest {
+  optional Page page = 1;
+  optional OrderListCondition condition = 2;
+}
 
 message OrderListResponse {
   repeated Order orders = 1;
 }
 
+message Page {
+  int32 num = 1;
+  optional int32 size = 2;
+}
+
+message OrderListCondition {
+  optional Order.Status status = 1;
+}

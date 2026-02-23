@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Launch payment",
+            "name": "Launch payments",
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/golang/cmd/payment"
+            "program": "${workspaceFolder}/golang/cmd/payments"
         },
         {
-            "name": "Launch order",
+            "name": "Launch orders",
             "type": "go",
             "request": "launch",
             "mode": "debug",
-            "program": "${workspaceFolder}/golang/cmd/order"
+            "program": "${workspaceFolder}/golang/cmd/orders"
         },
                 {
             "name": "Launch reserve",

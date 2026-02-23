@@ -1,0 +1,4 @@
+io.github.m4gshm.reactive.config.ReactiveRestExceptionHandlerAutoConfiguration
+io.github.m4gshm.reactive.config.GrpcReactiveAutoConfiguration
+io.github.m4gshm.reactive.config.LoopResourcesAutoConfiguration
+io.github.m4gshm.reactive.config.LoopResourcesConsumerAutoConfiguration

@@ -1,1 +1,2 @@
-io.github.m4gshm.reactive.idempotent.consumer.config.MessageStorageR2dbcImplAutoConfiguration
+io.github.m4gshm.idempotent.consumer.config.IdempotentConsumerPropertiesAutoConfiguration
+

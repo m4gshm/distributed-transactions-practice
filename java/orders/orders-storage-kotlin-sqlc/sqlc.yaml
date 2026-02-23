@@ -1,0 +1,16 @@
+version: "2"
+plugins:
+- name: kt
+  wasm:
+    url: https://downloads.sqlc.dev/plugin/sqlc-gen-kotlin_1.2.0.wasm
+    sha256: 22b437ecaea66417bbd3b958339d9868ba89368ce542c936c37305acf373104b
+sql:
+  - name: "orders"
+    engine: "postgresql"
+    queries: "../../../golang/order/storage/sqlc/queries/"
+    schema:  "../../../golang/order/storage/sqlc/schema/"
+    codegen:
+    - out: src/main/kotlin/io/m4gshm/dtp/orders/sqlc/gen
+      plugin: kt
+      options:
+        package: io.m4gshm.dtp.orders.sqlc.ge

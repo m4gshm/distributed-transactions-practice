@@ -190,6 +190,63 @@ func (q *Queries) FindOrdersByClientAndStatuses(ctx context.Context, arg FindOrd
 	return items, nil
 }
 
+const findOrdersPaged = `-- name: FindOrdersPaged :many
+SELECT
+  o.id, o.created_at, o.updated_at, o.status, o.customer_id, o.reserve_id, o.payment_id, o.payment_transaction_id, o.reserve_transaction_id,
+  d.order_id, d.address, d.type
+FROM
+  orders o
+  LEFT JOIN delivery d ON o.id = d.order_id
+  WHERE  ($1::order_status IS NULL OR o.status = $1::order_status)
+  ORDER BY o.created_at
+  LIMIT $3::int
+  OFFSET $2::int
+`
+
+type FindOrdersPagedParams struct {
+	Status NullOrderStatus
+	Offs   int32
+	Lim    pgtype.Int4
+}
+
+type FindOrdersPagedRow struct {
+	Order    Order
+	Delivery Delivery
+}
+
+func (q *Queries) FindOrdersPaged(ctx context.Context, arg FindOrdersPagedParams) ([]FindOrdersPagedRow, error) {
+	rows, err := q.db.Query(ctx, findOrdersPaged, arg.Status, arg.Offs, arg.Lim)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []FindOrdersPagedRow
+	for rows.Next() {
+		var i FindOrdersPagedRow
+		if err := rows.Scan(
+			&i.Order.ID,
+			&i.Order.CreatedAt,
+			&i.Order.UpdatedAt,
+			&i.Order.Status,
+			&i.Order.CustomerID,
+			&i.Order.ReserveID,
+			&i.Order.PaymentID,
+			&i.Order.PaymentTransactionID,
+			&i.Order.ReserveTransactionID,
+			&i.Delivery.OrderID,
+			&i.Delivery.Address,
+			&i.Delivery.Type,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const insertOrUpdateDelivery = `-- name: InsertOrUpdateDelivery :exec
 INSERT INTO
   delivery (order_id, address, type)
@@ -216,7 +273,7 @@ const insertOrUpdateItem = `-- name: InsertOrUpdateItem :exec
 INSERT INTO
   item (order_id, id, amount)
 VALUES
-  ($1, $2, $3) ON CONFLICT(id) DO
+  ($1, $2, $3) ON CONFLICT(id, order_id) DO
 UPDATE
 SET
   amount = EXCLUDED.amount
@@ -239,7 +296,6 @@ INSERT INTO
     id,
     status,
     created_at,
-    updated_at,
     customer_id,
     reserve_id,
     payment_id,
@@ -247,13 +303,13 @@ INSERT INTO
     reserve_transaction_id
   )
 VALUES
-  ($1, $2, $3, $4, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
+  ($1, $2, $3, $5, $6, $7, $8, $9) ON CONFLICT(id) DO
 UPDATE
 SET
-  status = EXCLUDED.status,
-  updated_at = EXCLUDED.updated_at,
+  "status" = EXCLUDED.status,
   reserve_id = COALESCE(EXCLUDED.reserve_id, orders.reserve_id),
-  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id)
+  payment_id = COALESCE(EXCLUDED.payment_id, orders.payment_id),
+  updated_at = COALESCE($4, CURRENT_TIMESTAMP)
 `
 
 type InsertOrUpdateOrderParams struct {
@@ -289,14 +345,16 @@ UPDATE
 SET
   status = $1,
   updated_at = COALESCE($2, CURRENT_TIMESTAMP)
+WHERE id = $3
 `
 
 type UpdateOrderStatusParams struct {
 	Status    OrderStatus
 	UpdatedAt pgtype.Timestamptz
+	ID        string
 }
 
 func (q *Queries) UpdateOrderStatus(ctx context.Context, arg UpdateOrderStatusParams) error {
-	_, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.UpdatedAt)
+	_, err := q.db.Exec(ctx, updateOrderStatus, arg.Status, arg.UpdatedAt, arg.ID)
 	return err
 }

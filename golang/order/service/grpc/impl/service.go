@@ -7,6 +7,18 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgtype"
+	"github.com/m4gshm/expressions/expr/get"
+	"github.com/m4gshm/gollections/convert/ptr"
+	"github.com/m4gshm/gollections/op"
+	"github.com/m4gshm/gollections/slice"
+	"github.com/rs/zerolog/log"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	"google.golang.org/protobuf/types/known/timestamppb"
+
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
@@ -16,17 +28,15 @@ import (
 	paymentpb "github.com/m4gshm/distributed-transactions-practice/golang/payment/service/grpc/gen"
 	reservepb "github.com/m4gshm/distributed-transactions-practice/golang/reserve/service/grpc/gen"
 	tpcpb "github.com/m4gshm/distributed-transactions-practice/golang/tpc/service/grpc/gen"
-	"github.com/m4gshm/expressions/expr/get"
-	"github.com/m4gshm/gollections/convert/ptr"
-	"github.com/m4gshm/gollections/op"
-	"github.com/m4gshm/gollections/slice"
-	"github.com/rs/zerolog/log"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 //go:generate fieldr -type OrderService -out . new-full
+
+var tracer trace.Tracer
+
+func init() {
+	tracer = otel.Tracer("OrderService")
+}
 
 type OrderService struct {
 	orderspb.UnimplementedOrderServiceServer
@@ -62,18 +72,21 @@ func NewOrderService(
 }
 
 func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequest) (*orderspb.OrderCreateResponse, error) {
+	ctx, span := tracer.Start(ctx, "Create")
+	defer span.End()
 	body := req.Body
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "order body is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*orderspb.OrderCreateResponse, error) {
+	orderID := uuid.New().String()
+	customerId := body.CustomerId
+	twoPhaseCommit := req.TwoPhaseCommit
+	paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
+	reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
+
+	items, err := tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) ([]sqlc.Item, error) {
 		query := sqlc.New(tx)
 
-		orderID := uuid.New().String()
-		customerId := body.CustomerId
-		twoPhaseCommit := req.TwoPhaseCommit
-		paymentTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
-		reserveTransactionID := get.If(twoPhaseCommit, generateID).Else(nil)
 		orderEntity := sqlc.InsertOrUpdateOrderParams{
 			ID:                   orderID,
 			CustomerID:           customerId,
@@ -113,18 +126,18 @@ func (s *OrderService) Create(ctx context.Context, req *orderspb.OrderCreateRequ
 				Amount:  item.Amount,
 			})
 		}
-
-		if _, err := s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, customerId, items); err != nil {
-			return nil, err
-		}
-		return &orderspb.OrderCreateResponse{Id: orderID}, nil
+		return items, nil
 	})
+	if err != nil {
+		return nil, err
+	} else if _, err := s.create(ctx, paymentTransactionID, reserveTransactionID, orderID, customerId, items); err != nil {
+		return nil, err
+	}
+	return &orderspb.OrderCreateResponse{Id: orderID}, nil
+
 }
 
-func (s *OrderService) create(
-	ctx context.Context, paymentTransactionID, reserveTransactionID *string, query *sqlc.Queries,
-	orderID string, customerID string, items []sqlc.Item,
-) (sqlc.OrderStatus, error) {
+func (s *OrderService) create(ctx context.Context, paymentTransactionID, reserveTransactionID *string, orderID, customerID string, items []sqlc.Item) (sqlc.OrderStatus, error) {
 	cost := 0.0
 	reserveItems := []*reservepb.ReserveCreateRequest_Reserve_Item{}
 	for _, item := range items {
@@ -140,7 +153,7 @@ func (s *OrderService) create(
 		})
 	}
 
-	return s.doInDistributedTransaction(ctx, paymentTransactionID, reserveTransactionID, func() (sqlc.OrderStatus, error) {
+	st, err := s.doInDistributedTransaction(ctx, paymentTransactionID, reserveTransactionID, func() (*sqlc.OrderStatus, error) {
 		paymentID := ""
 		if resp, err := s.payment.Create(ctx, &paymentpb.PaymentCreateRequest{
 			PreparedTransactionId: paymentTransactionID,
@@ -149,7 +162,7 @@ func (s *OrderService) create(
 				ClientId:    customerID,
 				Amount:      cost,
 			}}); err != nil {
-			return "", status.Errorf(grpc.Status(err), "failed to create payment (order '%s'): %v", orderID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to create payment (order '%s'): %v", orderID, err)
 		} else {
 			paymentID = resp.Id
 		}
@@ -161,12 +174,12 @@ func (s *OrderService) create(
 				ExternalRef: orderID,
 				Items:       reserveItems,
 			}}); err != nil {
-			return "", status.Errorf(grpc.Status(err), "failed to create reserve (order '%s'): %v", orderID, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to create reserve (order '%s'): %v", orderID, err)
 		} else {
 			reserveID = resp.Id
 		}
-
 		finalStatus := sqlc.OrderStatusCREATED
+		query := sqlc.New(s.db)
 		if err := query.InsertOrUpdateOrder(ctx, sqlc.InsertOrUpdateOrderParams{
 			ID:        orderID,
 			Status:    finalStatus,
@@ -174,15 +187,19 @@ func (s *OrderService) create(
 			PaymentID: pg.FromString(paymentID),
 			ReserveID: pg.FromString(reserveID),
 		}); err != nil {
-			return "", status.Errorf(grpc.Status(err), "failed to update order '%s' by status '%s': %v", orderID, finalStatus, err)
+			return nil, status.Errorf(grpc.Status(err), "failed to update order '%s' by status '%s': %v", orderID, finalStatus, err)
 		}
-		return finalStatus, nil
+		return &finalStatus, nil
 	})
+	if err != nil {
+		return "", err
+	}
+	return *st, nil
 }
 
 func (s *OrderService) doInDistributedTransaction(
 	ctx context.Context, paymentTransactionID, reserveTransactionID *string,
-	routine func() (sqlc.OrderStatus, error)) (sqlc.OrderStatus, error) {
+	routine func() (*sqlc.OrderStatus, error)) (*sqlc.OrderStatus, error) {
 	paymentTransactionRollback := paymentTransactionID != nil
 	defer func() {
 		if paymentTransactionRollback {
@@ -199,7 +216,7 @@ func (s *OrderService) doInDistributedTransaction(
 
 	finalStatus, err := routine()
 	if err != nil {
-		return "", err
+		return finalStatus, err
 	}
 
 	reserveTransactionRollback = false
@@ -240,8 +257,9 @@ func generateID() *string {
 }
 
 func (s *OrderService) Approve(ctx context.Context, req *orderspb.OrderApproveRequest) (*orderspb.OrderApproveResponse, error) {
-	query := sqlc.New(s.db)
-	finalStatus, err := s.appvove(ctx, query, req.Id, req.TwoPhaseCommit)
+	ctx, span := tracer.Start(ctx, "Approve")
+	defer span.End()
+	finalStatus, err := s.appvove(ctx, sqlc.New(s.db), req.Id, req.TwoPhaseCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -257,10 +275,7 @@ func (s *OrderService) appvove(ctx context.Context,
 	if err != nil {
 		return "", err
 	}
-	if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.approve_); err != nil {
-		return "", err
-	}
-	return finalStatus, nil
+	return s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.approve_)
 }
 
 func (s *OrderService) Release(ctx context.Context, req *orderspb.OrderReleaseRequest) (*orderspb.OrderReleaseResponse, error) {
@@ -276,17 +291,17 @@ func (s *OrderService) release(ctx context.Context, query *sqlc.Queries, orderID
 	intermediateStatus := sqlc.OrderStatusRELEASING
 	finalStatus := sqlc.OrderStatusRELEASED
 	expecteds := slice.Of(sqlc.OrderStatusAPPROVED, intermediateStatus)
-	if row, err := query.FindOrderById(ctx, orderID); err != nil {
-		return "", err
-	} else if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.release_); err != nil {
+	row, err := query.FindOrderById(ctx, orderID)
+	if err != nil {
 		return "", err
 	}
-	return finalStatus, nil
+	return s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.release_)
 }
 
 func (s *OrderService) Cancel(ctx context.Context, req *orderspb.OrderCancelRequest) (*orderspb.OrderCancelResponse, error) {
-	query := sqlc.New(s.db)
-	_, err := s.cancel(ctx, query, req.Id, req.TwoPhaseCommit)
+	ctx, span := tracer.Start(ctx, "Cancel")
+	defer span.End()
+	_, err := s.cancel(ctx, sqlc.New(s.db), req.Id, req.TwoPhaseCommit)
 	if err != nil {
 		return nil, err
 	}
@@ -297,15 +312,16 @@ func (s *OrderService) cancel(ctx context.Context, query *sqlc.Queries, orderID 
 	intermediateStatus := sqlc.OrderStatusCANCELLING
 	finalStatus := sqlc.OrderStatusCANCELLED
 	expecteds := slice.Of(sqlc.OrderStatusCREATED, sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVED, intermediateStatus)
-	if row, err := query.FindOrderById(ctx, orderID); err != nil {
-		return "", err
-	} else if err := s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.cancel_); err != nil {
+	row, err := query.FindOrderById(ctx, orderID)
+	if err != nil {
 		return "", err
 	}
-	return finalStatus, nil
+	return s.doWorkflow(ctx, query, row.Order, expecteds, intermediateStatus, finalStatus, twoPhaseCommit, s.cancel_)
 }
 
 func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequest) (*orderspb.OrderResumeResponse, error) {
+	ctx, span := tracer.Start(ctx, "Resume")
+	defer span.End()
 	query := sqlc.New(s.db)
 
 	orderID := req.Id
@@ -326,7 +342,7 @@ func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequ
 	case sqlc.OrderStatusCREATED, sqlc.OrderStatusAPPROVED, sqlc.OrderStatusRELEASED, sqlc.OrderStatusCANCELLED:
 		err = status.Error(codes.FailedPrecondition, "already committed status")
 	case sqlc.OrderStatusCREATING:
-		orderStatus, err = s.create(ctx, paymentTransactionID, reserveTransactionID, query, orderID, order.CustomerID, items)
+		orderStatus, err = s.create(ctx, paymentTransactionID, reserveTransactionID, orderID, order.CustomerID, items)
 	case sqlc.OrderStatusINSUFFICIENT, sqlc.OrderStatusAPPROVING:
 		orderStatus, err = s.appvove(ctx, query, orderID, req.TwoPhaseCommit)
 	case sqlc.OrderStatusRELEASING:
@@ -342,6 +358,8 @@ func (s *OrderService) Resume(ctx context.Context, req *orderspb.OrderResumeRequ
 }
 
 func (s *OrderService) Get(ctx context.Context, req *orderspb.OrderGetRequest) (*orderspb.OrderGetResponse, error) {
+	ctx, span := tracer.Start(ctx, "Resume")
+	defer span.End()
 	query := sqlc.New(s.db)
 
 	r, err := query.FindOrderById(ctx, req.Id)
@@ -355,72 +373,104 @@ func (s *OrderService) Get(ctx context.Context, req *orderspb.OrderGetRequest) (
 }
 
 func (s *OrderService) List(ctx context.Context, req *orderspb.OrderListRequest) (*orderspb.OrderListResponse, error) {
+	ctx, span := tracer.Start(ctx, "List")
+	defer span.End()
 	query := sqlc.New(s.db)
 
-	rows, err := query.FindAllOrders(ctx)
+	page := req.Page
+	params := sqlc.FindOrdersPagedParams{
+		Lim: pgtype.Int4{Int32: 100, Valid: true},
+	}
+
+	var orders []*orderspb.Order
+	if page != nil {
+		pageNum := page.Num
+		if size := page.Size; size != nil {
+			lim := *size
+			offs := pageNum * lim
+			params.Lim = pgtype.Int4{Int32: lim, Valid: true}
+			params.Offs = offs
+		}
+	}
+	if cond := req.Condition; cond != nil {
+		if s := cond.Status; s != nil {
+			if sn := orderspb.Order_Status_name[int32(*s)]; len(sn) > 0 {
+				params.Status = sqlc.NullOrderStatus{
+					OrderStatus: sqlc.OrderStatus(sn),
+					Valid:       true,
+				}
+			}
+		}
+	}
+	rows, err := query.FindOrdersPaged(ctx, params)
 	if err != nil {
 		return nil, err
 	}
-
-	return &orderspb.OrderListResponse{Orders: slice.Convert(rows, func(row sqlc.FindAllOrdersRow) *orderspb.Order {
+	orders = slice.Convert(rows, func(row sqlc.FindOrdersPagedRow) *orderspb.Order {
 		return toProtoOrder(row.Order, row.Delivery)
-	})}, nil
+	})
+	return &orderspb.OrderListResponse{Orders: orders}, nil
 }
 
 func (s *OrderService) doWorkflow(ctx context.Context, query *sqlc.Queries, order sqlc.Order, expecteds []sqlc.OrderStatus, intermediateStatus sqlc.OrderStatus,
-	finalStatus sqlc.OrderStatus, twoPhaseCommit bool, routine func(context.Context, sqlc.Order, bool) error,
-) error {
+	finalStatus sqlc.OrderStatus, twoPhaseCommit bool, routine func(context.Context, sqlc.Order, bool) (*sqlc.OrderStatus, error),
+) (sqlc.OrderStatus, error) {
 	if err := check.Status("order", order.Status, expecteds...); err != nil {
-		return err
+		return "", err
 	}
 
 	if order.Status != intermediateStatus {
 		if err := updateOrderStatus(ctx, query, intermediateStatus, order.ID); err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	if err := routine(ctx, order, twoPhaseCommit); err != nil {
-		return err
+	if status, err := routine(ctx, order, twoPhaseCommit); err != nil {
+		return "", err
+	} else if status != nil && finalStatus != *status {
+		//log
+		finalStatus = *status
 	}
 
 	if err := updateOrderStatus(ctx, query, finalStatus, order.ID); err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return finalStatus, nil
 }
 
-func (s *OrderService) approve_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
+func (s *OrderService) approve_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) (*sqlc.OrderStatus, error) {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
 	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
 	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
-	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
-		if _, err := s.payment.Approve(ctx, &paymentpb.PaymentApproveRequest{
+	return s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, func() (*sqlc.OrderStatus, error) {
+		if r, err := s.payment.Approve(ctx, &paymentpb.PaymentApproveRequest{
 			Id:                    paymentId,
 			PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
 		}); err != nil {
-			return status.Errorf(grpc.Status(err), "payment approving failed (paymentId '%s'): %v", paymentId, err)
+			return nil, status.Errorf(grpc.Status(err), "payment approving failed (paymentId '%s'): %v", paymentId, err)
+		} else if r.GetStatus() == paymentpb.Payment_INSUFFICIENT {
+			return ptr.Of(sqlc.OrderStatusINSUFFICIENT), nil
 		}
 
-		if _, err := s.reserve.Approve(ctx, &reservepb.ReserveApproveRequest{
+		if r, err := s.reserve.Approve(ctx, &reservepb.ReserveApproveRequest{
 			Id:                    reserveId,
 			PreparedTransactionId: reserveTransactionID(twoPhaseCommit, order),
 		}); err != nil {
-			return status.Errorf(grpc.Status(err), "reserve approving failed (reserveId '%s'): %v", reserveId, err)
+			return nil, status.Errorf(grpc.Status(err), "reserve approving failed (reserveId '%s'): %v", reserveId, err)
+		} else if r.GetStatus() == reservepb.Reserve_INSUFFICIENT {
+			return ptr.Of(sqlc.OrderStatusINSUFFICIENT), nil
 		}
-		return nil
-	}))
-
-	return err
+		return nil, nil
+	})
 }
 
-func (s *OrderService) cancel_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
+func (s *OrderService) cancel_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) (*sqlc.OrderStatus, error) {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
 	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
 	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
-	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
+	return s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
 		if _, err := s.payment.Cancel(ctx, &paymentpb.PaymentCancelRequest{
 			Id:                    paymentId,
 			PreparedTransactionId: paymentTransactionId,
@@ -436,21 +486,20 @@ func (s *OrderService) cancel_(ctx context.Context, order sqlc.Order, twoPhaseCo
 		}
 		return nil
 	}))
-	return err
 }
 
-func stubStatus(routine func() error) func() (sqlc.OrderStatus, error) {
-	return func() (sqlc.OrderStatus, error) {
-		return "", routine()
+func stubStatus(routine func() error) func() (*sqlc.OrderStatus, error) {
+	return func() (*sqlc.OrderStatus, error) {
+		return nil, routine()
 	}
 }
 
-func (s *OrderService) release_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) error {
+func (s *OrderService) release_(ctx context.Context, order sqlc.Order, twoPhaseCommit bool) (*sqlc.OrderStatus, error) {
 	paymentId := order.PaymentID.String
 	reserveId := order.ReserveID.String
 	paymentTransactionId := paymentTransactionID(twoPhaseCommit, order)
 	reservedTransactionId := reserveTransactionID(twoPhaseCommit, order)
-	_, err := s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
+	return s.doInDistributedTransaction(ctx, paymentTransactionId, reservedTransactionId, stubStatus(func() error {
 		if _, err := s.payment.Pay(ctx, &paymentpb.PaymentPayRequest{
 			Id:                    paymentId,
 			PreparedTransactionId: paymentTransactionID(twoPhaseCommit, order),
@@ -466,8 +515,6 @@ func (s *OrderService) release_(ctx context.Context, order sqlc.Order, twoPhaseC
 		}
 		return nil
 	}))
-
-	return err
 }
 
 func toProtDelivery(delivery sqlc.Delivery) *orderspb.Order_Delivery {
@@ -505,7 +552,7 @@ func paymentTransactionID(support bool, order sqlc.Order) *string {
 }
 
 func updateOrderStatus(ctx context.Context, query *sqlc.Queries, finalStatus sqlc.OrderStatus, orderId string) error {
-	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{Status: finalStatus})
+	err := query.UpdateOrderStatus(ctx, sqlc.UpdateOrderStatusParams{ID: orderId, Status: finalStatus})
 	if err != nil {
 		return status.Errorf(grpc.Status(err), "failed to update order status (orderId '%s', status '%s'): %v",
 			orderId, finalStatus, err)

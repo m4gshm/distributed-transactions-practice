@@ -1,0 +1,84 @@
+name: distributed-transactions-practice
+include:
+  - docker-compose-commons-min.yaml
+services:
+  prometheus:
+    deploy: &defaultLimits
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 64M
+    image: prom/prometheus:v3.5.0
+    ports:
+      - "9090:9090"
+    command:
+      - --web.enable-remote-write-receiver
+      - --web.enable-otlp-receiver
+      - --enable-feature=native-histograms
+      - --enable-feature=exemplar-storage
+      - --config.file=/etc/prometheus/prometheus.yml
+    volumes:
+      - './prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:z'
+  otel-collector:
+    deploy: *defaultLimits
+    image: otel/opentelemetry-collector-contrib:0.133.0
+    volumes:
+      - ./otel-collector/config.yaml:/etc/otelcol-contrib/config.yaml
+    ports:
+      - 4317:4317 # OTLP gRPC receiver
+  #      - 4318:4318 # OTLP http receiver
+  tempo_init:
+    deploy: *defaultLimits
+    image: &tempoImage grafana/tempo:main-83ee62c
+    user: root
+    entrypoint:
+      - "chown"
+      - "10001:10001"
+      - "/var/tempo"
+    volumes:
+      - ./tempo-data:/var/tempo
+  tempo:
+    deploy: *defaultLimits
+    image: *tempoImage
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./tempo/tempo.yaml:/etc/tempo.yaml
+      - ./tempo-data:/var/tempo
+    ports:
+      - 3200:3200
+      - 4316:4317
+    depends_on:
+      - tempo_init
+      - prometheus
+  grafana:
+    deploy: *defaultLimits
+    image: grafana/grafana:12.0.0
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+      - ./grafana/dashboard.yaml:/etc/grafana/provisioning/dashboards/main.yaml
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      DS_PROMETHEUS: prometheus
+      GF_AUTH_ANONYMOUS_ENABLED: true
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Admin
+      GF_AUTH_BASIC_ENABLED: false
+      GF_AUTH_DISABLE_LOGIN_FORM: true
+      GF_FEATURE_TOGGLES_ENABLE: traceqlEditor
+  # kafka-ui:
+  #   image: provectuslabs/kafka-ui:v0.7.2
+  #   ports:
+  #     - 7070:8080
+  #   volumes:
+  #     - ./kafka-ui/config.yaml:/etc/kafka-ui/dynamic_config.yaml
+  #   environment:
+  #     KAFKA_CLUSTERS_0_NAME: orders
+  #     KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka-1:19092
+  #     KAFKA_CLUSTERS_0_METRICS_PORT: 9992
+  #     DYNAMIC_CONFIG_ENABLED: 'true'
+  #   depends_on:
+  #     - kafka-1

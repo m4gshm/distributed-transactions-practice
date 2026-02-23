@@ -21,7 +21,7 @@ import (
 )
 
 func main() {
-	name := "reserve"
+	name := "go-reserve"
 	cfg := config.Load().Reserve
 
 	app.Run(name, cfg, slice.Of("reserve_status"),

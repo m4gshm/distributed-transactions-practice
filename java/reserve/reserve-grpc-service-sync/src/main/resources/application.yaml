@@ -1,0 +1,136 @@
+debug: false
+logging:
+  level:
+    root: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
+    org:
+      jooq:
+#        tools: DEBUG
+      springframework:
+        boot:
+          autoconfigure:
+            logging:
+              ConditionEvaluationReportLogger: DEBUG # auto configs report
+    io:
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      micrometer:
+        observation:
+          contextpropagation:
+            ObservationThreadLocalAccessor: INFO
+      grpc: INFO
+      github:
+        m4gshm: INFO
+    java:
+      io:
+        serialization: INFO
+    sun:
+      rmi: INFO
+    javax:
+      management: INFO
+  pattern:
+#    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
+server:
+  port: 7081
+  error:
+    include-message: always
+grpc:
+  engine: okhttp #netty 
+  client:
+    channel:
+      builder: ${grpc.engine}
+  server:
+    executor-type: virtual_thread
+#    event-loop-group-size: 1
+    custom:
+      type: ${grpc.client.channel.builder}
+    port: 9081
+    channelz:
+      enabled: true
+    health:
+      enabled: true #conflict with spring.grpc.server.health.enabled
+    reflection:
+      enabled: true
+    exception-handling:
+      default-exception-advice-enabled: true
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+    path: /swagger-ui/index.html
+  use-fqn: true  # Use fully qualified names for better clarity
+
+spring:
+  threads:
+    virtual:
+      enabled: true
+#  reactor.context-propagation: AUTO
+  #for liquibase
+  datasource:
+    url: jdbc:postgresql://localhost:5000/jvm_reserve
+    username: postgres
+    password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 8
+      maximum-pool-size: 120
+  liquibase:
+    enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
+  kafka:
+    bootstrap-servers: localhost:9092
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
+    consumer:
+      group-id: payments
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+  application:
+    name: jvm-reserve-sync
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: grpc
+  logging:
+    export:
+      enabled: false
+  tracing:
+    export:
+      enabled: false
+    sampling:
+      probability: 1.0
+  otlp:
+    metrics:
+      export:
+        enabled: false
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    common:
+      default-enabled: false
+

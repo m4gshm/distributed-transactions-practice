@@ -12,3 +12,9 @@
 docker/tempo-data
 *.exe
 rust/target
+golang/docker/cmd/
+!golang/docker/cmd/.gitkeep
+*.jfr
+*.prof
+*.pprof
+k6/flamegraph-java.html

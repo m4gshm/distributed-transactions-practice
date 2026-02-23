@@ -75,5 +75,8 @@ func (l Logger) Println(args ...any) {
 }
 
 func (l Logger) V(level int) bool {
-	return true
+	currentLevel := l.log.GetLevel()
+	requestedLevel := zerolog.Level(level)
+	ok := currentLevel == requestedLevel
+	return ok
 }

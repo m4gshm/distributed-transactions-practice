@@ -48,13 +48,15 @@ CREATE TABLE
     payment_transaction_id TEXT,
     reserve_transaction_id TEXT
   );
-
+  
+CREATE INDEX orders_created_at_idx ON public.orders (created_at);
 
 CREATE TABLE
   IF NOT EXISTS item (
-    id TEXT PRIMARY KEY NOT NULL,
+    id TEXT NOT NULL,
     order_id TEXT NOT NULL,
     amount INT NOT NULL,
+    PRIMARY KEY (id, order_id),
     CONSTRAINT item_orders_id_fk FOREIGN KEY (order_id) REFERENCES orders(id)
   );
 

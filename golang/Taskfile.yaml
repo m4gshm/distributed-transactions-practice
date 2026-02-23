@@ -1,6 +1,8 @@
 version: "3"
-
-# vars:
+includes:
+  docker:
+    taskfile: ../docker/Taskfile.yaml
+    dir: ../docker
 
 tasks:
   default:
@@ -45,6 +47,7 @@ tasks:
   generate:
     desc: "Generate Go code"
     cmds:
+      - task: generate-proto
       - go generate ./...
 
   updep:
@@ -53,7 +56,7 @@ tasks:
       - go get -u ./...
 
   rebuild:
-    desc: "Build Golang implementations of the services"  
+    desc: "Build Golang implementations of the services"
     cmds:
       - task: install
       - task: clean-gen
@@ -66,38 +69,49 @@ tasks:
     desc: "Build services"
     cmds:
       - go vet ./...
+      - mkdir -p ./bin
       - go build -o ./bin ./...
 
-  run-docker-requirements:
-    desc: "Run docker required services (postgres, kafka, etc.)"
-    dir: ../docker
+  build-docker:
+    desc: "Build services"
     cmds:
-      - docker-compose up -d
+      - go vet ./...
+      - GOOS=linux GOARCH=amd64 go build -o ./docker/cmd ./...
+      - docker-buildx build --build-arg EXEC_NAME=orders -t go-orders-grpc-service:latest --load ./docker
+      - docker-buildx build --build-arg EXEC_NAME=payments -t go-payments-grpc-service:latest --load ./docker
+      - docker-buildx build --build-arg EXEC_NAME=reserve -t go-reserve-grpc-service:latest --load ./docker
 
   run:
-    desc: "Run services"
     cmds:
-      - task: run-docker-requirements
+      - task: run-windows
+      - task: run-unix
+  run-windows:
+    desc: "Run services (windows)"
+    platforms: [windows]
+    cmds:
+      - task: docker:run-commons-min
       - |
         cd ./bin
-        ./order.exe &
-        ./payment.exe &
-        ./reserve.exe &
-        wait  
+        GOMEMLIMIT=64MiB GOGC=off ./orders.exe &
+        GOMEMLIMIT=64MiB GOGC=off ./payments.exe &
+        GOMEMLIMIT=64MiB GOGC=off ./reserve.exe &
+        wait
+  run-unix:
+    desc: "Run services (linux, darwin)"
+    platforms: ["linux", "darwin"]
+    cmds:
+      - task: docker:run-commons-min
+      - |
+        cd ./bin
+        GOMEMLIMIT=64MiB GOGC=off ./orders &
+        GOMEMLIMIT=64MiB GOGC=off ./payments &
+        GOMEMLIMIT=64MiB GOGC=off ./reserve &
+        wait
 
   clean:
     desc: "Clean generated files"
     cmds:
       - rm -rf {{.GO_OUT_DIR}}/*
-
-  recreate-docker-requirements:
-    desc: "Clean docker required services and restart"
-    dir: ../docker
-    cmds: 
-      - |
-        docker-compose down
-        docker volume rm distributed-transactions-practice_db-data
-      - task: run-docker-requirements 
 
   goose-status:
     cmds:

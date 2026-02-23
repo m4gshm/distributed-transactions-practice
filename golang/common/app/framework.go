@@ -4,15 +4,20 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"io/fs"
 	"net"
 	"net/http"
 	"os"
 	"os/signal"
+	"runtime/pprof"
 	"slices"
+	"sync/atomic"
 	"syscall"
 	"time"
 
+	"github.com/cmackenzie1/pgxpool-prometheus"
+	"github.com/exaring/otelpgx"
 	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/jackc/pgx/v5/stdlib"
@@ -21,8 +26,19 @@ import (
 	"github.com/m4gshm/gollections/k"
 	"github.com/m4gshm/gollections/slice"
 	"github.com/pressly/goose/v3"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
+	glog "go.finelli.dev/gooseloggers/zerolog"
+	"go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
+	"go.opentelemetry.io/otel/propagation"
+	"go.opentelemetry.io/otel/sdk/resource"
+	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	semconv "go.opentelemetry.io/otel/semconv/v1.27.0"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 	"google.golang.org/grpc/grpclog"
@@ -44,15 +60,25 @@ func Run(
 ) {
 	ctx := context.Background()
 
-	InitLog(name, zerolog.InfoLevel)
+	InitLog(name, cfg.LogLevel.Root)
+
+	if cfg.OtlpEnabled {
+		close, err := registerOtlpExporter(ctx, cfg.OtlpUrl, name)
+		if err != nil {
+			log.Fatal().Err(err).Msg("Failed to register Otlp exported")
+		}
+		defer close()
+	}
 
 	grpcServer := NewGrpcServer()
 	rmux := NewServerMux()
 
-	migrate(ctx, cfg.Database, mirgationsFS)
+	migrate(ctx, cfg.Database, cfg.LogLevel.DB, mirgationsFS)
 
-	pool := NewDBPool(ctx, cfg.Database, database.WithCustomEnumType(postgresEnumTypes...))
+	pool := NewDBPool(ctx, cfg.Database, cfg.LogLevel.DB, database.WithCustomEnumType(postgresEnumTypes...))
 	defer pool.Close()
+
+	prometheus.MustRegister(pgxpool_prometheus.NewPgxPoolStatsCollector(pool, "mainDB"))
 
 	for _, buildService := range registerServices {
 		closes, err := buildService(ctx, pool, grpcServer, rmux)
@@ -66,10 +92,42 @@ func Run(
 	Start(ctx, name, cfg.GrpcPort, cfg.HttpPort, grpcServer, rmux, swaggerJson)
 }
 
-func migrate(ctx context.Context, conf config.DatabaseConfig, mirgationsFS fs.FS) {
-	mpool := NewDBPool(ctx, conf)
+func registerOtlpExporter(ctx context.Context, otlpUrl string, name string) (func(), error) {
+	res, err := resource.New(ctx, resource.WithAttributes(semconv.ServiceName(name)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create otel resource: %w", err)
+	}
+
+	traceExporter, err := otlptracegrpc.New(ctx, otlptracegrpc.WithEndpointURL(otlpUrl))
+	if err != nil {
+		return nil, fmt.Errorf("failed to create trace exporter: %w", err)
+	}
+	tracerProvider := sdktrace.NewTracerProvider(
+		sdktrace.WithSampler(sdktrace.AlwaysSample()),
+		sdktrace.WithResource(res),
+		sdktrace.WithSpanProcessor(sdktrace.NewBatchSpanProcessor(traceExporter)),
+	)
+	otel.SetTracerProvider(tracerProvider)
+	otel.SetTextMapPropagator(propagation.NewCompositeTextMapPropagator(
+		propagation.TraceContext{},
+		propagation.Baggage{},
+	))
+
+	return func() {
+		if err := traceExporter.Shutdown(ctx); err != nil {
+			log.Err(err).Msg("Failed to shutdown otel trace exporter")
+		}
+		if err := tracerProvider.Shutdown(ctx); err != nil {
+			log.Err(err).Msg("Failed to shutdown otel trace provider")
+		}
+	}, nil
+}
+
+func migrate(ctx context.Context, conf config.DatabaseConfig, logLevel zerolog.Level, mirgationsFS fs.FS) {
+	mpool := NewDBPool(ctx, conf, logLevel)
 	defer mpool.Close()
 	goose.SetBaseFS(mirgationsFS)
+	goose.SetLogger(glog.GooseZerologLogger(&log.Logger))
 	if err := goose.SetDialect("postgres"); err != nil {
 		log.Fatal().Err(err).Msgf("Failed to register goose dialect %s", "postgres")
 	}
@@ -106,12 +164,32 @@ func Start(ctx context.Context, name string, grpcPort int, httpPort int, grpcSer
 	Shutdown(ctx, grpcServer, httpServer)
 }
 
-func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, opts ...database.ConConfOpt) *pgxpool.Pool {
-	db, err := database.NewPool(ctx, cfg, append(slice.Of(database.WithLogger(log.Logger, tracelog.LogLevelDebug)), opts...)...)
+func NewDBPool(ctx context.Context, cfg config.DatabaseConfig, logLevel zerolog.Level, opts ...database.ConConfOpt) *pgxpool.Pool {
+	tracer := database.WithTracers(database.NewTraceLog(log.Logger, toPgxLogLevel(logLevel)), otelpgx.NewTracer())
+	pool, err := database.NewPool(ctx, cfg, append(slice.Of(tracer), opts...)...)
 	if err != nil {
 		log.Fatal().Err(err).Msg("Failed to connect to database")
 	}
-	return db
+	return pool
+}
+
+func toPgxLogLevel(logLevel zerolog.Level) tracelog.LogLevel {
+	var pgxLogLevel = tracelog.LogLevelInfo
+	switch logLevel {
+	case zerolog.TraceLevel:
+		pgxLogLevel = tracelog.LogLevelTrace
+	case zerolog.DebugLevel:
+		pgxLogLevel = tracelog.LogLevelDebug
+	case zerolog.InfoLevel:
+		pgxLogLevel = tracelog.LogLevelInfo
+	case zerolog.WarnLevel:
+		pgxLogLevel = tracelog.LogLevelWarn
+	case zerolog.ErrorLevel:
+		pgxLogLevel = tracelog.LogLevelError
+	case zerolog.Disabled:
+		pgxLogLevel = tracelog.LogLevelNone
+	}
+	return pgxLogLevel
 }
 
 func WaitTermSig() {
@@ -130,7 +208,10 @@ func Shutdown(ctx context.Context, grpcServer *grpc.Server, httpServer *http.Ser
 
 func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJson fs.FS) *http.Server {
 	mux := http.NewServeMux()
-	mux.Handle("/", rmux)
+	mux.Handle("/", otelhttp.NewHandler(rmux, "", otelhttp.WithSpanNameFormatter(func(_ string, r *http.Request) string {
+		return r.Method + ":" + r.RequestURI
+	})))
+	mux.Handle("/metrics", promhttp.Handler())
 
 	mux.HandleFunc("/swagger-ui/swagger.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFileFS(w, r, swaggerJson, "apidocs.swagger.json")
@@ -138,11 +219,69 @@ func NewHttpServer(rmux *runtime.ServeMux, name string, httpPort int, swaggerJso
 
 	mux.Handle("/swagger-ui/", http.StripPrefix("/swagger-ui/", http.FileServerFS(swagger.UI)))
 
+	mux.HandleFunc("/profile/start", StartProfile)
+	mux.HandleFunc("/profile/stop", StopProfile)
+
 	httpServer := &http.Server{
 		Addr:    fmt.Sprintf(":%d", httpPort),
 		Handler: mux,
 	}
 	return httpServer
+}
+
+func serveError(w http.ResponseWriter, status int, err error) {
+	log.Err(err).Msg("http server error")
+	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
+	w.Header().Set("X-Go-Pprof", "1")
+	w.Header().Del("Content-Disposition")
+	w.WriteHeader(status)
+	_, _ = fmt.Fprintln(w, err.Error())
+}
+
+var profFile = atomic.Pointer[os.File]{}
+
+func StartProfile(w http.ResponseWriter, r *http.Request) {
+	tempDir := os.TempDir()
+	if _, err := os.Stat(tempDir); os.IsNotExist(err) {
+		if err := os.Mkdir(tempDir, os.ModeDir); err != nil {
+			log.Err(err).Msg("temp dir  creation error")
+		}
+	}
+	if file, err := os.CreateTemp(tempDir, "*-profile.pprof"); err != nil {
+		serveError(w, http.StatusInternalServerError, fmt.Errorf("could not create temporary file: %w", err))
+	} else if profFile.CompareAndSwap(nil, file) {
+		if err := pprof.StartCPUProfile(file); err != nil {
+			serveError(w, http.StatusInternalServerError, fmt.Errorf("could not enable CPU profiling: %w", err))
+		} else {
+			w.WriteHeader(http.StatusCreated)
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
+}
+
+func StopProfile(w http.ResponseWriter, r *http.Request) {
+	file := profFile.Load()
+	if file != nil && profFile.CompareAndSwap(file, nil) {
+		pprof.StopCPUProfile()
+		_, _ = file.Seek(0, io.SeekStart)
+		bytes, err := io.ReadAll(file)
+		_ = file.Close()
+		if err != nil {
+			serveError(w, http.StatusInternalServerError, fmt.Errorf("could not read temporary file: %w", err))
+		} else {
+			w.Header().Set("X-Content-Type-Options", "nosniff")
+			w.Header().Set("Content-Type", "application/octet-stream")
+			w.Header().Set("Content-Disposition", `attachment; filename="profile"`)
+			if _, err = w.Write(bytes); err != nil {
+				serveError(w, http.StatusInternalServerError, fmt.Errorf("could not write response: %w", err))
+			} else {
+				w.WriteHeader(http.StatusOK)
+			}
+		}
+	} else {
+		w.WriteHeader(http.StatusNoContent)
+	}
 }
 
 func NewNetListener(grpcPort int) net.Listener {
@@ -169,20 +308,24 @@ func NewServerMux() *runtime.ServeMux {
 }
 
 func NewGrpcServer() *grpc.Server {
-	grpcServer := grpc.NewServer()
+	grpcServer := grpc.NewServer(grpc.StatsHandler(otelgrpc.NewServerHandler()))
 	reflection.Register(grpcServer)
 	return grpcServer
 }
 
 func NewGrpcClient(url string, name string) *grpc.ClientConn {
-	paymentConn, err := grpc.NewClient(url, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	paymentConn, err := grpc.NewClient(
+		url,
+		grpc.WithTransportCredentials(insecure.NewCredentials()),
+		grpc.WithStatsHandler(otelgrpc.NewClientHandler()),
+	)
 	if err != nil {
 		log.Fatal().Err(err).Msgf("Failed to connect to %s service", name)
 	}
 	return paymentConn
 }
 
-func InitLog(name string, l zerolog.Level) {
+func InitLog(name string, level zerolog.Level) {
 	zerolog.TimeFieldFormat = zerolog.TimeFormatUnix
 	colorized := ordered.NewMap(k.V("pid", colorDarkGray), k.V("name", colorCyan))
 	names := colorized.Keys().Slice()
@@ -203,7 +346,7 @@ func InitLog(name string, l zerolog.Level) {
 				}
 			},
 		}).
-		Level(l).
+		Level(level).
 		With().
 		Int("pid", os.Getpid()).
 		Str("name", name).

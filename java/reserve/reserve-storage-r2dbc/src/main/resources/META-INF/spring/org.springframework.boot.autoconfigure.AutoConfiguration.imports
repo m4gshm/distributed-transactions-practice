@@ -1,0 +1,2 @@
+io.github.m4gshm.reserve.data.r2dbc.config.ReactiveReserveStorageImplAutoConfiguration
+io.github.m4gshm.reserve.data.r2dbc.config.ReactiveWarehouseItemStorageImplAutoConfiguration

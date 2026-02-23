@@ -2,16 +2,30 @@ debug: false
 logging:
   level:
     root: INFO
+    reactor:
+      netty:
+        channel:
+          ChannelOperations: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
     org:
       springframework:
+        aop:
+          support:
+            DefaultListableBeanFactory: INFO
         boot:
           autoconfigure:
             logging:
-              ConditionEvaluationReportLogger: debug # auto configs report
+#              ConditionEvaluationReportLogger: DEBUG # auto configs report
         r2dbc:
-          connection: TRACE # log sql
+          connection:
+#            R2dbcTransactionManager: DEBUG
         transaction:
-          reactive: TRACE # log sql
+#          reactive: DEBUG
       apache:
         kafka:
           clients:
@@ -23,12 +37,33 @@ logging:
             telemetry:
               internals: INFO
     io:
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      micrometer:
+        tracing:
+          otel:
+            bridge:
+              Slf4JEventListener: INFO
+              Slf4JBaggageEventListener: INFO
+        observation:
+          contextpropagation:
+            ObservationThreadLocalAccessor: INFO
+      grpc: INFO
       github:
-        m4gshm: TRACE
+        m4gshm: INFO
       r2dbc:
+        proxy:
+#          observation:
+#            ObservationProxyExecutionListener: TRACE
+        pool:
+#          ConnectionPool: DEBUG
+#          PooledConnection: TRACE
         postgresql:
-          client: DEBUG # log sql
-          QUERY: DEBUG
+          client: INFO # log sql
+#          QUERY: DEBUG
     java:
       io:
         serialization: INFO
@@ -37,14 +72,15 @@ logging:
     javax:
       management: INFO
   pattern:
-    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
-
+#    level: '%5p [${spring.application.name:},%X{traceId:-},%X{spanId:-}] [%X{trace_id:-},%X{span_id:-}]'
 server:
   port: 7080
   error:
     include-message: always
+
 grpc:
   server:
+    executor-type: DIRECT
     port: 9080
     channelz:
       enabled: true
@@ -59,32 +95,49 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+  threads:
+    virtual:
+      enabled: false
+  reactor.context-propagation: AUTO
   #for liquibase
   datasource:
-    url: jdbc:postgresql://localhost:5000/orders
+    url: jdbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
+#    hikari:
+#      minimum-idle: 2
+#      maximum-pool-size: 120
   r2dbc:
-    url: r2dbc:postgresql://localhost:5000/orders
+    url: r2dbc:postgresql://localhost:5000/jvm_orders
     username: postgres
     password: postgres
+    pool:
+      initial-size: 8
+      max-size: 1024
+      min-idle: 8
   liquibase:
     enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
   kafka:
+    enabled: false
+    bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
       group-id: orders
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       auto-offset-reset: earliest
-      bootstrap-servers:
-        - localhost:9092
+      bootstrap-servers: ${spring.kafka.bootstrap-servers}
       client-id: orders-1
       properties:
         spring:
@@ -93,7 +146,7 @@ spring:
               packages: "io.github.m4gshm.payments.event.model"
         reactiveAutoCommit: true
   application:
-    name: orders
+    name: jvm-orders-reactive
 
 service:
   reserve:
@@ -103,19 +156,48 @@ service:
   payments:
     address: localhost:9082
 
-idempotent-consumer:
-  create-partition-scheduler: "0 */30 * * * *"
+#idempotent-consumer:
+#  create-partition: false
+#  create-table: false
+#  create-partition-on-input-message: false
+#  create-partition-scheduler: '-'
 
 management:
   endpoints:
     web:
       exposure:
         include: '*'
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: grpc
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
-    logging:
-      endpoint: http://localhost:4318/v1/logs
-    tracing:
-      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        enabled: false
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    r2dbc:
+      enabled: false
+    spring-webflux:
+      enabled: false
+    common:
+      default-enabled: false
+#      logging:
+#        trace-id: traceId
+#        span-id: spanId
+

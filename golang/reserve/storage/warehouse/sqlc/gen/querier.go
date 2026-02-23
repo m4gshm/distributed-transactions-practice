@@ -11,11 +11,11 @@ import (
 type Querier interface {
 	DecrementAmountAndReserved(ctx context.Context, arg DecrementAmountAndReservedParams) error
 	DecrementReserved(ctx context.Context, arg DecrementReservedParams) error
+	IncrementAmount(ctx context.Context, arg IncrementAmountParams) (int32, error)
 	IncrementReserved(ctx context.Context, arg IncrementReservedParams) error
 	SelectAllItems(ctx context.Context) ([]WarehouseItem, error)
 	SelectItemByID(ctx context.Context, id string) (WarehouseItem, error)
 	SelectItemByIDForUpdate(ctx context.Context, id string) (WarehouseItem, error)
-	UpdateAmountAndReserved(ctx context.Context, arg UpdateAmountAndReservedParams) error
 }
 
 var _ Querier = (*Queries)(nil)

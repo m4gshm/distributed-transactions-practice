@@ -1,16 +1,14 @@
 plugins {
     `java-library`
-    id("org.liquibase.gradle")
+    id("liquibase-conventions")
     id("org.jooq.jooq-codegen-gradle")
 }
 apply(plugin = "io.spring.dependency-management")
 
 dependencies {
-    api(project(":jooq-r2dbc"))
-    api(project(":r2dbc-postgres"))
+    compileOnly("io.projectreactor:reactor-core")
 
     implementation("org.postgresql:postgresql")
-    implementation("org.postgresql:r2dbc-postgresql")
 
     liquibaseRuntime("org.liquibase:liquibase-core")
     liquibaseRuntime("info.picocli:picocli")
@@ -18,7 +16,6 @@ dependencies {
 
     jooqCodegen("org.postgresql:postgresql")
 
-    implementation("org.springframework.boot:spring-boot-starter-data-r2dbc")
     implementation("org.springframework.boot:spring-boot-starter-jooq")
     implementation("org.springframework.boot:spring-boot-autoconfigure")
 
@@ -26,25 +23,11 @@ dependencies {
     implementation("org.jooq:jooq-postgres-extensions")
 }
 
-val dbSchema = "public"
-val dbUsername = "postgres"
-val dbPassword = "postgres"
-val dbUrl = "jdbc:postgresql://localhost:5000/idempotent_consumer"
-
-liquibase.activities.register("main") {
-    arguments = mapOf<String, Any?>(
-        "searchPath" to "${project.projectDir}/src/main/liquibase/",
-        "changelogFile" to requiredProperty("changeLogFile", "db/changelog/db.changelog-master.yaml"),
-        "url" to requiredProperty("dbUrl", dbUrl),
-        "username" to requiredProperty("dbUsername", dbUsername),
-        "password" to requiredProperty("dbPassword", dbPassword),
-        "liquibaseSchemaName" to requiredProperty("dbSchema", dbSchema),
-        "defaultSchemaName" to requiredProperty("dbSchema", dbSchema),
-        "logLevel" to "DEBUG",
-    ) + listOf(
-        "count"
-    ).map { it to project.findProperty(it) }.filter { it.second != null }
-}
+val dbSchema by project.extra { "public" }
+val dbUsername by project.extra { "postgres" }
+val dbPassword by project.extra { "postgres" }
+val dbAddress by project.extra { "localhost:5000" }
+val dbUrl by project.extra { "jdbc:postgresql://$dbAddress/idempotent_consumer" }
 
 jooq {
     configuration {
@@ -82,7 +65,12 @@ jooq {
 fun requiredProperty(propertyName: String, defaultValue: String? = null) = project.findProperty(propertyName)
     ?: defaultValue ?: throw GradleException("undefined $propertyName")
 
+tasks.register<LiquibaseTask>("liquibaseUpdate") {
+    searchPath = project.projectDir.path + "/src/main/liquibase"
+    command = "update"
+}
+
 tasks.named("jooqCodegen") {
-    dependsOn("update")
+    dependsOn("liquibaseUpdate")
 }
 

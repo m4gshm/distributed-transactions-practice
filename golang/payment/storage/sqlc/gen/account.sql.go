@@ -90,7 +90,7 @@ func (q *Queries) FindAccountById(ctx context.Context, clientID string) (Account
 const findAccountByIdForUpdate = `-- name: FindAccountByIdForUpdate :one
 SELECT client_id, amount, locked, updated_at
 FROM account
-WHERE client_id = $1 FOR UPDATE
+WHERE client_id = $1 FOR NO KEY UPDATE
 `
 
 func (q *Queries) FindAccountByIdForUpdate(ctx context.Context, clientID string) (Account, error) {

@@ -9,9 +9,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/m4gshm/gollections/op"
 	"github.com/m4gshm/gollections/slice"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/trace"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
+	"github.com/m4gshm/distributed-transactions-practice/golang/common/check"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/grpc"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/pg"
 	"github.com/m4gshm/distributed-transactions-practice/golang/common/tx"
@@ -21,6 +24,12 @@ import (
 )
 
 //go:generate fieldr -type PaymentService -out . new-full
+
+var tracer trace.Tracer
+
+func init() {
+	tracer = otel.Tracer("PaymentService")
+}
 
 type PaymentService struct {
 	paymentpb.UnimplementedPaymentServiceServer
@@ -36,11 +45,13 @@ func NewPaymentService(
 }
 
 func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreateRequest) (*paymentpb.PaymentCreateResponse, error) {
+	ctx, span := tracer.Start(ctx, "Create")
+	defer span.End()
 	body := req.Body
 	if body == nil {
 		return nil, status.Errorf(codes.InvalidArgument, "payment body is required")
 	}
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentCreateResponse, error) {
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentCreateResponse, error) {
 		paymentID := uuid.New().String()
 
 		query := paymentsqlc.New(tx)
@@ -66,7 +77,9 @@ func (s *PaymentService) Create(ctx context.Context, req *paymentpb.PaymentCreat
 }
 
 func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentApproveRequest) (*paymentpb.PaymentApproveResponse, error) {
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentApproveResponse, error) {
+	ctx, span := tracer.Start(ctx, "Approve")
+	defer span.End()
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentApproveResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)
@@ -74,8 +87,11 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 			return nil, err
 		}
 
-		if s := payment.Status; s != paymentsqlc.PaymentStatusCREATED && s != paymentsqlc.PaymentStatusINSUFFICIENT {
-			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be approved in current status '%s'", s)
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusCREATED,
+			paymentsqlc.PaymentStatusINSUFFICIENT,
+		); err != nil {
+			return nil, err
 		}
 
 		account, err := query.FindAccountByIdForUpdate(ctx, payment.ClientID)
@@ -121,11 +137,21 @@ func (s *PaymentService) Approve(ctx context.Context, req *paymentpb.PaymentAppr
 }
 
 func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCancelRequest) (*paymentpb.PaymentCancelResponse, error) {
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentCancelResponse, error) {
+	ctx, span := tracer.Start(ctx, "Cancel")
+	defer span.End()
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentCancelResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)
 		if err != nil {
+			return nil, err
+		}
+
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusCREATED,
+			paymentsqlc.PaymentStatusINSUFFICIENT,
+			paymentsqlc.PaymentStatusHOLD,
+		); err != nil {
 			return nil, err
 		}
 
@@ -161,16 +187,20 @@ func (s *PaymentService) Cancel(ctx context.Context, req *paymentpb.PaymentCance
 }
 
 func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayRequest) (*paymentpb.PaymentPayResponse, error) {
-	return tx.New(ctx, s.db, func(tx pgx.Tx) (*paymentpb.PaymentPayResponse, error) {
+	ctx, span := tracer.Start(ctx, "Pay")
+	defer span.End()
+	return tx.New(ctx, s.db, func(ctx context.Context, tx pgx.Tx) (*paymentpb.PaymentPayResponse, error) {
 		query := paymentsqlc.New(tx)
 
 		payment, err := query.FindPaymentByID(ctx, req.Id)
 		if err != nil {
 			return nil, err
 		}
-		// Check if payment can be paid
-		if payment.Status != paymentsqlc.PaymentStatusHOLD {
-			return nil, status.Errorf(codes.FailedPrecondition, "payment cannot be paid in current status '%s'", payment.Status)
+
+		if err := check.Status("payment", payment.Status,
+			paymentsqlc.PaymentStatusHOLD,
+		); err != nil {
+			return nil, err
 		}
 
 		account, err := query.FindAccountByIdForUpdate(ctx, payment.ClientID)
@@ -210,6 +240,8 @@ func (s *PaymentService) Pay(ctx context.Context, req *paymentpb.PaymentPayReque
 }
 
 func (s *PaymentService) Get(ctx context.Context, req *paymentpb.PaymentGetRequest) (*paymentpb.PaymentGetResponse, error) {
+	ctx, span := tracer.Start(ctx, "Get")
+	defer span.End()
 	query := paymentsqlc.New(s.db)
 	payment, err := query.FindPaymentByID(ctx, req.Id)
 	if err != nil {
@@ -219,6 +251,8 @@ func (s *PaymentService) Get(ctx context.Context, req *paymentpb.PaymentGetReque
 }
 
 func (s *PaymentService) List(ctx context.Context, req *paymentpb.PaymentListRequest) (*paymentpb.PaymentListResponse, error) {
+	ctx, span := tracer.Start(ctx, "list")
+	defer span.End()
 	query := paymentsqlc.New(s.db)
 	payments, err := query.FindAllPayments(ctx)
 	if err != nil {

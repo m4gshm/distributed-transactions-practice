@@ -1,0 +1,19 @@
+debug: true
+logging:
+  level:
+    root: info
+spring:
+  r2dbc:
+    url: r2dbc:postgresql://localhost:5000/jvm_payments
+    username: postgres
+    password: postgres
+service:
+  orders:
+    address: localhost:9080
+  reserve:
+    address: localhost:9081
+  warehouse:
+    address: localhost:9081
+  payments:
+    address: localhost:9082
+

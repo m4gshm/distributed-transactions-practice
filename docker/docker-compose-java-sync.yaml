@@ -1,0 +1,73 @@
+name: distributed-transactions-practice
+#include:
+#  - docker-compose-commons.yaml
+
+services:
+  jvm-orders-grpc-service-sync:
+    depends_on:
+      - postgres
+    deploy: &defaultDeploy
+      resources:
+        limits:
+          memory: 1024m
+        reservations:
+          memory: 256m
+    hostname: jvm-orders-grpc-service
+    image: jvm-orders-grpc-service-sync:latest
+    ports:
+      - "7080:7080"
+      - "9080:9080"
+      # - "5005:5005"
+    environment:
+      SQLC_ENABLED: false
+      VT_PARALLELISM_DELTA: ${VT_PARALLELISM_DELTA:-}
+      GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-okhttp}
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_OPENTELEMETRY_TRACING_EXPORT_OTLP_COMPRESSION: NONE
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
+      SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_orders
+      SERVICE_RESERVE_ADDRESS: jvm-reserve-grpc-service-sync:9081
+      SERVICE_WAREHOUSE_ADDRESS: jvm-reserve-grpc-service-sync:9081
+      SERVICE_PAYMENTS_ADDRESS: jvm-payments-grpc-service-sync:9082
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
+      OTEL_SERVICE_NAME: jvm-orders
+  jvm-payments-grpc-service-sync:
+    depends_on:
+      - postgres
+    deploy: *defaultDeploy
+    hostname: jvm-payments-grpc-service
+    image: jvm-payments-grpc-service-sync:latest
+    ports:
+      - "7082:7082"
+      - "9082:9082"
+    environment:
+      VT_PARALLELISM_DELTA: ${VT_PARALLELISM_DELTA:-}
+      GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-okhttp}
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
+      SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_payments
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
+      OTEL_SERVICE_NAME: jvm-payments
+  jvm-reserve-grpc-service-sync:
+    depends_on:
+      - postgres
+    deploy: *defaultDeploy
+    hostname: jvm-reserve-grpc-service
+    image: jvm-reserve-grpc-service-sync:latest
+    ports:
+      - "7081:7081"
+      - "9081:9081"
+    environment:
+      VT_PARALLELISM_DELTA: ${VT_PARALLELISM_DELTA:-}
+      GRPC_CLIENT_CHANNEL_BUILDER: ${GRPC_ENGINE:-okhttp}
+      JDBC_DATASOURCE_PROXY_ENABLED: ${TRACING_ENABLED:-false}
+      MICROMETER_GRPC_ENABLED: ${TRACING_ENABLED:-false}
+      MANAGEMENT_TRACING_EXPORT_ENABLED: ${TRACING_ENABLED:-false}
+      OTEL_EXPORTER_OTLP_ENDPOINT: http://distributed-transactions-practice-otel-collector-1:4317
+      SPRING_DATASOURCE_URL: jdbc:postgresql://distributed-transactions-practice-postgres-1:5432/jvm_reserve
+      SPRING_KAFKA_BOOTSTRAP_SERVERS: kafka-1:19092
+      OTEL_SERVICE_NAME: jvm-reserve

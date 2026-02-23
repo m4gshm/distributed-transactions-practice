@@ -16,13 +16,13 @@ WHERE
 
 -- name: UpsertReserve :exec
 INSERT INTO
-  reserve (id, external_ref, status, created_at, updated_at)
+  reserve (id, external_ref, status, created_at)
 VALUES
-  ($1, $2, $3, $4, $5) ON CONFLICT (id) DO
+  ($1, $2, $3, $4) ON CONFLICT (id) DO
 UPDATE
 SET
   status = EXCLUDED.status,
-  updated_at = COALESCE(EXCLUDED.updated_at, reserve.updated_at);
+  updated_at = COALESCE($5, CURRENT_TIMESTAMP);
 
 
 -- name: DeleteReserveItems :exec
@@ -50,3 +50,13 @@ FROM
   reserve_item
 WHERE
   reserve_id = $1;
+
+
+-- name: FindItemsByReserveIDOrderByID :many
+SELECT
+  *
+FROM
+  reserve_item
+WHERE
+  reserve_id = $1
+ORDER BY id;

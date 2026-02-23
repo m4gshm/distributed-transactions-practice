@@ -3,7 +3,7 @@ import io.spring.gradle.dependencymanagement.dsl.DependencyManagementExtension
 
 plugins {
     id("io.spring.dependency-management") version "1.1.7"
-    id("org.springframework.boot") version "3.5.4" apply false
+    id("org.springframework.boot") version "4.0.1" apply false
     id("com.google.protobuf") version "0.9.5" apply false
     id("org.liquibase.gradle") version "3.0.2" apply false
     id("org.jooq.jooq-codegen-gradle") version "3.20.6" apply false
@@ -12,6 +12,8 @@ plugins {
 
 buildscript {
     val liquibaseVer: String by extra { "4.33.0" }
+    val grpcVer: String by extra { "1.77.0" }
+    val protobufVer: String by extra { "4.33.2" }
 
     dependencies {
         classpath("org.liquibase:liquibase-core:$liquibaseVer")
@@ -30,73 +32,146 @@ subprojects {
     the<CheckstyleExtension>().apply {
         toolVersion = "11.0.0"
     }
+    the<JavaPluginExtension>().apply {
+        sourceCompatibility = JavaVersion.VERSION_24
+        targetCompatibility = JavaVersion.VERSION_24
+    }
+
+    val isSyncService = project.path in setOf(
+        ":orders:orders-grpc-service-sync",
+        ":payments:payments-grpc-service-sync",
+        ":reserve:reserve-grpc-service-sync"
+    )
+
+    val isReactiveService = project.path in setOf(
+        ":orders:orders-grpc-service",
+        ":payments:payments-grpc-service",
+        ":reserve:reserve-grpc-service"
+    )
 
     dependencies {
+        fun api(notation: Any) = add("api", notation)
+        fun implementation(notation: Any) = add("implementation", notation)
+        fun runtimeOnly(notation: Any) = add("runtimeOnly", notation)
+        fun testImplementation(notation: Any) = add("testImplementation", notation)
+        fun testRuntimeOnly(notation: Any) = add("testRuntimeOnly", notation)
+
         listOf("implementation", "annotationProcessor", "testAnnotationProcessor").forEach {
             add(
                 it,
                 "org.projectlombok:lombok"
             )
         }
-        if (project.path in setOf(
-                ":orders:orders-grpc-service",
-                ":payments:payments-grpc-service",
-                ":reserve:reserve-grpc-service"
-            )
-        ) {
-            add("implementation", "io.opentelemetry:opentelemetry-sdk-extension-autoconfigure")
-            add("implementation", "io.opentelemetry.instrumentation:opentelemetry-spring-boot-starter")
-            add("runtimeOnly", "io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+        if (isReactiveService || isSyncService) {
+            implementation("org.aspectj:aspectjtools:1.9.25")
+            runtimeOnly("org.aspectj:aspectjweaver:1.9.25")
 
-            add("implementation", "org.springframework.boot:spring-boot-starter-data-r2dbc")
-            add("implementation", "org.springframework.boot:spring-boot-starter-jooq")
+//            runtimeOnly("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+            runtimeOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+//            runtimeOnly("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+//            modules {
+//                module("io.opentelemetry:opentelemetry-exporter-sender-okhttp") {
+//                    replacedBy("io.opentelemetry:opentelemetry-exporter-sender-grpc-managed-channel")
+//                }
+//            }
 
-            add("implementation", "org.springframework.boot:spring-boot-starter-actuator")
-            add("implementation", "io.micrometer:micrometer-registry-prometheus")
-            add("implementation", "org.springframework.boot:spring-boot-starter-webflux")
-            add("implementation", "org.springframework:spring-webflux")
-            add("implementation", "org.springdoc:springdoc-openapi-starter-webflux-ui")
+            implementation("org.springframework.boot:spring-boot-starter-opentelemetry")
 
-            add("implementation", "io.github.danielliu1123:grpc-server-boot-starter")
-            add("implementation", "io.github.danielliu1123:grpc-starter-protovalidate")
-            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding")
-            add("implementation", "io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+            implementation("org.springframework.boot:spring-boot-starter-jooq")
+            implementation("org.springframework.boot:spring-boot-starter-actuator")
 
-            add("implementation", "org.springframework.boot:spring-boot-autoconfigure")
+            implementation("org.springframework.boot:spring-boot-micrometer-metrics")
+            implementation("org.springframework.boot:spring-boot-micrometer-observation")
+            implementation("org.springframework.boot:spring-boot-micrometer-tracing-opentelemetry")
+            implementation("io.micrometer:context-propagation")
+            implementation("io.micrometer:micrometer-tracing")
+            implementation("io.micrometer:micrometer-tracing-bridge-otel")
+            implementation("io.micrometer:micrometer-registry-otlp")
+            implementation("io.micrometer:micrometer-registry-prometheus")
 
+//            if (project.path == ":orders:orders-grpc-service-sync") {
+//                implementation("org.springframework.grpc:spring-grpc-spring-boot-starter")
+//                api(project(":grpc-service-spring-extension"))
+//            } else {
+            implementation("io.github.danielliu1123:grpc-transcoding")
+            implementation("io.github.danielliu1123:grpc-server-boot-starter")
+            implementation("io.github.danielliu1123:grpc-starter-protovalidate")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding")
+            implementation("io.github.danielliu1123:grpc-starter-transcoding-springdoc")
+            implementation("io.github.danielliu1123:grpc-server-boot-autoconfigure")
+            api(project(":grpc-service-danielliu1123-extension"))
+//            }
 
-            add("implementation", "io.grpc:grpc-netty-shaded")
+            implementation("org.springframework.boot:spring-boot-autoconfigure")
+
+            implementation("io.grpc:grpc-netty")
+            implementation("io.grpc:grpc-okhttp")
+
             modules {
-                module("io.grpc:grpc-netty") {
-                    replacedBy("io.grpc:grpc-netty-shaded", "Use Netty shaded instead of regular Netty")
+                module("io.grpc:grpc-netty-shaded") {
+                    replacedBy("io.grpc:grpc-netty")
+                    replacedBy("io.grpc:grpc-okhttp")
                 }
             }
-            add("implementation", "io.projectreactor.kafka:reactor-kafka")
-            add("implementation", "org.springframework.kafka:spring-kafka")
+
+            implementation("org.springframework.kafka:spring-kafka")
+
+            implementation("io.opentelemetry:opentelemetry-api")
+            implementation("io.opentelemetry:opentelemetry-sdk-extension-autoconfigure-spi")
+            implementation("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6")
+            implementation("io.opentelemetry.contrib:opentelemetry-samplers")
+
+            implementation("org.springframework.boot:spring-boot-health")
+            implementation("org.springframework.boot:spring-boot-jooq")
+            implementation("org.springframework.boot:spring-boot-actuator-autoconfigure")
+            implementation("org.springframework.boot:spring-boot-starter-liquibase")
+            implementation("org.springdoc:springdoc-openapi-starter-common")
+        }
+        if (isReactiveService) {
+            implementation("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1")
+
+            implementation("org.springframework.boot:spring-boot-starter-webflux")
+            implementation("org.springframework:spring-webflux")
+            implementation("org.springdoc:springdoc-openapi-starter-webflux-ui")
+
+            implementation("io.projectreactor.kafka:reactor-kafka")
+
+            implementation("io.r2dbc:r2dbc-proxy")
+        }
+        if (isSyncService) {
+            implementation("net.ttddyy.observation:datasource-micrometer:2.0.1")
+            implementation("net.ttddyy.observation:datasource-micrometer-spring-boot:2.0.1")
+
+            implementation("org.springframework.boot:spring-boot-starter-web")
+            implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui")
         }
 
-        add("testImplementation", "org.junit.jupiter:junit-jupiter-api")
-        add("testImplementation", "org.junit.jupiter:junit-jupiter")
-        add("testRuntimeOnly", "org.junit.platform:junit-platform-engine")
-        add("testRuntimeOnly", "org.junit.platform:junit-platform-launcher")
+        testImplementation("org.junit.jupiter:junit-jupiter-api")
+        testImplementation("org.junit.jupiter:junit-jupiter")
+        testRuntimeOnly("org.junit.platform:junit-platform-engine")
+        testRuntimeOnly("org.junit.platform:junit-platform-launcher")
     }
 
     the<DependencyManagementExtension>().apply {
         imports {
-            mavenBom("io.opentelemetry:opentelemetry-bom:1.53.0")
-
-            mavenBom("io.github.danielliu1123:grpc-starter-dependencies:3.5.4")
+            mavenBom("io.opentelemetry:opentelemetry-bom:1.59.0")
+//            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.25.0")
+            mavenBom("io.github.danielliu1123:grpc-starter-dependencies:4.0.0")
+            mavenBom("org.springframework.boot:spring-boot-dependencies:4.0.0")
+            mavenBom("org.springframework.grpc:spring-grpc-dependencies:1.0.0")
 //            mavenBom("org.springframework.cloud:spring-cloud-dependencies:2025.0.0")
-            mavenBom("org.springframework.boot:spring-boot-dependencies:3.5.4")
-            mavenBom("io.opentelemetry.instrumentation:opentelemetry-instrumentation-bom:2.15.0")
         }
 
         dependencies {
-            dependency("org.projectlombok:lombok:1.18.38")
+            //prefer jre instead of android version
+            dependency("com.google.guava:guava:33.4.0-jre")
 
-            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.15.0-alpha")
-            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.15.0-alpha")
-            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.49.0-alpha")
+            dependency("org.projectlombok:lombok:1.18.42")
+
+            dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.25.0-alpha")
+            dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.25.0-alpha")
+            dependency("io.opentelemetry.contrib:opentelemetry-samplers:1.53.0-alpha")
 
             dependency("org.slf4j:slf4j-api:2.0.17")
 
@@ -106,25 +181,27 @@ subprojects {
 
             dependency("jakarta.validation:jakarta.validation-api:3.0.2")
 
-            dependency("org.springframework:spring-web:6.2.8")
-            dependency("org.springframework:spring-webflux:6.2.8")
-            dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:2.8.9")
+            dependency("org.springdoc:springdoc-openapi-starter-common:3.0.0")
+            dependency("org.springdoc:springdoc-openapi-starter-webflux-ui:3.0.0")
+            dependency("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.0")
 
             dependency("org.springframework:spring-r2dbc:6.2.8")
-            dependency("org.postgresql:r2dbc-postgresql:1.0.7.RELEASE")
+            dependency("org.postgresql:r2dbc-postgresql:1.1.1.RELEASE")
 
-            dependency("io.grpc:grpc-core:1.74.0")
-            dependency("io.grpc:grpc-stub:1.74.0")
-            dependency("io.grpc:grpc-protobuf:1.74.0")
-            dependency("io.grpc:protoc-gen-grpc-java:1.74.0")
+            val grpcVer: String by rootProject.extra
+            dependency("io.grpc:grpc-core:$grpcVer")
+            dependency("io.grpc:grpc-stub:$grpcVer")
+            dependency("io.grpc:grpc-protobuf:$grpcVer")
+            dependency("io.grpc:protoc-gen-grpc-java:$grpcVer")
 
-            dependency("com.google.protobuf:protoc:3.25.5")
-            dependency("com.google.protobuf:protobuf-java:3.25.5")
-            dependency("com.google.protobuf:protobuf-java-util:3.25.5")
+            val protobufVer: String by rootProject.extra
+            dependency("com.google.protobuf:protoc:$protobufVer")
+            dependency("com.google.protobuf:protobuf-java:$protobufVer")
+            dependency("com.google.protobuf:protobuf-java-util:$protobufVer")
 
-            dependency("build.buf:protovalidate:0.2.1")
+            dependency("build.buf:protovalidate:1.1.0")
 
-            dependency("io.projectreactor.kafka:reactor-kafka:1.3.23")
+            dependency("io.projectreactor.kafka:reactor-kafka:1.3.25")
 
             val liquibaseVer: String by rootProject.extra
             dependency("org.liquibase:liquibase-core:${liquibaseVer}")
@@ -133,30 +210,29 @@ subprojects {
             dependency("org.jooq:jooq:3.20.6")
             dependency("org.jooq:jooq-postgres-extensions:3.20.6")
 
-//            dependency("org.junit.jupiter:junit-jupiter:5.12.2")
+            dependency("io.grpc:grpc-netty:$grpcVer")
         }
         the<SpotlessExtension>().apply {
             java {
                 target("src/*/java/**/*.java")
                 removeUnusedImports()
                 endWithNewline()
-
                 cleanthat()
                     .version("2.23")
-                    .sourceCompatibility("24")
+                    .sourceCompatibility("25")
                     .addMutator("SafeAndConsensual")
                     .addMutator("SafeButNotConsensual")
                     .addMutator("SafeButControversial")
                     .excludeMutator("AvoidInlineConditionals")
                     .includeDraft(false)
 
-                eclipse()
-                    .sortMembersEnabled(true)
-                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
-//                    .sortMembersDoNotSortFields(false)
-//                    .sortMembersVisibilityOrderEnabled(true)
-//                    .sortMembersVisibilityOrder("B,R,D,V")
-                    .configFile("$rootDir/config/codestyle.xml")
+//                eclipse()
+//                    .sortMembersEnabled(true)
+//                    .sortMembersOrder("SF,SI,F,SM,I,C,M,T")
+////                    .sortMembersDoNotSortFields(false)
+////                    .sortMembersVisibilityOrderEnabled(true)
+////                    .sortMembersVisibilityOrder("B,R,D,V")
+////                    .configFile("$rootDir/config/codestyle.xml")
             }
         }
     }

@@ -2,23 +2,41 @@ debug: false
 logging:
   level:
     root: INFO
+    reactor:
+      netty:
+        channel:
+          ChannelOperations: INFO
+    okhttp3:
+      internal:
+        http2:
+          Http2: INFO
+        concurrent:
+          TaskRunner: INFO
     org:
       springframework:
         boot:
           autoconfigure:
             logging:
-              ConditionEvaluationReportLogger: debug # auto configs report
+              ConditionEvaluationReportLogger: DEBUG # auto configs report
         r2dbc:
-          connection: TRACE # log sql
+          connection: INFO # log sql
         transaction:
-          reactive: TRACE # log sql
+          reactive: INFO # log sql
     io:
+      opentelemetry:
+        exporter:
+          sender:
+            okhttp:
+              internal: INFO
+      grpc: INFO
       github:
-        m4gshm: TRACE
+        m4gshm: INFO
       r2dbc:
+        pool:
+#          PooledConnection: TRACE
         postgresql:
-          client: DEBUG # log sql
-          QUERY: DEBUG
+          client: INFO # log sql
+          QUERY: INFO
     java:
       io:
         serialization: INFO
@@ -27,8 +45,7 @@ logging:
     javax:
       management: INFO
   pattern:
-    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
-
+#    level: '%5p [%X{trace_id:-},%X{span_id:-}]'
 server:
   port: 7082
   error:
@@ -49,44 +66,82 @@ springdoc:
     enabled: true
   swagger-ui:
     enabled: true
-    path: /swagger-ui.html
+    path: /swagger-ui/index.html
   use-fqn: true  # Use fully qualified names for better clarity
 
 spring:
+  threads:
+    virtual:
+      enabled: true
+#  reactor.context-propagation: AUTO
   #for liquibase
   datasource:
-    url: jdbc:postgresql://localhost:5000/payment
+    url: jdbc:postgresql://localhost:5000/jvm_payments
     username: postgres
     password: postgres
+    hikari:
+      keepalive-time: 30000
+      minimum-idle: 8
+      maximum-pool-size: 120
   r2dbc:
-    url: r2dbc:postgresql://localhost:5000/payment
+    url: r2dbc:postgresql://localhost:5000/jvm_payments
     username: postgres
     password: postgres
+    pool:
+      initial-size: 1
+      max-size: 32
+      min-idle: 8
+      max-idle-time: 1m
+      validation-depth: LOCAL
+#      validation-query: select 1;
   liquibase:
     enabled: true
+    url: ${spring.datasource.url}
+    user: ${spring.datasource.username}
+    password: ${spring.datasource.password}
   kafka:
-    bootstrap-servers:
-      - localhost:9092
+    bootstrap-servers: localhost:9092
     producer:
       key-serializer: org.apache.kafka.common.serialization.StringSerializer
       value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: true
     consumer:
       group-id: payments
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
-      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
   application:
-    name: payments
+    name: jvm-payments-reactive
 
 management:
   endpoints:
     web:
       exposure:
         include: '*'
+  opentelemetry:
+    tracing:
+      export:
+        otlp:
+          endpoint: ${otel.exporter.otlp.endpoint}
+          transport: grpc
+  logging:
+    export:
+      enabled: false
   tracing:
+    export:
+      enabled: false
     sampling:
       probability: 1.0
   otlp:
-    logging:
-      endpoint: http://localhost:4318/v1/logs
-    tracing:
-      endpoint: http://localhost:4318/v1/traces
+    metrics:
+      export:
+        enabled: false
+otel:
+  exporter:
+    otlp:
+      protocol: grpc
+      endpoint: http://localhost:4317
+  instrumentation:
+    common:
+      default-enabled: false
+

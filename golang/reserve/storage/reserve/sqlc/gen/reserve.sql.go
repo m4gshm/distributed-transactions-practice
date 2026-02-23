@@ -91,6 +91,42 @@ func (q *Queries) FindItemsByReserveID(ctx context.Context, reserveID string) ([
 	return items, nil
 }
 
+const FindItemsByReserveIDOrderByID = `-- name: FindItemsByReserveIDOrderByID :many
+SELECT
+  id, reserve_id, amount, insufficient, reserved
+FROM
+  reserve_item
+WHERE
+  reserve_id = $1
+ORDER BY id
+`
+
+func (q *Queries) FindItemsByReserveIDOrderByID(ctx context.Context, reserveID string) ([]ReserveItem, error) {
+	rows, err := q.db.Query(ctx, FindItemsByReserveIDOrderByID, reserveID)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ReserveItem
+	for rows.Next() {
+		var i ReserveItem
+		if err := rows.Scan(
+			&i.ID,
+			&i.ReserveID,
+			&i.Amount,
+			&i.Insufficient,
+			&i.Reserved,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const FindReserveByID = `-- name: FindReserveByID :one
 SELECT
   id, external_ref, status, created_at, updated_at
@@ -115,13 +151,13 @@ func (q *Queries) FindReserveByID(ctx context.Context, id string) (Reserve, erro
 
 const UpsertReserve = `-- name: UpsertReserve :exec
 INSERT INTO
-  reserve (id, external_ref, status, created_at, updated_at)
+  reserve (id, external_ref, status, created_at)
 VALUES
-  ($1, $2, $3, $4, $5) ON CONFLICT (id) DO
+  ($1, $2, $3, $4) ON CONFLICT (id) DO
 UPDATE
 SET
   status = EXCLUDED.status,
-  updated_at = COALESCE(EXCLUDED.updated_at, reserve.updated_at)
+  updated_at = COALESCE($5, CURRENT_TIMESTAMP)
 `
 
 type UpsertReserveParams struct {

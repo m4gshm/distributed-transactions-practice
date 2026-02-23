@@ -1,0 +1,15 @@
+plugins {
+    `java-library`
+}
+
+java {
+    targetCompatibility = JavaVersion.VERSION_24
+}
+
+dependencies {
+    api("org.slf4j:slf4j-api")
+    api("org.jooq:jooq")
+    implementation("org.springframework:spring-web")
+    implementation("org.springframework.boot:spring-boot-jooq")
+    implementation("org.springframework.boot:spring-boot-autoconfigure")
+}

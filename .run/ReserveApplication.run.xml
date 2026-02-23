@@ -2,6 +2,8 @@
   <configuration default="false" name="ReserveApplication" type="Application" factoryName="Application">
     <option name="MAIN_CLASS_NAME" value="io.github.m4gshm.reserve.ReserveApplication" />
     <module name="java.reserve.reserve-grpc-service.main" />
+    <shortenClasspath name="ARGS_FILE" />
+    <option name="VM_PARAMETERS" value="-Xmx1g" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
