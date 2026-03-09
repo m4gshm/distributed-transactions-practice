@@ -13,7 +13,7 @@ services:
         reservations:
           cpus: '0.25'
           memory: 64M
-    image: postgres:17.0
+    image: postgres:17.5
     ports:
       - "5000:5432"
     environment:

@@ -1,6 +1,6 @@
 package io.github.m4gshm.orders;
 
-import io.github.m4gshm.asyncprof.AsyncProfController;
+import io.github.m4gshm.asyncprof.controller.AsyncProfController;
 import io.github.m4gshm.jfr.controller.JfrController;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

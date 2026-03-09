@@ -32,6 +32,8 @@ dependencies {
     annotationProcessor("org.mapstruct:mapstruct-processor:1.6.3")
 
     compileOnly("io.opentelemetry:opentelemetry-exporter-otlp")
+
+    compileOnly("org.springframework.boot:spring-boot-tomcat")
 }
 
 tasks.named<Dockerfile>(DockerConventionJvmApplicationPlugin.DOCKERFILE_TASK_NAME) {

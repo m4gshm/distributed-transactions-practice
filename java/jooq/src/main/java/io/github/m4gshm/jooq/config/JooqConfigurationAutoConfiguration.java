@@ -6,17 +6,7 @@ import org.springframework.boot.jooq.autoconfigure.JooqAutoConfiguration;
 import org.springframework.context.annotation.Bean;
 
 @AutoConfiguration(before = JooqAutoConfiguration.class)
-public class DefaultConfigurationCustomizerAutoConfiguration {
-    // @Bean
-//    DefaultConfigurationCustomizer configurationCustomizers() {
-//        return new DefaultConfigurationCustomizer() {
-//            @Override
-//            public void customize(DefaultConfiguration configuration) {
-//                configuration.
-//            }
-//        };
-//    }
-//
+public class JooqConfigurationAutoConfiguration {
     @Bean
     public Settings settings() {
         return new Settings()

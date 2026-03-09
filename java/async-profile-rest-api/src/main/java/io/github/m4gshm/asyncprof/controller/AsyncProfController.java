@@ -1,4 +1,4 @@
-package io.github.m4gshm.asyncprof;
+package io.github.m4gshm.asyncprof.controller;
 
 import lombok.RequiredArgsConstructor;
 import lombok.SneakyThrows;
@@ -20,8 +20,8 @@ import java.io.IOException;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
-import static io.github.m4gshm.asyncprof.AsyncProfController.Event.cpu;
-import static io.github.m4gshm.asyncprof.AsyncProfController.Format.flamegraph;
+import static io.github.m4gshm.asyncprof.controller.AsyncProfController.Event.cpu;
+import static io.github.m4gshm.asyncprof.controller.AsyncProfController.Format.flamegraph;
 import static java.io.File.createTempFile;
 import static java.lang.String.join;
 import static org.springframework.http.MediaType.APPLICATION_OCTET_STREAM;

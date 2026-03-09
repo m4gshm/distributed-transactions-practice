@@ -16,7 +16,7 @@ import org.springframework.context.annotation.Bean;
 import static org.jooq.tools.jdbc.JDBCUtils.dialect;
 
 @AutoConfiguration(before = { DSLContextAutoConfiguration.class,
-        JooqAutoConfiguration.class }, after = DefaultConfigurationCustomizerAutoConfiguration.class)
+        JooqAutoConfiguration.class }, after = JooqConfigurationAutoConfiguration.class)
 public class R2dbcConnectionFactoryAutoConfiguration {
 
 //    @Bean

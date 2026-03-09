@@ -8,6 +8,7 @@ public class VirtualThreadSchedulerUtils {
 
     public static final String VT_PARALLELISM_DELTA = "VT_PARALLELISM_DELTA";
 
+    @SuppressWarnings("checkstyle:BanSystemOut")
     public static void initVirtualThreadScheduler() {
         var delta = System.getenv(VT_PARALLELISM_DELTA);
         if (delta != null && !delta.isBlank()) try {
