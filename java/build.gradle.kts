@@ -167,7 +167,7 @@ subprojects {
             //prefer jre instead of android version
             dependency("com.google.guava:guava:33.4.0-jre")
 
-            dependency("org.projectlombok:lombok:1.18.42")
+            dependency("org.projectlombok:lombok:1.18.48")
 
             dependency("io.opentelemetry.instrumentation:opentelemetry-grpc-1.6:2.25.0-alpha")
             dependency("io.opentelemetry.instrumentation:opentelemetry-reactor-3.1:2.25.0-alpha")
@@ -211,6 +211,11 @@ subprojects {
             dependency("org.jooq:jooq-postgres-extensions:3.20.6")
 
             dependency("io.grpc:grpc-netty:$grpcVer")
+
+            // testcontainers
+            dependency("org.testcontainers:testcontainers:1.21.3")
+            dependency("org.testcontainers:postgresql:1.21.3")
+            dependency("org.testcontainers:junit-jupiter:1.21.3")
         }
         the<SpotlessExtension>().apply {
             java {
